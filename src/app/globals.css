@@ -29,7 +29,13 @@
   --font-mono: var(--font-geist-mono);
 }
 
+html,
 body {
+  height: 100%;
+}
+
+body {
+  overflow-y: auto;
   background: var(--bg-primary);
   color: var(--text-primary);
   font-family: var(--font-sans), system-ui, sans-serif;
