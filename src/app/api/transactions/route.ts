@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { transactions } from "@/lib/db/schema";
-import { desc } from "drizzle-orm";
+import { transactions, accounts, plaidItems } from "@/lib/db/schema";
+import { desc, eq, getTableColumns } from "drizzle-orm";
+import { getUserId, isAuthError } from "@/lib/auth/get-user-id";
 
 export type TransactionRow = {
   id: number;
@@ -18,15 +19,18 @@ export type TransactionRow = {
 
 export async function GET(request: NextRequest) {
   try {
+    const userId = await getUserId();
     const { searchParams } = new URL(request.url);
-    const limit = Math.min(
-      parseInt(searchParams.get("limit") ?? "50", 10),
-      200
-    );
+    const parsed = parseInt(searchParams.get("limit") ?? "50", 10);
+    const limit = Number.isNaN(parsed) || parsed < 1 ? 50 : Math.min(parsed, 200);
 
+    // Scope transactions to the authenticated user via join
     const rows = await db
-      .select()
+      .select({ ...getTableColumns(transactions) })
       .from(transactions)
+      .innerJoin(accounts, eq(transactions.accountId, accounts.accountId))
+      .innerJoin(plaidItems, eq(accounts.plaidItemId, plaidItems.id))
+      .where(eq(plaidItems.userId, userId))
       .orderBy(desc(transactions.date), desc(transactions.id))
       .limit(limit);
 
@@ -45,6 +49,9 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({ transactions: result });
   } catch (error) {
+    if (isAuthError(error)) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
     console.error("Failed to fetch transactions:", error);
     return NextResponse.json(
       { error: "Failed to fetch transactions" },

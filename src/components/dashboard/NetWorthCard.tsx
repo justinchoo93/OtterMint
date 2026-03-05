@@ -7,9 +7,10 @@ import type { ManualAccountRow } from "@/app/api/manual-accounts/route";
 interface NetWorthCardProps {
   accounts: AccountWithInstitution[];
   manualAccounts?: ManualAccountRow[];
+  label?: string;
 }
 
-export function NetWorthCard({ accounts, manualAccounts = [] }: NetWorthCardProps) {
+export function NetWorthCard({ accounts, manualAccounts = [], label = "Net Worth" }: NetWorthCardProps) {
   // Plaid account assets/liabilities
   const plaidAssets = accounts
     .filter((a) => a.type === "depository" || a.type === "investment")
@@ -38,7 +39,7 @@ export function NetWorthCard({ accounts, manualAccounts = [] }: NetWorthCardProp
     <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-secondary)] p-4 sm:p-6">
       <div className="flex items-baseline justify-between">
         <span className="text-xs font-medium uppercase tracking-wider text-[var(--text-muted)]">
-          Net Worth
+          {label}
         </span>
         <span className="text-xs text-[var(--text-muted)]">
           {totalAccounts > 0 ? `${totalAccounts} accounts` : "No accounts"}

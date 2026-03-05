@@ -1,8 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
-const { mockDbSelect, mockDbInsert } = vi.hoisted(() => {
+const { mockDbInsert } = vi.hoisted(() => {
   return {
-    mockDbSelect: vi.fn(),
     mockDbInsert: vi.fn().mockReturnValue({
       values: vi.fn().mockReturnValue({
         onConflictDoUpdate: vi.fn(),
@@ -13,15 +12,19 @@ const { mockDbSelect, mockDbInsert } = vi.hoisted(() => {
 
 vi.mock("@/lib/db", () => ({
   db: {
-    select: mockDbSelect,
     insert: mockDbInsert,
   },
 }));
 
 vi.mock("@/lib/db/schema", () => ({
-  accounts: { type: "type" },
-  manualAccounts: { type: "type" },
-  netWorthSnapshots: { date: "date" },
+  userNetWorthSnapshots: {
+    userId: "user_id",
+    date: "date",
+  },
+  groupNetWorthSnapshots: {
+    groupId: "group_id",
+    date: "date",
+  },
 }));
 
 import { computeSnapshot, type SnapshotData } from "@/lib/compute-snapshot";
@@ -85,6 +88,23 @@ describe("computeSnapshot", () => {
     expect(result.totalAssets).toBe("0.00");
     expect(result.totalLiabilities).toBe("100.00");
     expect(result.netWorth).toBe("-100.00");
+  });
+
+  it("does not convert negative depository balance (overdraft) to positive", () => {
+    const plaidAccounts = [
+      { type: "depository", currentBalance: "-150.00" },
+      { type: "depository", currentBalance: "1000.00" },
+    ];
+
+    const result = computeSnapshot(
+      plaidAccounts as Parameters<typeof computeSnapshot>[0],
+      []
+    );
+
+    // -150 + 1000 = 850, not 1150 (which Math.abs would produce)
+    expect(result.depositoryTotal).toBe("850.00");
+    expect(result.totalAssets).toBe("850.00");
+    expect(result.netWorth).toBe("850.00");
   });
 
   it("includes loan accounts in liabilities", () => {

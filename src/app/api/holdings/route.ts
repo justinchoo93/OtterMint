@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { holdings } from "@/lib/db/schema";
+import { holdings, accounts, plaidItems } from "@/lib/db/schema";
+import { eq, getTableColumns } from "drizzle-orm";
+import { getUserId, isAuthError } from "@/lib/auth/get-user-id";
 
 export type HoldingRow = {
   id: number;
@@ -17,7 +19,14 @@ export type HoldingRow = {
 
 export async function GET() {
   try {
-    const rows = await db.select().from(holdings);
+    const userId = await getUserId();
+
+    const rows = await db
+      .select({ ...getTableColumns(holdings) })
+      .from(holdings)
+      .innerJoin(accounts, eq(holdings.accountId, accounts.accountId))
+      .innerJoin(plaidItems, eq(accounts.plaidItemId, plaidItems.id))
+      .where(eq(plaidItems.userId, userId));
 
     const result: HoldingRow[] = rows.map((row) => ({
       id: row.id,
@@ -34,6 +43,9 @@ export async function GET() {
 
     return NextResponse.json({ holdings: result });
   } catch (error) {
+    if (isAuthError(error)) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
     console.error("Failed to fetch holdings:", error);
     return NextResponse.json(
       { error: "Failed to fetch holdings" },

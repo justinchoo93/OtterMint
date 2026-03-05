@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { netWorthSnapshots } from "@/lib/db/schema";
-import { asc, gte } from "drizzle-orm";
+import { userNetWorthSnapshots } from "@/lib/db/schema";
+import { asc, and, gte, eq } from "drizzle-orm";
+import { getUserId, isAuthError } from "@/lib/auth/get-user-id";
 
 export type NetWorthSnapshotRow = {
   date: string;
@@ -18,11 +19,10 @@ export type NetWorthSnapshotRow = {
 
 export async function GET(request: NextRequest) {
   try {
+    const userId = await getUserId();
     const { searchParams } = new URL(request.url);
-    const days = Math.min(
-      parseInt(searchParams.get("days") ?? "90", 10),
-      365
-    );
+    const parsedDays = parseInt(searchParams.get("days") ?? "90", 10);
+    const days = Number.isNaN(parsedDays) || parsedDays < 1 ? 90 : Math.min(parsedDays, 365);
 
     const sinceDate = new Date();
     sinceDate.setDate(sinceDate.getDate() - days);
@@ -30,9 +30,14 @@ export async function GET(request: NextRequest) {
 
     const rows = await db
       .select()
-      .from(netWorthSnapshots)
-      .where(gte(netWorthSnapshots.date, sinceDateStr))
-      .orderBy(asc(netWorthSnapshots.date));
+      .from(userNetWorthSnapshots)
+      .where(
+        and(
+          eq(userNetWorthSnapshots.userId, userId),
+          gte(userNetWorthSnapshots.date, sinceDateStr)
+        )
+      )
+      .orderBy(asc(userNetWorthSnapshots.date));
 
     const result: NetWorthSnapshotRow[] = rows.map((row) => ({
       date: row.date,
@@ -49,6 +54,9 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({ snapshots: result });
   } catch (error) {
+    if (isAuthError(error)) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
     console.error("Failed to fetch net worth history:", error);
     return NextResponse.json(
       { error: "Failed to fetch net worth history" },

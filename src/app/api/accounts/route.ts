@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { accounts, plaidItems } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
+import { getUserId, isAuthError } from "@/lib/auth/get-user-id";
 
 export type AccountWithInstitution = {
   id: number;
@@ -30,7 +31,13 @@ export type PlaidItemStatus = {
 
 export async function GET() {
   try {
-    const allItems = await db.select().from(plaidItems);
+    const userId = await getUserId();
+
+    const allItems = await db
+      .select()
+      .from(plaidItems)
+      .where(eq(plaidItems.userId, userId));
+
     const allAccounts: AccountWithInstitution[] = [];
     const itemStatuses: PlaidItemStatus[] = [];
 
@@ -70,6 +77,9 @@ export async function GET() {
 
     return NextResponse.json({ accounts: allAccounts, itemStatuses });
   } catch (error) {
+    if (isAuthError(error)) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
     console.error("Failed to fetch accounts:", error);
     return NextResponse.json(
       { error: "Failed to fetch accounts" },

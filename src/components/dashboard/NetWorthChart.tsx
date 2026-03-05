@@ -15,6 +15,7 @@ import type { NetWorthSnapshotRow } from "@/app/api/net-worth/route";
 
 interface NetWorthChartProps {
   refreshKey?: number;
+  groupId?: string;
 }
 
 function formatDateLabel(dateStr: string): string {
@@ -22,13 +23,16 @@ function formatDateLabel(dateStr: string): string {
   return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
 }
 
-export function NetWorthChart({ refreshKey }: NetWorthChartProps) {
+export function NetWorthChart({ refreshKey, groupId }: NetWorthChartProps) {
   const [snapshots, setSnapshots] = useState<NetWorthSnapshotRow[]>([]);
   const [loading, setLoading] = useState(true);
 
   const fetchSnapshots = useCallback(async () => {
     try {
-      const res = await fetch("/api/net-worth?days=90");
+      const url = groupId
+        ? `/api/groups/${groupId}/net-worth?days=90`
+        : "/api/net-worth?days=90";
+      const res = await fetch(url);
       const data = await res.json();
       setSnapshots(data.snapshots ?? []);
     } catch (err) {

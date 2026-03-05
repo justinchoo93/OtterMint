@@ -1,5 +1,5 @@
 import { db } from "@/lib/db";
-import { netWorthSnapshots } from "@/lib/db/schema";
+import { userNetWorthSnapshots, groupNetWorthSnapshots } from "@/lib/db/schema";
 
 export interface SnapshotData {
   totalAssets: string;
@@ -29,7 +29,7 @@ function sumByType(
 ): number {
   return accounts
     .filter((a) => a.type === type)
-    .reduce((sum, a) => sum + Math.abs(parseFloat(a.currentBalance ?? "0")), 0);
+    .reduce((sum, a) => sum + parseFloat(a.currentBalance ?? "0"), 0);
 }
 
 export function computeSnapshot(
@@ -47,7 +47,7 @@ export function computeSnapshot(
 
   const manualLiabilitiesTotal = manualAccounts
     .filter((a) => a.type === "liability")
-    .reduce((sum, a) => sum + Math.abs(parseFloat(a.balance)), 0);
+    .reduce((sum, a) => sum + parseFloat(a.balance), 0);
 
   const totalAssets = depositoryTotal + investmentTotal + manualAssetsTotal;
   const totalLiabilities = creditTotal + loanTotal + manualLiabilitiesTotal;
@@ -66,35 +66,54 @@ export function computeSnapshot(
   };
 }
 
-export async function saveSnapshot(data: SnapshotData): Promise<void> {
+function snapshotValues(data: SnapshotData) {
+  return {
+    totalAssets: data.totalAssets,
+    totalLiabilities: data.totalLiabilities,
+    netWorth: data.netWorth,
+    depositoryTotal: data.depositoryTotal,
+    creditTotal: data.creditTotal,
+    investmentTotal: data.investmentTotal,
+    loanTotal: data.loanTotal,
+    manualAssetsTotal: data.manualAssetsTotal,
+    manualLiabilitiesTotal: data.manualLiabilitiesTotal,
+  };
+}
+
+export async function saveUserSnapshot(
+  userId: string,
+  data: SnapshotData
+): Promise<void> {
   const today = new Date().toISOString().split("T")[0];
 
   await db
-    .insert(netWorthSnapshots)
+    .insert(userNetWorthSnapshots)
     .values({
+      userId,
       date: today,
-      totalAssets: data.totalAssets,
-      totalLiabilities: data.totalLiabilities,
-      netWorth: data.netWorth,
-      depositoryTotal: data.depositoryTotal,
-      creditTotal: data.creditTotal,
-      investmentTotal: data.investmentTotal,
-      loanTotal: data.loanTotal,
-      manualAssetsTotal: data.manualAssetsTotal,
-      manualLiabilitiesTotal: data.manualLiabilitiesTotal,
+      ...snapshotValues(data),
     })
     .onConflictDoUpdate({
-      target: netWorthSnapshots.date,
-      set: {
-        totalAssets: data.totalAssets,
-        totalLiabilities: data.totalLiabilities,
-        netWorth: data.netWorth,
-        depositoryTotal: data.depositoryTotal,
-        creditTotal: data.creditTotal,
-        investmentTotal: data.investmentTotal,
-        loanTotal: data.loanTotal,
-        manualAssetsTotal: data.manualAssetsTotal,
-        manualLiabilitiesTotal: data.manualLiabilitiesTotal,
-      },
+      target: [userNetWorthSnapshots.userId, userNetWorthSnapshots.date],
+      set: snapshotValues(data),
+    });
+}
+
+export async function saveGroupSnapshot(
+  groupId: string,
+  data: SnapshotData
+): Promise<void> {
+  const today = new Date().toISOString().split("T")[0];
+
+  await db
+    .insert(groupNetWorthSnapshots)
+    .values({
+      groupId,
+      date: today,
+      ...snapshotValues(data),
+    })
+    .onConflictDoUpdate({
+      target: [groupNetWorthSnapshots.groupId, groupNetWorthSnapshots.date],
+      set: snapshotValues(data),
     });
 }

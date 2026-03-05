@@ -1,13 +1,19 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { accounts, plaidItems, manualAccounts } from "@/lib/db/schema";
+import {
+  accounts,
+  plaidItems,
+  manualAccounts,
+  groupMembers,
+} from "@/lib/db/schema";
 import { plaidClient } from "@/lib/plaid";
 import { decrypt } from "@/lib/crypto";
 import { syncTransactions } from "@/lib/sync-transactions";
 import { syncHoldings } from "@/lib/sync-holdings";
-import { computeSnapshot, saveSnapshot } from "@/lib/compute-snapshot";
-import { eq } from "drizzle-orm";
+import { computeSnapshot, saveUserSnapshot, saveGroupSnapshot } from "@/lib/compute-snapshot";
+import { eq, inArray } from "drizzle-orm";
 import { PlaidError } from "plaid";
+import { getUserId, isAuthError } from "@/lib/auth/get-user-id";
 
 const STALE_THRESHOLD_MS = 2 * 60 * 60 * 1000; // 2 hours
 
@@ -21,13 +27,26 @@ function isPlaidError(err: unknown): err is { response: { data: PlaidError } } {
 }
 
 export async function POST() {
-  const allItems = await db.select().from(plaidItems);
+  let userId: string;
+  try {
+    userId = await getUserId();
+  } catch (error) {
+    if (isAuthError(error)) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    throw error;
+  }
+
+  const userItems = await db
+    .select()
+    .from(plaidItems)
+    .where(eq(plaidItems.userId, userId));
+
   let refreshedCount = 0;
   const errors: { institutionName: string; error: string }[] = [];
 
-  for (const item of allItems) {
+  for (const item of userItems) {
     try {
-      // Check if any account for this item is stale
       const itemAccounts = await db
         .select()
         .from(accounts)
@@ -66,7 +85,6 @@ export async function POST() {
         item.transactionsCursor
       );
 
-      // Update cursor and clear any previous errors
       await db
         .update(plaidItems)
         .set({
@@ -88,7 +106,6 @@ export async function POST() {
 
       refreshedCount++;
     } catch (err) {
-      // Handle Plaid-specific errors (e.g. ITEM_LOGIN_REQUIRED)
       if (isPlaidError(err)) {
         const plaidErr = err.response.data;
         const errorCode = plaidErr.error_code ?? "UNKNOWN";
@@ -120,12 +137,75 @@ export async function POST() {
     }
   }
 
-  // Always compute and save snapshot (even if some items failed)
+  // Compute and save user snapshot
   try {
-    const allAccounts = await db.select().from(accounts);
-    const allManual = await db.select().from(manualAccounts);
-    const snapshotData = computeSnapshot(allAccounts, allManual);
-    await saveSnapshot(snapshotData);
+    const userPlaidItems = await db
+      .select()
+      .from(plaidItems)
+      .where(eq(plaidItems.userId, userId));
+    const userItemIds = userPlaidItems.map((i) => i.id);
+
+    const userAccounts =
+      userItemIds.length > 0
+        ? await db
+            .select()
+            .from(accounts)
+            .where(inArray(accounts.plaidItemId, userItemIds))
+        : [];
+
+    const userManual = await db
+      .select()
+      .from(manualAccounts)
+      .where(eq(manualAccounts.userId, userId));
+
+    const snapshotData = computeSnapshot(userAccounts, userManual);
+    await saveUserSnapshot(userId, snapshotData);
+
+    // Also recompute group snapshots for any groups this user is in
+    const userGroups = await db
+      .select({ groupId: groupMembers.groupId })
+      .from(groupMembers)
+      .where(eq(groupMembers.userId, userId));
+
+    for (const { groupId } of userGroups) {
+      try {
+        // Get all member user IDs in this group
+        const members = await db
+          .select({ userId: groupMembers.userId })
+          .from(groupMembers)
+          .where(eq(groupMembers.groupId, groupId));
+
+        const memberIds = members.map((m) => m.userId);
+
+        // Get all plaid items for group members
+        const memberPlaidItems = await db
+          .select()
+          .from(plaidItems)
+          .where(inArray(plaidItems.userId, memberIds));
+        const memberItemIds = memberPlaidItems.map((i) => i.id);
+
+        const groupPlaidAccounts =
+          memberItemIds.length > 0
+            ? await db
+                .select()
+                .from(accounts)
+                .where(inArray(accounts.plaidItemId, memberItemIds))
+            : [];
+
+        const groupManualAccounts = await db
+          .select()
+          .from(manualAccounts)
+          .where(inArray(manualAccounts.userId, memberIds));
+
+        const groupSnapshot = computeSnapshot(
+          groupPlaidAccounts,
+          groupManualAccounts
+        );
+        await saveGroupSnapshot(groupId, groupSnapshot);
+      } catch (err) {
+        console.error(`Failed to save group snapshot for ${groupId}:`, err);
+      }
+    }
   } catch (err) {
     console.error("Failed to save snapshot:", err);
   }

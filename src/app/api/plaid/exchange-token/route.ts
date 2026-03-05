@@ -3,9 +3,11 @@ import { plaidClient } from "@/lib/plaid";
 import { encrypt } from "@/lib/crypto";
 import { db } from "@/lib/db";
 import { plaidItems, accounts } from "@/lib/db/schema";
+import { getUserId, isAuthError } from "@/lib/auth/get-user-id";
 
 export async function POST(request: NextRequest) {
   try {
+    const userId = await getUserId();
     const { public_token, institution } = await request.json();
 
     // Exchange public token for access token
@@ -19,6 +21,7 @@ export async function POST(request: NextRequest) {
     const [plaidItem] = await db
       .insert(plaidItems)
       .values({
+        userId,
         institutionId: institution.institution_id,
         institutionName: institution.name,
         accessTokenEncrypted: encryptedToken,
@@ -50,6 +53,9 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ success: true, itemId: plaidItem.id });
   } catch (error) {
+    if (isAuthError(error)) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
     console.error("Failed to exchange token:", error);
     return NextResponse.json(
       { error: "Failed to exchange token" },

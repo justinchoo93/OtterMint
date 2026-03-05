@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { manualAccounts } from "@/lib/db/schema";
-import { eq } from "drizzle-orm";
+import { eq, and } from "drizzle-orm";
 import { validateManualAccount } from "@/lib/validate-manual-account";
+import { getUserId, isAuthError } from "@/lib/auth/get-user-id";
 
 export type ManualAccountRow = {
   id: number;
@@ -11,7 +12,6 @@ export type ManualAccountRow = {
   subtype: string | null;
   balance: string;
   isoCurrencyCode: string | null;
-  owner: string;
   notes: string | null;
   createdAt: string;
   updatedAt: string;
@@ -19,7 +19,13 @@ export type ManualAccountRow = {
 
 export async function GET() {
   try {
-    const rows = await db.select().from(manualAccounts);
+    const userId = await getUserId();
+
+    const rows = await db
+      .select()
+      .from(manualAccounts)
+      .where(eq(manualAccounts.userId, userId));
+
     const result: ManualAccountRow[] = rows.map((row) => ({
       id: row.id,
       name: row.name,
@@ -27,13 +33,15 @@ export async function GET() {
       subtype: row.subtype,
       balance: row.balance,
       isoCurrencyCode: row.isoCurrencyCode,
-      owner: row.owner,
       notes: row.notes,
       createdAt: row.createdAt.toISOString(),
       updatedAt: row.updatedAt.toISOString(),
     }));
     return NextResponse.json({ manualAccounts: result });
   } catch (error) {
+    if (isAuthError(error)) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
     console.error("Failed to fetch manual accounts:", error);
     return NextResponse.json(
       { error: "Failed to fetch manual accounts" },
@@ -44,6 +52,7 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   try {
+    const userId = await getUserId();
     const body = await request.json();
     const validation = validateManualAccount(body);
     if (!validation.success) {
@@ -53,17 +62,20 @@ export async function POST(request: NextRequest) {
     const [row] = await db
       .insert(manualAccounts)
       .values({
+        userId,
         name: body.name.trim(),
         type: body.type,
         subtype: body.subtype?.trim() || null,
         balance: body.balance,
-        owner: body.owner?.trim() || "justin",
         notes: body.notes?.trim() || null,
       })
       .returning();
 
     return NextResponse.json({ manualAccount: row }, { status: 201 });
   } catch (error) {
+    if (isAuthError(error)) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
     console.error("Failed to create manual account:", error);
     return NextResponse.json(
       { error: "Failed to create manual account" },
@@ -74,6 +86,7 @@ export async function POST(request: NextRequest) {
 
 export async function PUT(request: NextRequest) {
   try {
+    const userId = await getUserId();
     const body = await request.json();
     const { id, ...fields } = body;
 
@@ -93,11 +106,10 @@ export async function PUT(request: NextRequest) {
         type: fields.type,
         subtype: fields.subtype?.trim() || null,
         balance: fields.balance,
-        owner: fields.owner?.trim() || "justin",
         notes: fields.notes?.trim() || null,
         updatedAt: new Date(),
       })
-      .where(eq(manualAccounts.id, id))
+      .where(and(eq(manualAccounts.id, id), eq(manualAccounts.userId, userId)))
       .returning();
 
     if (!row) {
@@ -106,6 +118,9 @@ export async function PUT(request: NextRequest) {
 
     return NextResponse.json({ manualAccount: row });
   } catch (error) {
+    if (isAuthError(error)) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
     console.error("Failed to update manual account:", error);
     return NextResponse.json(
       { error: "Failed to update manual account" },
@@ -116,6 +131,7 @@ export async function PUT(request: NextRequest) {
 
 export async function DELETE(request: NextRequest) {
   try {
+    const userId = await getUserId();
     const { searchParams } = new URL(request.url);
     const id = parseInt(searchParams.get("id") ?? "", 10);
 
@@ -123,10 +139,15 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: "id is required" }, { status: 400 });
     }
 
-    await db.delete(manualAccounts).where(eq(manualAccounts.id, id));
+    await db
+      .delete(manualAccounts)
+      .where(and(eq(manualAccounts.id, id), eq(manualAccounts.userId, userId)));
 
     return NextResponse.json({ success: true });
   } catch (error) {
+    if (isAuthError(error)) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
     console.error("Failed to delete manual account:", error);
     return NextResponse.json(
       { error: "Failed to delete manual account" },

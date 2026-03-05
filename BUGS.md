@@ -23,17 +23,19 @@
 - **File**: `src/middleware.ts:9`
 - **Description**: `atob(encoded)` is unguarded. A malformed Basic auth header will throw and produce a 500 instead of a 401, creating an easy denial-of-service path.
 
-## Bug 6: Snapshot math overstates assets via Math.abs
+## ~~Bug 6: Snapshot math overstates assets via Math.abs~~ RESOLVED
 - **File**: `src/lib/compute-snapshot.ts:32`
 - **Description**: `Math.abs` is applied to all account balances by type. Negative depository/investment balances are converted into positive assets, which can materially overstate assets and net worth in saved snapshots.
+- **Fix**: Removed `Math.abs()` from `sumByType` and `manualLiabilitiesTotal`.
 
 ## Bug 7: Refresh doesn't sync new or removed Plaid accounts
 - **File**: `src/app/api/accounts/refresh/route.ts:50`
 - **Description**: Refresh only updates existing account rows; it never inserts newly discovered Plaid accounts or removes closed ones. This can leave stale data and break transaction/holding inserts via FK constraints for unseen account IDs.
 
-## Bug 8: Link token only requests Transactions product, not Investments
+## ~~Bug 8: Link token only requests Transactions product, not Investments~~ RESOLVED
 - **File**: `src/app/api/plaid/create-link-token/route.ts:10`
 - **Description**: Link token creation only requests `Products.Transactions`, but the refresh pipeline calls `investmentsHoldingsGet`. Without enabling the investments product at link time, holdings sync will fail for linked items.
+- **Fix**: Added `Products.Investments` to the products array.
 
 ## Bug 9: Invalid `days` query param causes 500 on net-worth endpoint
 - **File**: `src/app/api/net-worth/route.ts:22`
@@ -42,3 +44,15 @@
 ## Bug 10: Invalid `limit` query param causes 500 on transactions endpoint
 - **File**: `src/app/api/transactions/route.ts:22`
 - **Description**: `limit` query param is not validated for invalid/negative values. Non-numeric input propagates NaN into `.limit()` and triggers an avoidable 500.
+
+## Bug 11: Login endpoint accepts non-string email/password
+- **File**: `src/app/api/auth/login/route.ts:22`
+- **Description**: `email` and `password` are only checked for truthiness, not type. A non-string payload (e.g. `{ "email": {}, "password": {} }`) throws at `email.toLowerCase()` or inside bcrypt, producing a 500 instead of 400.
+
+## Bug 12: Password change doesn't validate currentPassword type
+- **File**: `src/app/api/auth/me/route.ts:91`
+- **Description**: Password-change flow does not validate `currentPassword` type before passing to `verifyPassword()`. Truthy non-string input triggers a runtime error and returns 500.
+
+## Bug 13: SpendingChart uses personal transactions in household mode
+- **File**: `src/components/dashboard/SpendingChart.tsx:53`
+- **Description**: `SpendingChart` always fetches `/api/transactions` (personal). When rendered in the household tab, it mixes household net worth with personal-only spending data.
