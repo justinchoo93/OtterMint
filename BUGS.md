@@ -19,9 +19,10 @@
 - **File**: `src/components/plaid/PlaidReauthButton.tsx:49`
 - **Description**: Same root cause as Bug 1/2 — `open()` is called during render when `linkToken` is set, and the token is only cleared on success. Dismissing the reauth flow leaves the token set, so rerenders reopen the modal.
 
-## Bug 5: Malformed auth header causes 500 instead of 401
+## ~~Bug 5: Malformed auth header causes 500 instead of 401~~ RESOLVED
 - **File**: `src/middleware.ts:9`
 - **Description**: `atob(encoded)` is unguarded. A malformed Basic auth header will throw and produce a 500 instead of a 401, creating an easy denial-of-service path.
+- **Fix**: Replaced Basic auth with cookie-based session auth. Middleware now validates UUID format before passing through.
 
 ## ~~Bug 6: Snapshot math overstates assets via Math.abs~~ RESOLVED
 - **File**: `src/lib/compute-snapshot.ts:32`
@@ -56,3 +57,6 @@
 ## Bug 13: SpendingChart uses personal transactions in household mode
 - **File**: `src/components/dashboard/SpendingChart.tsx:53`
 - **Description**: `SpendingChart` always fetches `/api/transactions` (personal). When rendered in the household tab, it mixes household net worth with personal-only spending data.
+
+## Bug 14: Dashboard page is not scrollable when content overflows
+- **Description**: When there are more items than the viewport height allows, the page cannot be scrolled. Content is cut off at the bottom of the screen.
