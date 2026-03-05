@@ -39,6 +39,12 @@ export async function PUT(request: NextRequest) {
   try {
     const userId = await getUserId();
     const body = await request.json();
+    if (typeof body !== "object" || body === null || Array.isArray(body)) {
+      return NextResponse.json(
+        { error: "Invalid request body" },
+        { status: 400 }
+      );
+    }
 
     const updates: Record<string, unknown> = { updatedAt: new Date() };
 
@@ -58,7 +64,7 @@ export async function PUT(request: NextRequest) {
 
     // Change password
     if (body.newPassword !== undefined) {
-      if (!body.currentPassword) {
+      if (typeof body.currentPassword !== "string" || !body.currentPassword) {
         return NextResponse.json(
           { error: "Current password is required" },
           { status: 400 }
