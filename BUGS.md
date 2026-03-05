@@ -38,25 +38,30 @@
 - **Description**: Link token creation only requests `Products.Transactions`, but the refresh pipeline calls `investmentsHoldingsGet`. Without enabling the investments product at link time, holdings sync will fail for linked items.
 - **Fix**: Added `Products.Investments` to the products array.
 
-## Bug 9: Invalid `days` query param causes 500 on net-worth endpoint
+## ~~Bug 9: Invalid `days` query param causes 500 on net-worth endpoint~~ RESOLVED
 - **File**: `src/app/api/net-worth/route.ts:22`
 - **Description**: `days` query param is not validated for NaN/invalid values. Inputs like `days=abc` create an invalid date and throw, causing an avoidable 500.
+- **Fix**: Added `Number.isNaN` check with fallback to default value of 90.
 
-## Bug 10: Invalid `limit` query param causes 500 on transactions endpoint
+## ~~Bug 10: Invalid `limit` query param causes 500 on transactions endpoint~~ RESOLVED
 - **File**: `src/app/api/transactions/route.ts:22`
 - **Description**: `limit` query param is not validated for invalid/negative values. Non-numeric input propagates NaN into `.limit()` and triggers an avoidable 500.
+- **Fix**: Added `Number.isNaN` check with fallback to default value of 50.
 
-## Bug 11: Login endpoint accepts non-string email/password
+## ~~Bug 11: Login endpoint accepts non-string email/password~~ RESOLVED
 - **File**: `src/app/api/auth/login/route.ts:22`
 - **Description**: `email` and `password` are only checked for truthiness, not type. A non-string payload (e.g. `{ "email": {}, "password": {} }`) throws at `email.toLowerCase()` or inside bcrypt, producing a 500 instead of 400.
+- **Fix**: Added `typeof` checks for email and password. Also guards against non-object request bodies (null, arrays, primitives).
 
-## Bug 12: Password change doesn't validate currentPassword type
+## ~~Bug 12: Password change doesn't validate currentPassword type~~ RESOLVED
 - **File**: `src/app/api/auth/me/route.ts:91`
 - **Description**: Password-change flow does not validate `currentPassword` type before passing to `verifyPassword()`. Truthy non-string input triggers a runtime error and returns 500.
+- **Fix**: Added `typeof` check for currentPassword. Also rejects non-object request bodies at the top of the PUT handler.
 
 ## Bug 13: SpendingChart uses personal transactions in household mode
 - **File**: `src/components/dashboard/SpendingChart.tsx:53`
 - **Description**: `SpendingChart` always fetches `/api/transactions` (personal). When rendered in the household tab, it mixes household net worth with personal-only spending data.
 
-## Bug 14: Dashboard page is not scrollable when content overflows
+## ~~Bug 14: Dashboard page is not scrollable when content overflows~~ RESOLVED
 - **Description**: When there are more items than the viewport height allows, the page cannot be scrolled. Content is cut off at the bottom of the screen.
+- **Fix**: Set explicit height on html/body and `overflow-y: auto` on body in globals.css.
