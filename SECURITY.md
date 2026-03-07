@@ -66,4 +66,4 @@ If a security vulnerability is discovered:
 
 ## Contact
 
-Security inquiries: security@otterfin.app
+Security inquiries: justin.k.choo@gmail.com

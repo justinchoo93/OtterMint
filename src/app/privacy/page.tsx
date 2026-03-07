@@ -182,7 +182,7 @@ export default function PrivacyPolicyPage() {
               </h2>
               <p>
                 For privacy-related inquiries, contact us at{" "}
-                <strong>privacy@otterfin.app</strong>.
+                <strong>justin.k.choo@gmail.com</strong>.
               </p>
             </section>
           </div>
