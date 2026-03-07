@@ -14,6 +14,7 @@ export async function GET() {
         id: users.id,
         email: users.email,
         displayName: users.displayName,
+        mfaEnabled: users.mfaEnabled,
       })
       .from(users)
       .where(eq(users.id, userId));
@@ -116,6 +117,7 @@ export async function PUT(request: NextRequest) {
         id: users.id,
         email: users.email,
         displayName: users.displayName,
+        mfaEnabled: users.mfaEnabled,
       })
       .from(users)
       .where(eq(users.id, userId));

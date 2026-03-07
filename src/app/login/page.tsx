@@ -41,6 +41,16 @@ function LoginForm() {
         return;
       }
 
+      // MFA required - redirect to verification page
+      if (data.mfaRequired) {
+        const params = new URLSearchParams({ sessionId: data.sessionId });
+        if (redirect && redirect !== "/") {
+          params.set("redirect", redirect);
+        }
+        router.push(`/auth/mfa-verify?${params.toString()}`);
+        return;
+      }
+
       // Only allow relative same-origin redirects
       const safeRedirect =
         redirect.startsWith("/") && !redirect.startsWith("//")

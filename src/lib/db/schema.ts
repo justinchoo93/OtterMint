@@ -20,6 +20,10 @@ export const users = pgTable("users", {
   email: text("email").notNull().unique(),
   passwordHash: text("password_hash").notNull(),
   displayName: text("display_name").notNull(),
+  consentGivenAt: timestamp("consent_given_at"),
+  totpSecret: text("totp_secret"),
+  mfaEnabled: boolean("mfa_enabled").notNull().default(false),
+  recoveryCodes: text("recovery_codes"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
@@ -31,6 +35,7 @@ export const sessions = pgTable(
     userId: uuid("user_id")
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
+    mfaPending: boolean("mfa_pending").notNull().default(false),
     expiresAt: timestamp("expires_at").notNull(),
     createdAt: timestamp("created_at").notNull().defaultNow(),
   },

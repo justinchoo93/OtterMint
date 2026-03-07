@@ -39,6 +39,10 @@ export async function getUserId(): Promise<string> {
     throw new AuthError("Session expired");
   }
 
+  if (session.mfaPending) {
+    throw new AuthError("MFA verification required");
+  }
+
   // Sliding expiry: refresh on each request
   const newExpiry = new Date(Date.now() + SESSION_DURATION_MS);
   await db

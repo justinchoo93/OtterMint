@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { users } from "@/lib/db/schema";
+import { users, sessions } from "@/lib/db/schema";
 import { verifyPassword } from "@/lib/auth/password";
 import { createSession } from "@/lib/auth/session";
 import { eq } from "drizzle-orm";
@@ -41,6 +41,33 @@ export async function POST(request: NextRequest) {
         { error: "Incorrect email or password" },
         { status: 401 }
       );
+    }
+
+    // If MFA is enabled, create a pending session (no cookie yet)
+    if (user.mfaEnabled) {
+      const sessionId = await createSession(user.id);
+
+      // Mark session as MFA-pending
+      await db
+        .update(sessions)
+        .set({ mfaPending: true })
+        .where(eq(sessions.id, sessionId));
+
+      const response = NextResponse.json({
+        mfaRequired: true,
+        sessionId,
+      });
+
+      // Set mfa_pending cookie so middleware can redirect appropriately
+      response.cookies.set("mfa_pending", sessionId, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "lax",
+        path: "/",
+        maxAge: 10 * 60, // 10 minutes to complete MFA
+      });
+
+      return response;
     }
 
     const sessionId = await createSession(user.id);

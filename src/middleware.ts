@@ -4,9 +4,12 @@ import { NextRequest, NextResponse } from "next/server";
 const PUBLIC_PATHS = [
   "/login",
   "/register",
+  "/privacy",
+  "/auth/mfa-verify",
   "/api/auth/login",
   "/api/auth/register",
   "/api/auth/logout",
+  "/api/auth/mfa/verify",
 ];
 
 const PUBLIC_PREFIXES = ["/invite/", "/shared/", "/api/shared/", "/api/invite/"];
@@ -35,8 +38,22 @@ export function middleware(request: NextRequest) {
 
   // Check if session cookie exists and has valid UUID format
   const sessionId = request.cookies.get("session_id")?.value;
+  const mfaPending = request.cookies.get("mfa_pending")?.value;
   const uuidRegex =
     /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+  // If MFA is pending, redirect to MFA verify page (unless already there)
+  if (mfaPending && uuidRegex.test(mfaPending)) {
+    if (pathname !== "/auth/mfa-verify") {
+      if (isApiRoute(pathname)) {
+        return NextResponse.json(
+          { error: "MFA verification required" },
+          { status: 401 }
+        );
+      }
+      return NextResponse.redirect(new URL("/auth/mfa-verify", request.url));
+    }
+  }
 
   if (!sessionId || !uuidRegex.test(sessionId)) {
     // API routes get 401, page routes get redirected to login

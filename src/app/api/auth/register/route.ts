@@ -6,12 +6,19 @@ import { createSession } from "@/lib/auth/session";
 
 export async function POST(request: NextRequest) {
   try {
-    const { email, password, displayName } = await request.json();
+    const { email, password, displayName, consentGiven } = await request.json();
 
     // Validate inputs
     if (!email || !password || !displayName) {
       return NextResponse.json(
         { error: "Email, password, and name are required" },
+        { status: 400 }
+      );
+    }
+
+    if (!consentGiven) {
+      return NextResponse.json(
+        { error: "You must agree to the privacy policy to create an account" },
         { status: 400 }
       );
     }
@@ -47,6 +54,7 @@ export async function POST(request: NextRequest) {
           email: email.toLowerCase().trim(),
           passwordHash,
           displayName: displayName.trim(),
+          consentGivenAt: new Date(),
         })
         .returning();
     } catch (err: unknown) {
