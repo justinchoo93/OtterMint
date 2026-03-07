@@ -4,11 +4,54 @@ Personal finance dashboard that aggregates bank, investment, and retirement acco
 
 ## Authentication
 
-### Basic Auth Login
-- All routes are protected by HTTP Basic Authentication
-- Users are prompted for username/password on first visit
-- Credentials are validated against `AUTH_USERNAME` and `AUTH_PASSWORD` env vars
-- Static assets (_next/static, _next/image, favicon.ico) are excluded from auth
+### Registration
+- Route: `/register`
+- Fields: Name, Email, Password, Confirm password
+- Password minimum 8 characters, validated on blur
+- On success: creates session, redirects to `/` with onboarding banner
+- If URL contains `?invite=[token]`: redirects to `/invite/[token]` after registration
+
+### Login
+- Route: `/login`
+- Fields: Email, Password
+- On failure: inline error "Incorrect email or password"
+- After 5 failures: lockout with timer
+- On success: creates session, redirects to `/` (or `?redirect=` destination)
+- If user has MFA enabled: redirects to `/auth/mfa-verify` with session in pending state
+
+### MFA Verification (post-login)
+- Route: `/auth/mfa-verify`
+- Two input modes: authenticator app (6-digit numeric) or recovery code (8-char hex)
+- Toggle between modes via link
+- Recovery codes are single-use (consumed on verification)
+- On success: session fully established, redirects to dashboard
+
+### Session Management
+- Sessions stored server-side in `sessions` table
+- Cookie: `session_id`, HttpOnly, Secure, SameSite=Lax, 30-day max age
+- `POST /api/auth/logout` clears session and cookie
+
+---
+
+## Two-Factor Authentication (MFA)
+
+### Setup flow
+1. User clicks "Set up two-factor authentication" in Profile settings
+2. `POST /api/auth/mfa/setup` generates TOTP secret, QR code, and 8 recovery codes
+3. QR code and recovery codes displayed (recovery codes shown once only)
+4. User enters 6-digit code from authenticator app to verify
+5. `POST /api/auth/mfa/verify-setup` validates code and enables MFA
+
+### Disable flow
+1. User clicks "Disable two-factor authentication" in Profile settings
+2. Must enter a valid TOTP code to confirm (prevents unauthorized removal)
+3. `POST /api/auth/mfa/disable` clears MFA data from user record
+
+### Security details
+- TOTP secret: 20 bytes, encrypted at rest (AES-256-GCM)
+- Recovery codes: 8 codes, 4-byte hex each, bcrypt-hashed (cost 10)
+- Validation window: 1 period (±30 seconds)
+- Recovery codes consumed on use (removed from stored list)
 
 ---
 
@@ -16,17 +59,19 @@ Personal finance dashboard that aggregates bank, investment, and retirement acco
 
 ### Connect a new bank account
 1. User clicks "+ Connect Account" button in the header
-2. Plaid Link modal opens (via `react-plaid-link`)
-3. User selects a financial institution
-4. User authenticates with their bank credentials
+2. `POST /api/plaid/create-link-token` creates a Plaid Link token
+   - Products: `[Transactions]` (required)
+   - Optional products: `[Investments]` (pulled when available, not required)
+3. Plaid Link modal opens (via `react-plaid-link`)
+4. User selects a financial institution and authenticates
 5. On success, public token is exchanged for an access token via `/api/plaid/exchange-token`
 6. Access token is encrypted (AES-256-GCM) and stored in the database
 7. Initial account balances are fetched and stored
 8. Dashboard refreshes to show the newly linked accounts
 
 ### Re-authenticate a stale connection
-1. When a Plaid item enters an error state (e.g., `ITEM_LOGIN_REQUIRED`), an error banner appears on the affected accounts
-2. User clicks the "Re-authenticate" button on the error banner
+1. When a Plaid item enters an error state (e.g., `ITEM_LOGIN_REQUIRED`), an error banner appears
+2. User clicks "Re-authenticate" button
 3. Plaid Link opens in update mode with the existing access token
 4. User re-authenticates with their bank
 5. On success, the error state is cleared and data syncs resume
@@ -48,7 +93,7 @@ Personal finance dashboard that aggregates bank, investment, and retirement acco
 - Three lines: net worth (solid), assets (dashed green), liabilities (dashed red)
 - Tooltip on hover shows values for a given date
 - Only renders if there are 2+ data points
-- Data sourced from daily `net_worth_snapshots` table
+- Data sourced from daily `user_net_worth_snapshots` table
 
 ### Spending Chart
 - Horizontal bar chart showing spending by category (top 8 categories)
@@ -64,13 +109,13 @@ Personal finance dashboard that aggregates bank, investment, and retirement acco
 
 ### View connected accounts
 - Accounts are grouped by type: Depository, Credit, Investment, Loan, Other
-- Each group has a color-coded header
+- Each group has a color-coded header with group subtotal
 - Each account row shows: name, institution, last 4 digits (mask), current balance, available balance
 - Hover effect on account rows
 - Empty state message when no accounts are connected
 
 ### Account error handling
-- Accounts with connection errors show an error banner at the top of the group
+- Accounts with connection errors show an error banner at the top of the panel
 - Banner includes the institution name and a re-authenticate button
 - Error state is tracked per Plaid item (not per individual account)
 
@@ -162,25 +207,141 @@ Personal finance dashboard that aggregates bank, investment, and retirement acco
 
 ---
 
+## Groups & Household
+
+### Create a group
+- Route: `/settings/group`
+- User clicks "Create group" to become the owner
+- Generates an invite link (7-day expiry, regenerable)
+
+### Invite members
+- Owner shares invite link or enters email address
+- Invite link route: `/invite/[token]`
+- Invitee sees sharing disclosure: "all of your connected accounts and transactions will be visible to group members"
+- States: logged in (accept/decline), already in group (go to settings), not logged in (sign in/register), expired/invalid
+
+### Member management
+- Owner: can invite, remove members, regenerate invite link, disband group
+- Member: can view group, leave group
+- Remove/disband/leave all require confirmation dialogs
+
+### Household dashboard tab
+- "Household" tab appears in header when user is in a group
+- Combined net worth card with member breakdown
+- Accounts grouped by member, then by type within each member
+- Combined transaction feed with member initials badges ([JK], [SK])
+- Combined net worth chart (same 90-day Recharts component)
+
+### Phase 1 sharing model
+- All-or-nothing: joining a group shares all accounts and transactions
+- No per-account toggles (planned for Phase 2)
+- Static "Shared Data" info section in group settings as placeholder for future controls
+
+---
+
+## External Share Links
+
+### Create a share link
+- Route: `/settings/sharing`
+- Optional label (e.g., "For accountant")
+- Three independent data toggles:
+  - Net worth overview (default: on)
+  - Account balances (default: off)
+  - Transactions (default: off)
+- At least one category must be selected to create
+- `POST /api/share-links` generates a 256-bit random token (base64url)
+
+### Manage share links
+- Active links listed with label, included data badges, expiration date
+- "Copy URL" button (copies `{origin}/shared/{token}`, shows "Copied!" for 2s)
+- "Revoke" button with confirmation dialog
+- Revocation is immediate (soft delete via `revokedAt` timestamp)
+
+### Public shared view
+- Route: `/shared/[token]` (no authentication required)
+- Displays user's display name and link label
+- Sections conditionally rendered based on link permissions:
+  - Net worth: latest snapshot + 90-day history
+  - Accounts: Plaid accounts (name, type, mask, balance, institution) + manual accounts
+  - Transactions: last 200, most recent first (date, name, merchant, amount, category)
+- Footer: "Read-only view - Powered by OtterFin"
+- Revoked links: "This link is no longer available"
+- Expired links: 410 Gone
+- Invalid tokens: 404
+
+### Security
+- Token: 256-bit cryptographically random, base64url encoded
+- No sensitive data exposed (no access tokens, no full account numbers)
+- Account masks show only last 4 digits
+- Optional expiration, checked on every access
+- Immediate revocation via soft delete
+
+---
+
+## Profile & Settings
+
+### Route: `/settings/profile`
+
+### Identity section
+- Display name (editable text input)
+- Email (read-only)
+- [Save changes] button
+
+### Security section
+- Change password: expands inline with current/new/confirm fields
+- Two-factor authentication: setup/disable flow (see MFA section above)
+  - "Enabled" badge in section header when active
+
+### Account deletion
+- "Delete account" in danger zone section
+- Confirmation required
+- Revokes all Plaid access tokens before deletion
+- Cascading delete: sessions, plaid items, accounts, transactions, holdings,
+  manual accounts, share links, net worth snapshots, group memberships
+- Clears session cookie, redirects to `/login`
+
+### Sessions section
+- [Sign out] — ends current session, redirects to `/login`
+- [Sign out all devices] — invalidates all active sessions
+
+---
+
+## Privacy Policy
+
+### Route: `/privacy` (no authentication required)
+
+Static page covering:
+1. What We Collect
+2. How We Store Your Data (AES-256-GCM, bcrypt, TLS)
+3. How We Use Your Data
+4. Third-Party Services (Plaid)
+5. Data Sharing (no selling, no third-party sharing)
+6. Your Rights (access, deletion, export)
+7. Data Retention (deleted on account deletion, sessions expire after 30 days)
+8. Security (MFA, encryption at rest and in transit)
+9. Contact
+
+---
+
 ## Data Model
 
-### Owner tagging
-- `plaid_items` table has an `owner` field (defaults to "justin")
-- `manual_accounts` table has an `owner` field (defaults to "justin")
-- `accounts` table does NOT have an owner field (inherits via plaid_item foreign key)
-- Owner is set when creating manual accounts
+### User ownership
+- `plaid_items` table has a `userId` foreign key to `users`
+- `manual_accounts` table has a `userId` foreign key to `users`
+- `accounts` inherit user ownership transitively through `plaid_items.userId`
 
 ### Net worth snapshots
-- One snapshot per day (upserted by date)
+- `user_net_worth_snapshots`: one per user per day (upserted)
+- `group_net_worth_snapshots`: one per group per day (sum of all members)
 - Stores breakdown: depository, credit, investment, loan, manual assets, manual liabilities
 - Stores totals: total assets, total liabilities, net worth
-- Used by the net worth chart for historical trending
 
 ### Encryption
-- Plaid access tokens are encrypted at rest using AES-256-GCM
-- Encryption key sourced from `ENCRYPTION_KEY` env var (64-char hex = 32 bytes)
-- Each encryption generates a unique 12-byte IV
-- Stored format: `base64(IV):base64(authTag):base64(ciphertext)`
+- Plaid access tokens: AES-256-GCM, stored as `base64(IV):base64(authTag):base64(ciphertext)`
+- TOTP secrets: same AES-256-GCM encryption
+- Passwords: bcrypt, cost factor 12
+- Recovery codes: bcrypt, cost factor 10
+- Encryption key: `ENCRYPTION_KEY` env var (64-char hex = 32 bytes)
 
 ---
 
@@ -189,5 +350,6 @@ Personal finance dashboard that aggregates bank, investment, and retirement acco
 - **Backend**: Next.js API routes
 - **Database**: Supabase (PostgreSQL) via Drizzle ORM + postgres.js
 - **Financial data**: Plaid API (sandbox/production)
-- **Auth**: HTTP Basic Authentication (middleware)
+- **Auth**: Session-based (HttpOnly cookie + server-side session table)
+- **MFA**: TOTP via `otpauth` library
 - **Fonts**: DM Sans (body), JetBrains Mono (monospace)

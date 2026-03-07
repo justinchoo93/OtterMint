@@ -29,11 +29,15 @@ This document covers UX for three phases:
 |---|---|---|
 | Login | `/login` | Unauthenticated users |
 | Registration | `/register` | New users |
+| MFA Verification | `/auth/mfa-verify` | Users with MFA enabled, post-login |
 | Dashboard — My Finances | `/` | Authenticated, always |
 | Dashboard — Household | `/` (Household tab) | Group members only |
 | Profile & Settings | `/settings/profile` | Authenticated, always |
 | Group Settings | `/settings/group` | Authenticated, always (shows create/join if no group) |
+| Sharing Settings | `/settings/sharing` | Authenticated, always |
 | Accept Invite | `/invite/[token]` | Anyone with a valid invite link |
+| Shared View | `/shared/[token]` | Anyone with a valid share token (no auth) |
+| Privacy Policy | `/privacy` | Anyone (no auth) |
 
 ---
 
@@ -199,6 +203,85 @@ need a clear way to discover and enter the group feature.
   - New password
   - Confirm new password
   - [Save] [Cancel]
+
+### Section: Two-Factor Authentication (MFA)
+
+TOTP-based two-factor authentication using an authenticator app (Google Authenticator,
+1Password, etc.).
+
+**State: MFA disabled**:
+
+```
+┌── Two-factor authentication ──────────────────────────────────────┐
+│  [Set up two-factor authentication]                                │
+└────────────────────────────────────────────────────────────────────┘
+```
+
+Clicking "Set up" triggers a two-step inline flow:
+
+**Step 1 — QR code + recovery codes**:
+```
+│  Scan this QR code with your authenticator app:                    │
+│  [QR CODE IMAGE]                                                   │
+│  Manual entry key: JBSWY3DPEHPK3PXP                               │
+│                                                                    │
+│  Save these recovery codes somewhere safe:                         │
+│  a1b2c3d4   e5f6a7b8   c9d0e1f2   ...  (8 codes)                 │
+│                                                                    │
+│  Enter the 6-digit code from your app to verify:                  │
+│  [      ]   [Verify & Enable]                                     │
+```
+
+- Recovery codes shown once, never retrievable again
+- User must verify a code before MFA is actually enabled
+- On success: MFA badge appears in section header, setup UI collapses
+
+**State: MFA enabled**:
+```
+┌── Two-factor authentication ─── [Enabled] ────────────────────────┐
+│  [Disable two-factor authentication]                               │
+└────────────────────────────────────────────────────────────────────┘
+```
+
+- "Disable" expands inline, requires a valid TOTP code to confirm
+- Prevents unauthorized removal if session is compromised
+
+**MFA verification during login** (`/auth/mfa-verify`):
+
+After successful email/password login, if the user has MFA enabled, they are redirected
+to a standalone verification page:
+
+```
+┌──────────────────────────────────────┐
+│  otterfin                            │
+│  Two-factor authentication           │
+│                                      │
+│  Enter code from authenticator app   │
+│  [                              ]    │
+│                                      │
+│  [          Verify             ]     │
+│                                      │
+│  Use a recovery code instead         │
+└──────────────────────────────────────┘
+```
+
+- Toggle between authenticator code (6-digit numeric) and recovery code (8-char hex)
+- Recovery codes are single-use — consumed on verification
+- On success: redirects to `/` (or original `?redirect=` destination)
+
+### Section: Account Deletion
+
+```
+┌── Danger zone ────────────────────────────────────────────────────┐
+│  [Delete account]                                                  │
+└────────────────────────────────────────────────────────────────────┘
+```
+
+- Confirmation required before deletion
+- Revokes all Plaid access tokens before deleting user data
+- Deletes all user data (accounts, transactions, holdings, manual accounts, share links,
+  net worth snapshots, group memberships, sessions) via database cascades
+- Clears session cookie and redirects to `/login`
 
 ### Section: Sessions
 - [Sign out] — ends current session, redirects to `/login`
@@ -527,12 +610,125 @@ A small note in the Household tab accounts panel:
   Note: If you and a group member share a joint account, it may appear twice.
 ```
 
-### External View-Only Links (Phase 3 candidate)
+### ~~External View-Only Links (Phase 3 candidate)~~ — Implemented
 
-Ability to generate a read-only shareable link (for a financial advisor, accountant,
-or family member) without giving them an OtterFin account. Scoped to specific data
-types (net worth only, or full accounts). This was originally considered for Phase 1
-but deprioritized — it's a secondary use case and adds surface area for data exposure.
+~~Ability to generate a read-only shareable link...~~ See Flow 8: External Share Links.
+
+---
+
+## Flow 8: External Share Links
+
+**Status**: Built. Originally planned for Phase 3 but implemented early.
+
+Read-only shareable links for financial advisors, accountants, or family members.
+No OtterFin account required to view. Granular control over what data is exposed.
+
+### 8A. Share Link Management
+
+**Route**: `/settings/sharing`
+
+```
+┌──────────────────────────────────────────────────────────────────┐
+│  ← Dashboard                                                      │
+│                                                                   │
+│  Sharing                                                          │
+│                                                                   │
+│  ┌── CREATE NEW LINK ──────────────────────────────────────────┐ │
+│  │  Label (optional)                                            │ │
+│  │  [  For accountant                                      ]    │ │
+│  │                                                              │ │
+│  │  Include:                                                    │ │
+│  │  [x] Net worth overview                                     │ │
+│  │  [ ] Account balances                                       │ │
+│  │  [ ] Transactions                                           │ │
+│  │                                                              │ │
+│  │  [Create share link]                                         │ │
+│  └──────────────────────────────────────────────────────────────┘ │
+│                                                                   │
+│  ┌── ACTIVE LINKS ─────────────────────────────────────────────┐ │
+│  │  For accountant                                              │ │
+│  │  [Net worth] [Balances]                   Expires: Apr 7     │ │
+│  │  [Copy URL]                              [Revoke]            │ │
+│  │                                                              │ │
+│  │  Unnamed link                                                │ │
+│  │  [Net worth]                              No expiration      │ │
+│  │  [Copy URL]                              [Revoke]            │ │
+│  └──────────────────────────────────────────────────────────────┘ │
+└──────────────────────────────────────────────────────────────────┘
+```
+
+**Behavior**:
+- "Create share link" disabled if no data categories selected
+- Each link has three independent toggles: net worth, balances, transactions
+- Net worth defaults to checked; balances and transactions default to unchecked
+- "Copy URL" copies `{origin}/shared/{token}` to clipboard, shows "Copied!" for 2s
+- "Revoke" shows confirmation dialog; revocation is immediate and permanent (soft delete)
+- Expiration is optional (null = never expires)
+
+### 8B. Public Shared View
+
+**Route**: `/shared/[token]` (no authentication required)
+
+```
+┌──────────────────────────────────────────────────────────────────┐
+│  otterfin                                                         │
+│  Justin Kim's finances  ·  For accountant                         │
+│                                                                   │
+│  ┌── Net Worth ────────────────────────────────────────────────┐ │
+│  │  $245,320.00                                                 │ │
+│  │  Assets $312,000    Liabilities $66,680                      │ │
+│  │                                                              │ │
+│  │  (90-day snapshot history)                                   │ │
+│  └──────────────────────────────────────────────────────────────┘ │
+│                                                                   │
+│  ┌── Accounts ─────────────────────────────────────────────────┐ │
+│  │  Chase Checking ····1234        Chase        $32,000         │ │
+│  │  Marcus HYSA   ····5678        GS           $13,200         │ │
+│  │  Home (manual)                               $250,000        │ │
+│  └──────────────────────────────────────────────────────────────┘ │
+│                                                                   │
+│  ┌── Recent Transactions ──────────────────────────────────────┐ │
+│  │  (last 200 transactions, most recent first)                  │ │
+│  └──────────────────────────────────────────────────────────────┘ │
+│                                                                   │
+│  Read-only view · Powered by OtterFin                             │
+└──────────────────────────────────────────────────────────────────┘
+```
+
+- Sections conditionally rendered based on share link permissions
+- Revoked links show "This link is no longer available"
+- Expired links return 410 Gone with "This link has expired"
+- Invalid tokens show 404
+
+**Security measures**:
+- Token: 256-bit cryptographically random, base64url encoded
+- No sensitive data exposed (no access tokens, no full account numbers)
+- Account masks show only last 4 digits
+- Transactions capped at 200 most recent
+- Net worth snapshots capped at 90 days
+- Revocation is immediate (soft delete via `revokedAt` timestamp)
+- Expiration checked on every access
+
+---
+
+## Flow 9: Privacy Policy
+
+**Route**: `/privacy`
+
+Static page documenting data practices. Accessible without authentication.
+
+**Sections**:
+1. What We Collect
+2. How We Store Your Data (AES-256-GCM for Plaid tokens, bcrypt for passwords, TLS)
+3. How We Use Your Data
+4. Third-Party Services (Plaid)
+5. Data Sharing (no selling, no third-party sharing)
+6. Your Rights (access, deletion, export)
+7. Data Retention (deleted on account deletion, sessions expire after 30 days)
+8. Security (MFA, encryption at rest and in transit)
+9. Contact
+
+Linked from the profile/settings page.
 
 ---
 
@@ -541,12 +737,16 @@ but deprioritized — it's a secondary use case and adds surface area for data e
 ```
 /login                        ← unauthenticated entry
 /register                     ← new account (or ?invite=[token] for pre-filled invite)
+/auth/mfa-verify              ← MFA code entry (post-login, if MFA enabled)
 /                             ← main dashboard (protected)
   └── [My Finances tab]       ← always default, current app behavior
   └── [Household tab]         ← only if user is in a group
-/settings/profile             ← name, password, sign out
+/settings/profile             ← name, password, MFA, account deletion, sign out
 /settings/group               ← group management (always accessible)
+/settings/sharing             ← external share link management
 /invite/[token]               ← group invite acceptance
+/shared/[token]               ← public read-only shared view (no auth)
+/privacy                      ← privacy policy (no auth)
 ```
 
 ---
@@ -558,11 +758,15 @@ but deprioritized — it's a secondary use case and adds surface area for data e
 | Account created | Registration | Empty dashboard + onboarding banner |
 | First account connected | Plaid success | Dashboard with accounts, banner gone |
 | Normal solo use | Ongoing | Personal dashboard only, no group UI visible |
+| Enables MFA | Profile → Set up 2FA | QR code, recovery codes, verify flow |
+| Logs in with MFA | Email/password success | MFA verification page before dashboard |
 | Discovers group feature | Opens avatar menu → Group & Sharing | Create/join group screen |
 | Creates group | Clicks Create | Group settings screen with invite link |
 | Invites partner | Copies link, sends it | Partner receives link |
 | Partner accepts | Clicks invite link | Partner is added, Household tab appears for both |
 | Adding new account | Plaid or manual | Normal flow + "visible to group" note |
+| Creates share link | Settings → Sharing | Link with granular data controls |
+| Shares with advisor | Copies share link URL | Advisor sees read-only financial view |
 
 ---
 
@@ -583,7 +787,7 @@ but deprioritized — it's a secondary use case and adds surface area for data e
 
 | Component | Where Used | Description |
 |---|---|---|
-| `AvatarButton` | Header | Initials circle + dropdown (Profile, Group, Sign out) |
+| `AvatarButton` | Header | Initials circle + dropdown (Profile, Group, Sharing, Sign out) |
 | `DashboardTabs` | Header | My Finances / Household tab bar; only rendered in group |
 | `SettingsLayout` | `/settings/*` | Back-link + max-w-2xl + section card layout |
 | `MemberRow` | Group settings | Member name, email, role badge, remove button |
@@ -591,7 +795,12 @@ but deprioritized — it's a secondary use case and adds surface area for data e
 | `InviteAcceptCard` | `/invite/[token]` | Sharing disclosure + accept/decline |
 | `HouseholdMemberSection` | Household tab | Collapsible member block in accounts panel |
 | `MemberBadge` | Household transactions | [JK]-style initials badge per row |
-| `ConfirmModal` | Remove/disband/leave | Generic "are you sure?" modal |
+| `ConfirmModal` | Remove/disband/leave/revoke | Generic "are you sure?" modal |
+| `MfaSetup` | Profile settings | QR code display, recovery codes, verification input |
+| `MfaVerifyPage` | `/auth/mfa-verify` | Standalone TOTP/recovery code entry |
+| `ShareLinkForm` | Sharing settings | Label input + data category checkboxes + create |
+| `ShareLinkRow` | Sharing settings | Active link with copy URL + revoke |
+| `SharedView` | `/shared/[token]` | Public read-only financial data display |
 
 ### Form Behavior Standards
 
@@ -625,10 +834,11 @@ In Phase 1 with no deduplication, merging by type creates the joint account doub
 problem with no visual signal. Grouping by member makes it obvious when duplication
 is happening, and sets up the mental model for Phase 2/3 controls.
 
-**Why is "external view-only links" Phase 3, not Phase 1?**
-It adds a public-facing surface with no auth requirement, increasing the risk of
-accidental data exposure. The group feature covers the primary household use case.
-The advisor use case is secondary and can wait.
+**Why were external share links built ahead of the original Phase 3 plan?**
+Originally deferred due to data exposure risk. Built early with mitigations: granular
+per-category controls (net worth / balances / transactions), 256-bit random tokens,
+optional expiration, instant revocation, and capped data windows (90-day snapshots,
+200 transactions). The risk is manageable with these controls in place.
 
 **Why no OAuth in Phase 1?**
 Adds complexity (token refresh, provider outages, account linking). Email + password

@@ -287,7 +287,7 @@ Plaid access tokens are encrypted at rest using AES-256-GCM.
 | 5 | `middleware.ts:9` | Malformed auth header causes 500 | Wrap `atob()` in try/catch |
 | 6 | `compute-snapshot.ts:32` | `Math.abs` overstates assets (overdrafts, negative investment balances) | Remove `Math.abs` from depository/investment; handle sign correctly |
 | 7 | `accounts/refresh/route.ts:50` | New/removed Plaid accounts not synced | Add upsert for new accounts, delete closed ones |
-| 8 | `plaid/create-link-token/route.ts:10` | Link token missing Investments product | Add `Products.Investments` |
+| 8 | `plaid/create-link-token/route.ts:10` | ~~Link token missing Investments product~~ **Fixed** | Moved to `optional_products` |
 | 9 | `net-worth/route.ts:22` | NaN `days` param causes 500 | Validate and fallback before use |
 | 10 | `transactions/route.ts:22` | NaN/negative `limit` param causes 500 | Validate and fallback before use |
 
@@ -334,6 +334,9 @@ export const users = pgTable("users", {
   email: text("email").notNull().unique(),
   passwordHash: text("password_hash").notNull(),  // bcrypt, cost factor 12
   displayName: text("display_name").notNull(),
+  totpSecret: text("totp_secret"),              // encrypted TOTP secret (AES-256-GCM)
+  mfaEnabled: boolean("mfa_enabled").notNull().default(false),
+  recoveryCodes: text("recovery_codes"),        // JSON array of bcrypt-hashed codes
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
@@ -345,6 +348,7 @@ export const sessions = pgTable("sessions", {
   userId: uuid("user_id")
     .notNull()
     .references(() => users.id, { onDelete: "cascade" }),
+  mfaPending: boolean("mfa_pending").notNull().default(false),  // true after password auth, before MFA
   expiresAt: timestamp("expires_at").notNull(),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
@@ -392,6 +396,24 @@ export const groupInvitations = pgTable("group_invitations", {
   token: text("token").notNull().unique(),  // random URL-safe token
   acceptedAt: timestamp("accepted_at"),
   expiresAt: timestamp("expires_at").notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+// ─── External Share Links ───────────────────────────────────────────────────
+
+// share_links — read-only public links to user's financial data
+export const shareLinks = pgTable("share_links", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: uuid("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  token: text("token").notNull().unique(),     // crypto.randomBytes(32).toString("base64url")
+  label: text("label"),                        // optional user-friendly name
+  includeNetWorth: boolean("include_net_worth").notNull().default(true),
+  includeBalances: boolean("include_balances").notNull().default(false),
+  includeTransactions: boolean("include_transactions").notNull().default(false),
+  expiresAt: timestamp("expires_at"),          // null = no expiration
+  revokedAt: timestamp("revoked_at"),          // soft delete
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
@@ -552,6 +574,9 @@ CREATE INDEX idx_transactions_date_id ON transactions(date DESC, id DESC);
 CREATE INDEX idx_holdings_account_id ON holdings(account_id);
 CREATE INDEX idx_manual_accounts_user_id ON manual_accounts(user_id);
 
+-- Share links
+CREATE INDEX idx_share_links_token ON share_links(token);
+
 -- Snapshots
 CREATE INDEX idx_user_snapshots_user_date ON user_net_worth_snapshots(user_id, date DESC);
 CREATE INDEX idx_group_snapshots_group_date ON group_net_worth_snapshots(group_id, date DESC);
@@ -578,8 +603,46 @@ CREATE INDEX idx_group_snapshots_group_date ON group_net_worth_snapshots(group_i
 - Returns 200
 
 **`GET /api/auth/me`**
-- Returns current user from session
+- Returns current user from session (including `mfaEnabled` flag)
 - Used by frontend to check auth state
+
+**`DELETE /api/auth/delete-account`**
+- Revokes all Plaid access tokens (decrypts each, calls `plaidClient.itemRemove`)
+- Plaid revocation errors are logged but don't block deletion
+- Deletes user row (cascades to all related data: sessions, plaid items, accounts,
+  transactions, holdings, manual accounts, share links, snapshots, group memberships)
+- Clears session cookie
+- Returns 200
+
+#### MFA (TOTP)
+
+**`POST /api/auth/mfa/setup`**
+- Generates 20-byte TOTP secret via `otpauth` library
+- Returns QR code as data URL, plaintext Base32 secret, and 8 recovery codes
+- Stores encrypted secret and bcrypt-hashed recovery codes in DB
+- Does NOT enable MFA yet — user must verify first
+- Response: `{ qrCodeUrl, secret, recoveryCodes }`
+
+**`POST /api/auth/mfa/verify-setup`**
+- Body: `{ code }` (6-digit TOTP code)
+- Validates code against stored secret (window of 1, ±30s drift)
+- Sets `mfaEnabled = true` on success
+- Response: `{ success: true }`
+
+**`POST /api/auth/mfa/verify`**
+- Body: `{ sessionId, code }` (TOTP code or recovery code)
+- Called after login when user has MFA enabled (session has `mfaPending = true`)
+- Validates UUID format, checks session expiration
+- For recovery codes: bcrypt-compares against stored hashes, consumes on use
+- Sets session cookie (`httpOnly; secure; sameSite=lax; 30-day maxAge`)
+- Clears `mfa_pending` cookie
+- Response: `{ success: true }`
+
+**`POST /api/auth/mfa/disable`**
+- Body: `{ code }` (valid TOTP code required to disable)
+- Clears `mfaEnabled`, `totpSecret`, and `recoveryCodes` from user record
+- Prevents unauthorized removal if session is compromised
+- Response: `{ success: true }`
 
 #### Middleware Changes
 
@@ -629,6 +692,31 @@ export async function middleware(request: NextRequest) {
 
 **`DELETE /api/groups/:groupId/members/:userId`**
 - Removes member (owner can remove anyone; member can remove themselves)
+
+#### External Share Links
+
+**`POST /api/share-links`**
+- Body: `{ label?, includeNetWorth, includeBalances, includeTransactions }`
+- Generates 256-bit random token (`crypto.randomBytes(32).toString("base64url")`)
+- Returns 201 with share link object
+
+**`GET /api/share-links`**
+- Returns all non-revoked share links for the authenticated user
+- Filters by `revokedAt IS NULL`
+
+**`DELETE /api/share-links?id={linkId}`**
+- Soft-deletes by setting `revokedAt = NOW()`
+- Validates caller owns the link
+
+**`GET /api/shared/[token]`** _(public, no auth)_
+- Looks up share link by token
+- Returns 404 if not found or revoked, 410 if expired
+- Returns data based on link permissions:
+  - `includeNetWorth`: last 90 days of `userNetWorthSnapshots`
+  - `includeBalances`: Plaid accounts (name, type, mask, balance, institution) + manual accounts
+  - `includeTransactions`: last 200 transactions (date, name, merchant, amount, category)
+- Includes user's display name and link label
+- Never exposes sensitive data (access tokens, full account numbers)
 
 #### Financial Data Routes (modified)
 
