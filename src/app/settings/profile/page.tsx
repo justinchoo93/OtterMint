@@ -358,9 +358,16 @@ export default function ProfileSettingsPage() {
 
         {/* MFA */}
         <div className="mt-6 border-t border-[var(--border)] pt-4">
-          <h3 className="mb-3 text-xs font-medium text-[var(--text-secondary)]">
-            Two-factor authentication
-          </h3>
+          <div className="mb-3 flex items-center gap-2">
+            <h3 className="text-xs font-medium text-[var(--text-secondary)]">
+              Two-factor authentication
+            </h3>
+            {user.mfaEnabled && (
+              <span className="rounded-full bg-[var(--accent-green)]/10 px-2 py-0.5 text-[10px] font-medium text-[var(--accent-green)]">
+                Enabled
+              </span>
+            )}
+          </div>
 
           {mfaMessage && (
             <p className={`mb-3 text-xs ${mfaIsError ? "text-[var(--accent-red)]" : "text-[var(--accent-green)]"}`}>
@@ -371,8 +378,7 @@ export default function ProfileSettingsPage() {
           {user.mfaEnabled ? (
             // MFA is enabled
             !showDisableMfa ? (
-              <div className="flex items-center gap-3">
-                <span className="text-xs text-[var(--accent-green)]">Enabled</span>
+              <div>
                 <button
                   onClick={() => setShowDisableMfa(true)}
                   className="text-sm text-[var(--accent-red)] hover:underline"
