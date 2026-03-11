@@ -18,10 +18,14 @@
 - Session-based authentication with cryptographically random UUIDs
 - HttpOnly, Secure, SameSite=Lax cookies
 - 30-day sliding session expiry
+- Login lockout after repeated failed password attempts
+- MFA lockout after repeated failed verification attempts
 - TOTP-based multi-factor authentication (MFA) available
 
 ### Access Control
 - All data is scoped to authenticated users via `userId` foreign keys
+- Public-schema tables are protected with PostgreSQL row-level security (RLS)
+- Supabase `anon` and `authenticated` roles are revoked from application tables and sequences
 - Role-based access for groups (owner/member)
 - Plaid OAuth tokens for financial institution access
 - Share links provide scoped, read-only access with optional expiration
@@ -63,6 +67,10 @@ If a security vulnerability is discovered:
 3. Notify affected users
 4. Patch and deploy fix
 5. Post-incident review
+
+## Audit Log
+
+Security audit history is tracked in [docs/security-audit-2026-03-11.md](/Users/justin/Documents/code/ai-playground/otterfin/docs/security-audit-2026-03-11.md).
 
 ## Contact
 

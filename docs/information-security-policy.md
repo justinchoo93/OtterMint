@@ -40,9 +40,11 @@ This policy applies to all systems, data, and processes involved in the operatio
 - All consumer accounts require email and password authentication
 - Passwords must be a minimum of 8 characters
 - Passwords are hashed using bcrypt with a cost factor of 12 (never stored in plaintext)
+- Repeated failed password attempts trigger a temporary account lockout
 - TOTP-based multi-factor authentication (MFA) is available and can be enabled by users
 - MFA uses industry-standard TOTP (RFC 6238) with authenticator app support
 - Eight single-use recovery codes are generated during MFA setup for account recovery
+- Repeated failed MFA verification attempts trigger a temporary lockout on the pending MFA session
 
 ### 4.2 Session Management
 - Sessions are identified by cryptographically random UUIDs
@@ -56,6 +58,8 @@ This policy applies to all systems, data, and processes involved in the operatio
 - Group/household features use role-based access (owner, member)
 - Share links provide scoped, read-only access with configurable data visibility (net worth, balances, transactions)
 - Share links can be revoked at any time and support optional expiration dates
+- Supabase-exposed tables in the `public` schema have PostgreSQL row-level security (RLS) enabled
+- Supabase `anon` and `authenticated` roles do not have direct privileges on application tables or sequences
 
 ### 4.4 Infrastructure Access
 - Database access requires SSL/TLS connections (`sslmode=require`)
@@ -152,6 +156,7 @@ Users can delete their account at any time via the application settings. Account
    - All share links
    - All group memberships
 3. **Clears session cookies** in the browser
+4. **Clears MFA-pending cookies and sessions** if a sign-in was in progress
 
 This deletion is immediate and irreversible. No data is retained after account deletion.
 
@@ -179,7 +184,8 @@ Users can view all of their data through the application dashboard at any time, 
 - Application code is linted on every PR via ESLint
 - TypeScript provides compile-time type safety
 - SQL injection is prevented by the Drizzle ORM (parameterized queries)
-- XSS is mitigated by React's default output encoding and security headers (CSP, X-Content-Type-Options)
+- XSS is mitigated by React's default output encoding and HTTP response hardening headers
+- Sensitive bearer tokens stored in Postgres are protected from Supabase API exposure via RLS and privilege revocation
 
 ### 7.3 Security Headers
 The application enforces the following HTTP security headers:
@@ -210,3 +216,4 @@ The application enforces the following HTTP security headers:
 | Version | Date | Changes |
 |---------|------|---------|
 | 1.0 | March 6, 2026 | Initial policy |
+| 1.1 | March 11, 2026 | Added Supabase RLS controls, auth/MFA lockout controls, and MFA session cleanup requirements |

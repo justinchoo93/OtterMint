@@ -5,16 +5,31 @@ import { decrypt } from "@/lib/crypto";
 import { db } from "@/lib/db";
 import { users, sessions } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
+import {
+  formatLockoutMessage,
+  getLockoutState,
+  isCurrentlyLocked,
+  MAX_MFA_ATTEMPTS,
+  MFA_LOCKOUT_MS,
+} from "@/lib/auth/login-lockout";
+import {
+  getExpiredCookieOptions,
+  getSessionCookieOptions,
+  MFA_PENDING_COOKIE_NAME,
+  SESSION_COOKIE_NAME,
+} from "@/lib/auth/cookies";
+import { SESSION_DURATION_MS } from "@/lib/auth/session";
+import { logServerError } from "@/lib/logging";
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const sessionId = body?.sessionId;
     const code = body?.code;
+    const pendingSessionId = request.cookies.get(MFA_PENDING_COOKIE_NAME)?.value;
 
-    if (typeof sessionId !== "string" || typeof code !== "string" || !code) {
+    if (typeof code !== "string" || !code) {
       return NextResponse.json(
-        { error: "Session ID and code are required" },
+        { error: "Verification code is required" },
         { status: 400 }
       );
     }
@@ -22,12 +37,17 @@ export async function POST(request: NextRequest) {
     // Validate UUID format
     const uuidRegex =
       /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-    if (!uuidRegex.test(sessionId)) {
+    if (
+      typeof pendingSessionId !== "string" ||
+      !uuidRegex.test(pendingSessionId)
+    ) {
       return NextResponse.json(
         { error: "Invalid session" },
         { status: 400 }
       );
     }
+
+    const sessionId = pendingSessionId;
 
     // Look up the pending session
     const [session] = await db
@@ -46,6 +66,18 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         { error: "Session expired" },
         { status: 400 }
+      );
+    }
+
+    if (isCurrentlyLocked(session.mfaLockedUntil)) {
+      return NextResponse.json(
+        {
+          error: formatLockoutMessage(
+            session.mfaLockedUntil!,
+            "Too many MFA attempts."
+          ),
+        },
+        { status: 429 }
       );
     }
 
@@ -95,6 +127,32 @@ export async function POST(request: NextRequest) {
     }
 
     if (!isValid) {
+      const lockoutState = getLockoutState({
+        failedAttempts: session.mfaFailedAttempts,
+        maxAttempts: MAX_MFA_ATTEMPTS,
+        lockoutMs: MFA_LOCKOUT_MS,
+      });
+
+      await db
+        .update(sessions)
+        .set({
+          mfaFailedAttempts: lockoutState.failedAttempts,
+          mfaLockedUntil: lockoutState.lockedUntil,
+        })
+        .where(eq(sessions.id, sessionId));
+
+      if (lockoutState.isLocked && lockoutState.lockedUntil) {
+        return NextResponse.json(
+          {
+            error: formatLockoutMessage(
+              lockoutState.lockedUntil,
+              "Too many MFA attempts."
+            ),
+          },
+          { status: 429 }
+        );
+      }
+
       return NextResponse.json(
         { error: "Invalid code" },
         { status: 400 }
@@ -104,24 +162,30 @@ export async function POST(request: NextRequest) {
     // Mark session as fully authenticated
     await db
       .update(sessions)
-      .set({ mfaPending: false })
+      .set({
+        mfaPending: false,
+        mfaFailedAttempts: 0,
+        mfaLockedUntil: null,
+        expiresAt: new Date(Date.now() + SESSION_DURATION_MS),
+      })
       .where(eq(sessions.id, sessionId));
 
     // Set the session cookie
     const response = NextResponse.json({ success: true });
-    response.cookies.set("session_id", sessionId, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
-      path: "/",
-      maxAge: 30 * 24 * 60 * 60,
-    });
-    // Remove the mfa_pending cookie
-    response.cookies.delete("mfa_pending");
+    response.cookies.set(
+      SESSION_COOKIE_NAME,
+      sessionId,
+      getSessionCookieOptions(30 * 24 * 60 * 60)
+    );
+    response.cookies.set(
+      MFA_PENDING_COOKIE_NAME,
+      "",
+      getExpiredCookieOptions()
+    );
 
     return response;
   } catch (error) {
-    console.error("MFA verify error:", error);
+    logServerError("MFA verify error", error);
     return NextResponse.json(
       { error: "Failed to verify MFA" },
       { status: 500 }

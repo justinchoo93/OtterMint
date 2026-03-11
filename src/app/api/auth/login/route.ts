@@ -1,13 +1,37 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { users, sessions } from "@/lib/db/schema";
+import { users } from "@/lib/db/schema";
 import { verifyPassword } from "@/lib/auth/password";
-import { createSession } from "@/lib/auth/session";
+import {
+  createSession,
+  MFA_PENDING_DURATION_MS,
+} from "@/lib/auth/session";
+import {
+  formatLockoutMessage,
+  getLockoutState,
+  isCurrentlyLocked,
+  LOGIN_LOCKOUT_MS,
+  MAX_LOGIN_ATTEMPTS,
+} from "@/lib/auth/login-lockout";
+import {
+  getExpiredCookieOptions,
+  getSessionCookieOptions,
+  MFA_PENDING_COOKIE_NAME,
+  SESSION_COOKIE_NAME,
+} from "@/lib/auth/cookies";
+import { logServerError } from "@/lib/logging";
 import { eq } from "drizzle-orm";
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
+    if (typeof body !== "object" || body === null || Array.isArray(body)) {
+      return NextResponse.json(
+        { error: "Email and password are required" },
+        { status: 400 }
+      );
+    }
+
     const email = body?.email;
     const password = body?.password;
 
@@ -35,37 +59,85 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    if (isCurrentlyLocked(user.lockedUntil)) {
+      return NextResponse.json(
+        {
+          error: formatLockoutMessage(
+            user.lockedUntil!,
+            "Too many sign-in attempts."
+          ),
+        },
+        { status: 429 }
+      );
+    }
+
     const passwordValid = await verifyPassword(password, user.passwordHash);
     if (!passwordValid) {
+      const lockoutState = getLockoutState({
+        failedAttempts: user.failedLoginAttempts,
+        maxAttempts: MAX_LOGIN_ATTEMPTS,
+        lockoutMs: LOGIN_LOCKOUT_MS,
+      });
+
+      await db
+        .update(users)
+        .set({
+          failedLoginAttempts: lockoutState.failedAttempts,
+          lockedUntil: lockoutState.lockedUntil,
+          updatedAt: new Date(),
+        })
+        .where(eq(users.id, user.id));
+
+      if (lockoutState.isLocked && lockoutState.lockedUntil) {
+        return NextResponse.json(
+          {
+            error: formatLockoutMessage(
+              lockoutState.lockedUntil,
+              "Too many sign-in attempts."
+            ),
+          },
+          { status: 429 }
+        );
+      }
+
       return NextResponse.json(
         { error: "Incorrect email or password" },
         { status: 401 }
       );
     }
 
+    if (user.failedLoginAttempts > 0 || user.lockedUntil) {
+      await db
+        .update(users)
+        .set({
+          failedLoginAttempts: 0,
+          lockedUntil: null,
+          updatedAt: new Date(),
+        })
+        .where(eq(users.id, user.id));
+    }
+
     // If MFA is enabled, create a pending session (no cookie yet)
     if (user.mfaEnabled) {
-      const sessionId = await createSession(user.id);
-
-      // Mark session as MFA-pending
-      await db
-        .update(sessions)
-        .set({ mfaPending: true })
-        .where(eq(sessions.id, sessionId));
+      const sessionId = await createSession(user.id, {
+        durationMs: MFA_PENDING_DURATION_MS,
+        mfaPending: true,
+      });
 
       const response = NextResponse.json({
         mfaRequired: true,
-        sessionId,
       });
 
-      // Set mfa_pending cookie so middleware can redirect appropriately
-      response.cookies.set("mfa_pending", sessionId, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-        sameSite: "lax",
-        path: "/",
-        maxAge: 10 * 60, // 10 minutes to complete MFA
-      });
+      response.cookies.set(
+        MFA_PENDING_COOKIE_NAME,
+        sessionId,
+        getSessionCookieOptions(MFA_PENDING_DURATION_MS / 1000)
+      );
+      response.cookies.set(
+        SESSION_COOKIE_NAME,
+        "",
+        getExpiredCookieOptions()
+      );
 
       return response;
     }
@@ -80,17 +152,20 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    response.cookies.set("session_id", sessionId, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
-      path: "/",
-      maxAge: 30 * 24 * 60 * 60,
-    });
+    response.cookies.set(
+      SESSION_COOKIE_NAME,
+      sessionId,
+      getSessionCookieOptions(30 * 24 * 60 * 60)
+    );
+    response.cookies.set(
+      MFA_PENDING_COOKIE_NAME,
+      "",
+      getExpiredCookieOptions()
+    );
 
     return response;
   } catch (error) {
-    console.error("Login error:", error);
+    logServerError("Login error", error);
     return NextResponse.json(
       { error: "Failed to sign in" },
       { status: 500 }

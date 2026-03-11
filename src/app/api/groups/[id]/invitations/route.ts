@@ -31,6 +31,13 @@ export async function POST(
       );
     }
 
+    if (membership.role !== "owner") {
+      return NextResponse.json(
+        { error: "Only the group owner can manage invitations" },
+        { status: 403 }
+      );
+    }
+
     const body = await request.json().catch(() => ({}));
     const invitedEmail = body.email?.trim()?.toLowerCase() || null;
     const token = crypto.randomBytes(32).toString("base64url");
@@ -93,6 +100,13 @@ export async function GET(
     if (!membership) {
       return NextResponse.json(
         { error: "Not a member of this group" },
+        { status: 403 }
+      );
+    }
+
+    if (membership.role !== "owner") {
+      return NextResponse.json(
+        { error: "Only the group owner can view invitations" },
         { status: 403 }
       );
     }

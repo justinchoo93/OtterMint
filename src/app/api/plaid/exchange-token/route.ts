@@ -4,6 +4,7 @@ import { encrypt } from "@/lib/crypto";
 import { db } from "@/lib/db";
 import { plaidItems, accounts } from "@/lib/db/schema";
 import { getUserId, isAuthError } from "@/lib/auth/get-user-id";
+import { logServerError } from "@/lib/logging";
 
 export async function POST(request: NextRequest) {
   try {
@@ -56,7 +57,7 @@ export async function POST(request: NextRequest) {
     if (isAuthError(error)) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
-    console.error("Failed to exchange token:", error);
+    logServerError("Failed to exchange token", error);
     return NextResponse.json(
       { error: "Failed to exchange token" },
       { status: 500 }

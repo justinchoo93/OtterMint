@@ -43,11 +43,12 @@ function LoginForm() {
 
       // MFA required - redirect to verification page
       if (data.mfaRequired) {
-        const params = new URLSearchParams({ sessionId: data.sessionId });
+        const params = new URLSearchParams();
         if (redirect && redirect !== "/") {
           params.set("redirect", redirect);
         }
-        router.push(`/auth/mfa-verify?${params.toString()}`);
+        const query = params.toString();
+        router.push(query ? `/auth/mfa-verify?${query}` : "/auth/mfa-verify");
         return;
       }
 
@@ -142,4 +143,3 @@ function LoginForm() {
     </div>
   );
 }
-

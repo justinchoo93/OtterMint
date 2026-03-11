@@ -50,7 +50,11 @@ export default function GroupSettingsPage() {
         const g = groupData.groups[0];
         setGroup(g);
         await fetchMembers(g.id);
-        await fetchOrCreateInvite(g.id);
+        if (g.role === "owner") {
+          await fetchOrCreateInvite(g.id);
+        } else {
+          setInviteLink("");
+        }
       }
     } catch (err) {
       console.error("Failed to fetch group:", err);
@@ -249,47 +253,57 @@ export default function GroupSettingsPage() {
         </div>
       </div>
 
-      {/* Invite */}
-      <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-secondary)] p-4 sm:p-6">
-        <h2 className="mb-4 text-xs font-medium uppercase tracking-wider text-[var(--text-muted)]">
-          Invite
-        </h2>
+      {isOwner ? (
+        <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-secondary)] p-4 sm:p-6">
+          <h2 className="mb-4 text-xs font-medium uppercase tracking-wider text-[var(--text-muted)]">
+            Invite
+          </h2>
 
-        {inviteLink ? (
-          <div className="space-y-3">
-            <p className="text-xs text-[var(--text-muted)]">
-              Share this link (expires in 7 days):
-            </p>
-            <div className="flex gap-2">
-              <input
-                type="text"
-                value={inviteLink}
-                readOnly
-                className="flex-1 rounded-lg border border-[var(--border)] bg-[var(--bg-tertiary)] px-3 py-2 text-xs text-[var(--text-secondary)] outline-none"
-              />
+          {inviteLink ? (
+            <div className="space-y-3">
+              <p className="text-xs text-[var(--text-muted)]">
+                Share this link (expires in 7 days):
+              </p>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={inviteLink}
+                  readOnly
+                  className="flex-1 rounded-lg border border-[var(--border)] bg-[var(--bg-tertiary)] px-3 py-2 text-xs text-[var(--text-secondary)] outline-none"
+                />
+                <button
+                  onClick={handleCopyLink}
+                  className="rounded-lg bg-[var(--bg-tertiary)] px-3 py-2 text-xs font-medium text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-hover)]"
+                >
+                  {copied ? "Copied!" : "Copy"}
+                </button>
+              </div>
               <button
-                onClick={handleCopyLink}
-                className="rounded-lg bg-[var(--bg-tertiary)] px-3 py-2 text-xs font-medium text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-hover)]"
+                onClick={handleGenerateInvite}
+                className="text-xs text-[var(--accent-blue)] hover:underline"
               >
-                {copied ? "Copied!" : "Copy"}
+                Generate new link
               </button>
             </div>
+          ) : (
             <button
               onClick={handleGenerateInvite}
-              className="text-xs text-[var(--accent-blue)] hover:underline"
+              className="rounded-lg bg-[var(--accent-blue)] px-4 py-2 text-sm font-medium text-white transition-opacity hover:opacity-90"
             >
-              Generate new link
+              Generate invite link
             </button>
-          </div>
-        ) : (
-          <button
-            onClick={handleGenerateInvite}
-            className="rounded-lg bg-[var(--accent-blue)] px-4 py-2 text-sm font-medium text-white transition-opacity hover:opacity-90"
-          >
-            Generate invite link
-          </button>
-        )}
-      </div>
+          )}
+        </div>
+      ) : (
+        <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-secondary)] p-4 sm:p-6">
+          <h2 className="mb-2 text-xs font-medium uppercase tracking-wider text-[var(--text-muted)]">
+            Invitations
+          </h2>
+          <p className="text-sm text-[var(--text-secondary)]">
+            Only the group owner can create or view invitation links.
+          </p>
+        </div>
+      )}
 
       {/* Shared Data Info */}
       <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-secondary)] p-4 sm:p-6">

@@ -6,6 +6,7 @@ import { decrypt } from "@/lib/crypto";
 import { eq, and } from "drizzle-orm";
 import { CountryCode } from "plaid";
 import { getUserId, isAuthError } from "@/lib/auth/get-user-id";
+import { logServerError } from "@/lib/logging";
 
 export async function POST(request: NextRequest) {
   try {
@@ -36,7 +37,7 @@ export async function POST(request: NextRequest) {
     if (isAuthError(error)) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
-    console.error("Failed to create update link token:", error);
+    logServerError("Failed to create update link token", error);
     return NextResponse.json(
       { error: "Failed to create update link token" },
       { status: 500 }

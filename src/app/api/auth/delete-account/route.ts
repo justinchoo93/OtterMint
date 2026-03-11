@@ -5,6 +5,12 @@ import { eq } from "drizzle-orm";
 import { getUserId, isAuthError } from "@/lib/auth/get-user-id";
 import { plaidClient } from "@/lib/plaid";
 import { decrypt } from "@/lib/crypto";
+import {
+  getExpiredCookieOptions,
+  MFA_PENDING_COOKIE_NAME,
+  SESSION_COOKIE_NAME,
+} from "@/lib/auth/cookies";
+import { logServerError } from "@/lib/logging";
 
 export async function DELETE() {
   try {
@@ -22,8 +28,8 @@ export async function DELETE() {
         await plaidClient.itemRemove({ access_token: accessToken });
       } catch (err) {
         // Log but don't block deletion if Plaid revocation fails
-        console.error(
-          `Failed to revoke Plaid token for ${item.institutionName}:`,
+        logServerError(
+          `Failed to revoke Plaid token for ${item.institutionName}`,
           err
         );
       }
@@ -36,21 +42,19 @@ export async function DELETE() {
 
     const response = NextResponse.json({ success: true });
 
-    // Clear session cookie
-    response.cookies.set("session_id", "", {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
-      path: "/",
-      maxAge: 0,
-    });
+    response.cookies.set(SESSION_COOKIE_NAME, "", getExpiredCookieOptions());
+    response.cookies.set(
+      MFA_PENDING_COOKIE_NAME,
+      "",
+      getExpiredCookieOptions()
+    );
 
     return response;
   } catch (error) {
     if (isAuthError(error)) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
-    console.error("Account deletion error:", error);
+    logServerError("Account deletion error", error);
     return NextResponse.json(
       { error: "Failed to delete account" },
       { status: 500 }

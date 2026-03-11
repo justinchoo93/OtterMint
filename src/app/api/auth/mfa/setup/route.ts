@@ -8,6 +8,8 @@ import { encrypt } from "@/lib/crypto";
 import { db } from "@/lib/db";
 import { users } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
+import { isAuthError } from "@/lib/auth/get-user-id";
+import { logServerError } from "@/lib/logging";
 
 export async function POST() {
   try {
@@ -62,7 +64,10 @@ export async function POST() {
       recoveryCodes,
     });
   } catch (error) {
-    console.error("MFA setup error:", error);
+    if (isAuthError(error)) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    logServerError("MFA setup error", error);
     return NextResponse.json(
       { error: "Failed to set up MFA" },
       { status: 500 }

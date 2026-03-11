@@ -14,7 +14,6 @@ export default function MfaVerifyPage() {
 function MfaVerifyForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const sessionId = searchParams.get("sessionId") || "";
   const redirect = searchParams.get("redirect") || "/";
 
   const [code, setCode] = useState("");
@@ -31,7 +30,7 @@ function MfaVerifyForm() {
       const res = await fetch("/api/auth/mfa/verify", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ sessionId, code: code.trim() }),
+        body: JSON.stringify({ code: code.trim() }),
       });
 
       const data = await res.json();
@@ -51,23 +50,6 @@ function MfaVerifyForm() {
     } finally {
       setLoading(false);
     }
-  }
-
-  if (!sessionId) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-[var(--bg-primary)] px-4">
-        <div className="w-full max-w-sm">
-          <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-secondary)] p-6 sm:p-8 text-center">
-            <p className="text-sm text-[var(--text-muted)]">
-              Invalid MFA session. Please{" "}
-              <a href="/login" className="text-[var(--accent-blue)] hover:underline">
-                sign in again
-              </a>.
-            </p>
-          </div>
-        </div>
-      </div>
-    );
   }
 
   return (

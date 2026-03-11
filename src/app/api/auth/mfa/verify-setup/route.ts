@@ -5,6 +5,8 @@ import { decrypt } from "@/lib/crypto";
 import { db } from "@/lib/db";
 import { users } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
+import { isAuthError } from "@/lib/auth/get-user-id";
+import { logServerError } from "@/lib/logging";
 
 export async function POST(request: NextRequest) {
   try {
@@ -53,7 +55,10 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error("MFA verify-setup error:", error);
+    if (isAuthError(error)) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    logServerError("MFA verify-setup error", error);
     return NextResponse.json(
       { error: "Failed to verify MFA setup" },
       { status: 500 }

@@ -24,6 +24,8 @@ export const users = pgTable("users", {
   totpSecret: text("totp_secret"),
   mfaEnabled: boolean("mfa_enabled").notNull().default(false),
   recoveryCodes: text("recovery_codes"),
+  failedLoginAttempts: integer("failed_login_attempts").notNull().default(0),
+  lockedUntil: timestamp("locked_until"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
@@ -36,6 +38,8 @@ export const sessions = pgTable(
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
     mfaPending: boolean("mfa_pending").notNull().default(false),
+    mfaFailedAttempts: integer("mfa_failed_attempts").notNull().default(0),
+    mfaLockedUntil: timestamp("mfa_locked_until"),
     expiresAt: timestamp("expires_at").notNull(),
     createdAt: timestamp("created_at").notNull().defaultNow(),
   },

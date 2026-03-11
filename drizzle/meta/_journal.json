@@ -15,6 +15,13 @@
       "when": 1772849784320,
       "tag": "0001_shiny_purifiers",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1773249254848,
+      "tag": "0002_tranquil_morlocks",
+      "breakpoints": true
     }
   ]
 }

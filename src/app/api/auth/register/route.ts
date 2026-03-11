@@ -3,10 +3,25 @@ import { db } from "@/lib/db";
 import { users } from "@/lib/db/schema";
 import { hashPassword } from "@/lib/auth/password";
 import { createSession } from "@/lib/auth/session";
+import {
+  getExpiredCookieOptions,
+  getSessionCookieOptions,
+  MFA_PENDING_COOKIE_NAME,
+  SESSION_COOKIE_NAME,
+} from "@/lib/auth/cookies";
+import { logServerError } from "@/lib/logging";
 
 export async function POST(request: NextRequest) {
   try {
-    const { email, password, displayName, consentGiven } = await request.json();
+    const body = await request.json();
+    if (typeof body !== "object" || body === null || Array.isArray(body)) {
+      return NextResponse.json(
+        { error: "Email, password, and name are required" },
+        { status: 400 }
+      );
+    }
+
+    const { email, password, displayName, consentGiven } = body;
 
     // Validate inputs
     if (!email || !password || !displayName) {
@@ -84,17 +99,20 @@ export async function POST(request: NextRequest) {
       { status: 201 }
     );
 
-    response.cookies.set("session_id", sessionId, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
-      path: "/",
-      maxAge: 30 * 24 * 60 * 60, // 30 days in seconds
-    });
+    response.cookies.set(
+      SESSION_COOKIE_NAME,
+      sessionId,
+      getSessionCookieOptions(30 * 24 * 60 * 60)
+    );
+    response.cookies.set(
+      MFA_PENDING_COOKIE_NAME,
+      "",
+      getExpiredCookieOptions()
+    );
 
     return response;
   } catch (error) {
-    console.error("Registration error:", error);
+    logServerError("Registration error", error);
     return NextResponse.json(
       { error: "Failed to create account" },
       { status: 500 }
