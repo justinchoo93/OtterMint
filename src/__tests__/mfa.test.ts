@@ -13,7 +13,7 @@ describe("MFA - TOTP generation and validation", () => {
 
     const secret = new Secret({ size: 20 });
     const totp = new TOTP({
-      issuer: "OtterFin",
+      issuer: "OtterMint",
       label: "test@example.com",
       secret,
     });
@@ -30,7 +30,7 @@ describe("MFA - TOTP generation and validation", () => {
 
     const secret = new Secret({ size: 20 });
     const totp = new TOTP({
-      issuer: "OtterFin",
+      issuer: "OtterMint",
       label: "test@example.com",
       secret,
     });
@@ -48,14 +48,14 @@ describe("MFA - TOTP generation and validation", () => {
 
     const secret = new Secret({ size: 20 });
     const totp = new TOTP({
-      issuer: "OtterFin",
+      issuer: "OtterMint",
       label: "test@example.com",
       secret,
     });
 
     const uri = totp.toString();
     expect(uri).toContain("otpauth://totp/");
-    expect(uri).toContain("OtterFin");
+    expect(uri).toContain("OtterMint");
     expect(uri).toContain("secret=");
   });
 
@@ -155,7 +155,7 @@ describe("MFA - Login flow logic", () => {
 
     const secret = new Secret({ size: 20 });
     const totp = new TOTP({
-      issuer: "OtterFin",
+      issuer: "OtterMint",
       secret,
     });
 

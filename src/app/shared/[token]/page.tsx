@@ -81,7 +81,7 @@ export default function SharedViewPage() {
       <div className="flex min-h-screen items-center justify-center bg-[var(--bg-primary)] px-4">
         <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-secondary)] p-6 sm:p-8 text-center">
           <h1 className="text-lg font-semibold text-[var(--text-primary)]">
-            otterfin
+            ottermint
           </h1>
           <p className="mt-4 text-sm text-[var(--text-secondary)]">
             This share link is no longer available.
@@ -112,7 +112,7 @@ export default function SharedViewPage() {
         <div className="mx-auto flex max-w-3xl items-center justify-between px-4 py-3 sm:px-6">
           <div className="flex items-baseline gap-3">
             <h1 className="text-lg font-semibold tracking-tight text-[var(--text-primary)]">
-              otterfin
+              ottermint
             </h1>
             <span className="text-xs text-[var(--text-muted)]">
               shared view
@@ -218,7 +218,7 @@ export default function SharedViewPage() {
         )}
 
         <p className="text-center text-xs text-[var(--text-muted)]">
-          Read-only view &bull; Powered by OtterFin
+          Read-only view &bull; Powered by OtterMint
         </p>
       </main>
     </div>

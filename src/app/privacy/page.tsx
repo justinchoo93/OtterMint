@@ -1,7 +1,7 @@
 import Link from "next/link";
 
 export const metadata = {
-  title: "Privacy Policy - OtterFin",
+  title: "Privacy Policy - OtterMint",
 };
 
 export default function PrivacyPolicyPage() {
@@ -29,7 +29,7 @@ export default function PrivacyPolicyPage() {
                 1. What We Collect
               </h2>
               <p>
-                OtterFin collects the following data to provide you with a
+                OtterMint collects the following data to provide you with a
                 personal finance dashboard:
               </p>
               <ul className="mt-2 list-disc space-y-1 pl-5">
@@ -90,7 +90,7 @@ export default function PrivacyPolicyPage() {
               </h2>
               <p>
                 Your data is used solely to display your financial information
-                within the OtterFin dashboard. We do not sell, rent, or share
+                within the OtterMint dashboard. We do not sell, rent, or share
                 your personal or financial data with any third parties.
               </p>
             </section>

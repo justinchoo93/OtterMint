@@ -27,7 +27,7 @@ export async function POST() {
     // Generate TOTP secret
     const secret = new Secret({ size: 20 });
     const totp = new TOTP({
-      issuer: "OtterFin",
+      issuer: "OtterMint",
       label: user.email,
       secret,
     });

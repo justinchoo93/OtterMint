@@ -95,7 +95,7 @@ export default function InviteAcceptPage() {
       <div className="w-full max-w-sm">
         <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-secondary)] p-6 sm:p-8">
           <h1 className="text-lg font-semibold tracking-tight text-[var(--text-primary)]">
-            otterfin
+            ottermint
           </h1>
 
           {state === "loading" && (
@@ -106,7 +106,7 @@ export default function InviteAcceptPage() {
             <div className="mt-6 space-y-4">
               <p className="text-sm text-[var(--text-secondary)]">
                 {inviteInfo.inviterName} invited you to join their household
-                group on OtterFin.
+                group on OtterMint.
               </p>
               <p className="text-xs text-[var(--text-muted)]">
                 By joining, all of your connected accounts and transactions will

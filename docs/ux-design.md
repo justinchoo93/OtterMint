@@ -1,8 +1,8 @@
-# OtterFin UX Design: Auth, Profiles, Groups & Sharing
+# OtterMint UX Design: Auth, Profiles, Groups & Sharing
 
 ## Overview & Design Philosophy
 
-OtterFin is evolving from a single-user personal finance dashboard to one that can support
+OtterMint is evolving from a single-user personal finance dashboard to one that can support
 households — couples, families, or any group of people who want a unified financial picture.
 
 This document covers UX for three phases:
@@ -51,7 +51,7 @@ This document covers UX for three phases:
 
 ```
 ┌──────────────────────────────────────┐
-│  otterfin                            │
+│  ottermint                            │
 │  personal finance dashboard          │
 │                                      │
 │  Email                               │
@@ -84,7 +84,7 @@ This document covers UX for three phases:
 
 ```
 ┌──────────────────────────────────────┐
-│  otterfin                            │
+│  ottermint                            │
 │  Create your account                 │
 │                                      │
 │  Name *                              │
@@ -124,11 +124,11 @@ banner guides the user to connect their first account. No wizards, no modals, no
 
 ```
 ┌──────────────────────────────────────────────────────────────────────┐
-│  otterfin  dashboard                       [Refresh] [+ Connect] [JK▾]│
+│  ottermint  dashboard                       [Refresh] [+ Connect] [JK▾]│
 ├──────────────────────────────────────────────────────────────────────┤
 │                                                                        │
 │  ┌──────────────────────────────────────────────────────────────────┐ │
-│  │  Welcome to OtterFin.                                            │ │
+│  │  Welcome to OtterMint.                                            │ │
 │  │  Connect your first bank account to see your net worth.          │ │
 │  │                                                                  │ │
 │  │  [+ Connect Account]                            [Maybe later ×] │ │
@@ -161,7 +161,7 @@ New header adds a user avatar menu on the right:
 
 ```
 ┌──────────────────────────────────────────────────────────────────────┐
-│  otterfin  dashboard               [Refresh] [+ Connect Account] [JK▾]│
+│  ottermint  dashboard               [Refresh] [+ Connect Account] [JK▾]│
 └──────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -169,7 +169,7 @@ When in a group with data to show, tabs appear between wordmark and action butto
 
 ```
 ┌──────────────────────────────────────────────────────────────────────┐
-│  otterfin   [My Finances] [Household]         [Refresh] [+ Connect] [JK▾]│
+│  ottermint   [My Finances] [Household]         [Refresh] [+ Connect] [JK▾]│
 └──────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -253,7 +253,7 @@ to a standalone verification page:
 
 ```
 ┌──────────────────────────────────────┐
-│  otterfin                            │
+│  ottermint                            │
 │  Two-factor authentication           │
 │                                      │
 │  Enter code from authenticator app   │
@@ -322,7 +322,7 @@ shared) is addressed in Phase 2.
 │  ┌──────────────────────────────────────────────┐   │
 │  │  Join an existing group                      │   │
 │  │  Have an invite link? Paste it below.        │   │
-│  │  [  https://otterfin.app/invite/...  ] [Join]│   │
+│  │  [  https://ottermint.app/invite/...  ] [Join]│   │
 │  └──────────────────────────────────────────────┘   │
 └──────────────────────────────────────────────────────┘
 ```
@@ -350,7 +350,7 @@ shared) is addressed in Phase 2.
 │  │  [  email address  ]           [Send invite email]        │ │
 │  │                                                           │ │
 │  │  Or share this link (expires in 7 days):                  │ │
-│  │  https://otterfin.app/invite/abc123    [Copy] [Regenerate]│ │
+│  │  https://ottermint.app/invite/abc123    [Copy] [Regenerate]│ │
 │  └──────────────────────────────────────────────────────────┘ │
 │                                                               │
 │  ┌── SHARED DATA ────────────────────────────────────────────┐ │
@@ -390,10 +390,10 @@ After regeneration, the old link is immediately invalid.
 
 ```
 ┌──────────────────────────────────────────────┐
-│  otterfin                                    │
+│  ottermint                                    │
 │                                              │
 │  Justin Kim invited you to join their        │
-│  household group on OtterFin.                │
+│  household group on OtterMint.                │
 │                                              │
 │  By joining, all of your connected accounts  │
 │  and transactions will be visible to group   │
@@ -621,7 +621,7 @@ A small note in the Household tab accounts panel:
 **Status**: Built. Originally planned for Phase 3 but implemented early.
 
 Read-only shareable links for financial advisors, accountants, or family members.
-No OtterFin account required to view. Granular control over what data is exposed.
+No OtterMint account required to view. Granular control over what data is exposed.
 
 ### 8A. Share Link Management
 
@@ -671,7 +671,7 @@ No OtterFin account required to view. Granular control over what data is exposed
 
 ```
 ┌──────────────────────────────────────────────────────────────────┐
-│  otterfin                                                         │
+│  ottermint                                                         │
 │  Justin Kim's finances  ·  For accountant                         │
 │                                                                   │
 │  ┌── Net Worth ────────────────────────────────────────────────┐ │
@@ -691,7 +691,7 @@ No OtterFin account required to view. Granular control over what data is exposed
 │  │  (last 200 transactions, most recent first)                  │ │
 │  └──────────────────────────────────────────────────────────────┘ │
 │                                                                   │
-│  Read-only view · Powered by OtterFin                             │
+│  Read-only view · Powered by OtterMint                             │
 └──────────────────────────────────────────────────────────────────┘
 ```
 

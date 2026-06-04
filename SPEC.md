@@ -1,4 +1,4 @@
-# OtterFin Feature Spec
+# OtterMint Feature Spec
 
 Personal finance dashboard that aggregates bank, investment, and retirement accounts to provide a unified view of household finances.
 
@@ -264,7 +264,7 @@ Personal finance dashboard that aggregates bank, investment, and retirement acco
   - Net worth: latest snapshot + 90-day history
   - Accounts: Plaid accounts (name, type, mask, balance, institution) + manual accounts
   - Transactions: last 200, most recent first (date, name, merchant, amount, category)
-- Footer: "Read-only view - Powered by OtterFin"
+- Footer: "Read-only view - Powered by OtterMint"
 - Revoked links: "This link is no longer available"
 - Expired links: 410 Gone
 - Invalid tokens: 404

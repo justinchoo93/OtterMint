@@ -25,7 +25,7 @@ A rich, visually pleasing financial analytics dashboard with an LLM-powered natu
 
 ### Current approach (personal use)
 - Feature-flagged to admin users only
-- BYOK model means OtterFin never operates an LLM API key on behalf of users
+- BYOK model means OtterMint never operates an LLM API key on behalf of users
 - User explicitly configures their own API key and provider, making an informed choice to send data
 
 ### Before public launch of LLM feature

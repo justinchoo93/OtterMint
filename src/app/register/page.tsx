@@ -79,7 +79,7 @@ function RegisterForm() {
         <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-secondary)] p-6 sm:p-8">
           <div className="mb-6">
             <h1 className="text-lg font-semibold tracking-tight text-[var(--text-primary)]">
-              otterfin
+              ottermint
             </h1>
             <p className="mt-1 text-sm text-[var(--text-muted)]">
               Create your account

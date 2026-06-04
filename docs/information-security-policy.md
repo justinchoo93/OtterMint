@@ -1,4 +1,4 @@
-# OtterFin Information Security Policy
+# OtterMint Information Security Policy
 
 **Version:** 1.0
 **Effective Date:** March 6, 2026
@@ -9,11 +9,11 @@
 
 ## 1. Purpose
 
-This policy establishes the information security practices for OtterFin, a personal finance dashboard application that integrates with financial institutions via Plaid. It defines how we protect consumer financial data throughout its lifecycle.
+This policy establishes the information security practices for OtterMint, a personal finance dashboard application that integrates with financial institutions via Plaid. It defines how we protect consumer financial data throughout its lifecycle.
 
 ## 2. Scope
 
-This policy applies to all systems, data, and processes involved in the operation of OtterFin, including:
+This policy applies to all systems, data, and processes involved in the operation of OtterMint, including:
 - The web application and its infrastructure
 - All consumer data collected, processed, and stored
 - Third-party integrations (Plaid, Supabase)

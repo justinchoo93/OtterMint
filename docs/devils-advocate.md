@@ -320,7 +320,7 @@ No mitigation needed; just important to note that multi-user isn't "free." The P
 
 **YNAB**: Built around the household from day one — one shared budget that multiple people can access. Very different model (budget-first vs. net-worth-first).
 
-**Takeaway**: OtterFin's proposed model (individual-first, groups as optional overlay) is the right call for a personal finance dashboard. The risk is that users who know Monarch will expect Monarch-level sophistication (joint account deduplication, per-account sharing) and be disappointed by Phase 1. Set expectations appropriately.
+**Takeaway**: OtterMint's proposed model (individual-first, groups as optional overlay) is the right call for a personal finance dashboard. The risk is that users who know Monarch will expect Monarch-level sophistication (joint account deduplication, per-account sharing) and be disappointed by Phase 1. Set expectations appropriately.
 
 The joint account deduplication problem that Monarch solves is genuinely hard and should be explicitly out of scope for Phase 1 with a note in the spec.
 

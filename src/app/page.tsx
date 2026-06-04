@@ -125,7 +125,7 @@ export default function Dashboard() {
           <div className="flex items-center gap-3">
             <div className="flex items-baseline gap-3">
               <h1 className="text-lg font-semibold tracking-tight text-[var(--text-primary)]">
-                otterfin
+                ottermint
               </h1>
               <span className="text-xs text-[var(--text-muted)]">dashboard</span>
             </div>

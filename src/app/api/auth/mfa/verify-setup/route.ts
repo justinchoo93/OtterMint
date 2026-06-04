@@ -35,7 +35,7 @@ export async function POST(request: NextRequest) {
 
     const secretBase32 = decrypt(user.totpSecret);
     const totp = new TOTP({
-      issuer: "OtterFin",
+      issuer: "OtterMint",
       secret: secretBase32,
     });
 

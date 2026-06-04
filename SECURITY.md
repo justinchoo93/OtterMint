@@ -1,4 +1,4 @@
-# OtterFin Security Policy
+# OtterMint Security Policy
 
 ## Encryption
 

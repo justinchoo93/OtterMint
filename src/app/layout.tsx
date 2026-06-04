@@ -15,7 +15,7 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "OtterFin",
+  title: "OtterMint",
   description: "Personal finance dashboard",
 };
 

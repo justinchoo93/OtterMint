@@ -1,8 +1,8 @@
-# OtterFin Technical Architecture
+# OtterMint Technical Architecture
 
 ## Overview
 
-OtterFin is a personal finance dashboard built on Next.js 15/16 with API routes, Drizzle ORM over Supabase PostgreSQL, and Plaid for financial data. This document covers the current architecture, known bugs, and a proposed architecture for multi-user support with profiles, groups, and sharing.
+OtterMint is a personal finance dashboard built on Next.js 15/16 with API routes, Drizzle ORM over Supabase PostgreSQL, and Plaid for financial data. This document covers the current architecture, known bugs, and a proposed architecture for multi-user support with profiles, groups, and sharing.
 
 ---
 
@@ -252,7 +252,7 @@ export function middleware(request: NextRequest) {
   }
   return new NextResponse("Authentication required", {
     status: 401,
-    headers: { "WWW-Authenticate": 'Basic realm="OtterFin"' },
+    headers: { "WWW-Authenticate": 'Basic realm="OtterMint"' },
   });
 }
 
