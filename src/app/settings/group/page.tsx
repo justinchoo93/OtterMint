@@ -31,6 +31,7 @@ export default function GroupSettingsPage() {
   const [group, setGroup] = useState<GroupInfo | null>(null);
   const [members, setMembers] = useState<Member[]>([]);
   const [inviteLink, setInviteLink] = useState<string>("");
+  const [activeInviteToken, setActiveInviteToken] = useState<string>("");
   const [loading, setLoading] = useState(true);
   const [copied, setCopied] = useState(false);
   const [currentUserId, setCurrentUserId] = useState<string>("");
@@ -81,6 +82,7 @@ export default function GroupSettingsPage() {
     );
 
     if (activeInvite) {
+      setActiveInviteToken(activeInvite.token);
       setInviteLink(
         `${window.location.origin}/invite/${activeInvite.token}`
       );
@@ -116,12 +118,36 @@ export default function GroupSettingsPage() {
       });
       const data = await res.json();
       if (data.invitation) {
+        setActiveInviteToken(data.invitation.token);
         setInviteLink(
           `${window.location.origin}/invite/${data.invitation.token}`
         );
       }
     } catch (err) {
       console.error("Failed to generate invite:", err);
+    }
+  }
+
+  async function handleRevokeInvite() {
+    if (!group || !activeInviteToken) return;
+    if (
+      !confirm(
+        "Revoke this invite link? Anyone who has it will no longer be able to join."
+      )
+    ) {
+      return;
+    }
+    try {
+      await fetch(
+        `/api/groups/${group.id}/invitations?token=${encodeURIComponent(
+          activeInviteToken
+        )}`,
+        { method: "DELETE" }
+      );
+      setInviteLink("");
+      setActiveInviteToken("");
+    } catch (err) {
+      console.error("Failed to revoke invite:", err);
     }
   }
 
@@ -173,6 +199,7 @@ export default function GroupSettingsPage() {
       setGroup(null);
       setMembers([]);
       setInviteLink("");
+      setActiveInviteToken("");
     } catch (err) {
       console.error("Failed to leave group:", err);
     }
@@ -283,6 +310,12 @@ export default function GroupSettingsPage() {
                 className="text-xs text-[var(--accent-blue)] hover:underline"
               >
                 Generate new link
+              </button>
+              <button
+                onClick={handleRevokeInvite}
+                className="ml-3 text-xs text-[var(--accent-red)] hover:underline"
+              >
+                Revoke link
               </button>
             </div>
           ) : (
