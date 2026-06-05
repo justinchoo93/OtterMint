@@ -20,14 +20,18 @@ export const users = pgTable("users", {
   email: text("email").notNull().unique(),
   passwordHash: text("password_hash").notNull(),
   displayName: text("display_name").notNull(),
-  consentGivenAt: timestamp("consent_given_at"),
+  consentGivenAt: timestamp("consent_given_at", { withTimezone: true }),
   totpSecret: text("totp_secret"),
   mfaEnabled: boolean("mfa_enabled").notNull().default(false),
   recoveryCodes: text("recovery_codes"),
   failedLoginAttempts: integer("failed_login_attempts").notNull().default(0),
-  lockedUntil: timestamp("locked_until"),
-  createdAt: timestamp("created_at").notNull().defaultNow(),
-  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  lockedUntil: timestamp("locked_until", { withTimezone: true }),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
 });
 
 export const sessions = pgTable(
@@ -39,9 +43,11 @@ export const sessions = pgTable(
       .references(() => users.id, { onDelete: "cascade" }),
     mfaPending: boolean("mfa_pending").notNull().default(false),
     mfaFailedAttempts: integer("mfa_failed_attempts").notNull().default(0),
-    mfaLockedUntil: timestamp("mfa_locked_until"),
-    expiresAt: timestamp("expires_at").notNull(),
-    createdAt: timestamp("created_at").notNull().defaultNow(),
+    mfaLockedUntil: timestamp("mfa_locked_until", { withTimezone: true }),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
   },
   (t) => [index("idx_sessions_user_id").on(t.userId)]
 );
@@ -54,7 +60,9 @@ export const groups = pgTable("groups", {
   createdBy: uuid("created_by").references(() => users.id, {
     onDelete: "set null",
   }),
-  createdAt: timestamp("created_at").notNull().defaultNow(),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
 });
 
 export const groupRoleEnum = pgEnum("group_role", ["owner", "member"]);
@@ -84,38 +92,36 @@ export const groupInvitations = pgTable("group_invitations", {
   groupId: uuid("group_id")
     .notNull()
     .references(() => groups.id, { onDelete: "cascade" }),
-  invitedBy: uuid("invited_by")
-    .notNull()
-    .references(() => users.id),
+  invitedBy: uuid("invited_by").references(() => users.id, {
+    onDelete: "set null",
+  }),
   invitedEmail: text("invited_email"), // nullable for link-only invites
   token: text("token").notNull().unique(),
-  acceptedAt: timestamp("accepted_at"),
-  expiresAt: timestamp("expires_at").notNull(),
-  createdAt: timestamp("created_at").notNull().defaultNow(),
+  acceptedAt: timestamp("accepted_at", { withTimezone: true }),
+  expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
 });
 
 // ─── Share Links ─────────────────────────────────────────────────────────────
 
-export const shareLinks = pgTable(
-  "share_links",
-  {
-    id: uuid("id").primaryKey().defaultRandom(),
-    userId: uuid("user_id")
-      .notNull()
-      .references(() => users.id, { onDelete: "cascade" }),
-    token: text("token").notNull().unique(),
-    label: text("label"),
-    includeNetWorth: boolean("include_net_worth").notNull().default(true),
-    includeBalances: boolean("include_balances").notNull().default(false),
-    includeTransactions: boolean("include_transactions")
-      .notNull()
-      .default(false),
-    expiresAt: timestamp("expires_at"), // null = never expires
-    revokedAt: timestamp("revoked_at"),
-    createdAt: timestamp("created_at").notNull().defaultNow(),
-  },
-  (t) => [index("idx_share_links_token").on(t.token)]
-);
+export const shareLinks = pgTable("share_links", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: uuid("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  token: text("token").notNull().unique(),
+  label: text("label"),
+  includeNetWorth: boolean("include_net_worth").notNull().default(true),
+  includeBalances: boolean("include_balances").notNull().default(false),
+  includeTransactions: boolean("include_transactions").notNull().default(false),
+  expiresAt: timestamp("expires_at", { withTimezone: true }), // null = never expires
+  revokedAt: timestamp("revoked_at", { withTimezone: true }),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});
 
 // ─── Financial Data ──────────────────────────────────────────────────────────
 
@@ -133,8 +139,12 @@ export const plaidItems = pgTable(
     transactionsCursor: text("transactions_cursor"),
     errorCode: text("error_code"),
     errorMessage: text("error_message"),
-    createdAt: timestamp("created_at").notNull().defaultNow(),
-    updatedAt: timestamp("updated_at").notNull().defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
   },
   (t) => [index("idx_plaid_items_user_id").on(t.userId)]
 );
@@ -156,9 +166,13 @@ export const accounts = pgTable(
     availableBalance: numeric("available_balance", { precision: 12, scale: 2 }),
     limitAmount: numeric("limit_amount", { precision: 12, scale: 2 }),
     isoCurrencyCode: text("iso_currency_code").default("USD"),
-    lastRefreshedAt: timestamp("last_refreshed_at"),
-    createdAt: timestamp("created_at").notNull().defaultNow(),
-    updatedAt: timestamp("updated_at").notNull().defaultNow(),
+    lastRefreshedAt: timestamp("last_refreshed_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
   },
   (t) => [index("idx_accounts_plaid_item_id").on(t.plaidItemId)]
 );
@@ -178,10 +192,13 @@ export const transactions = pgTable(
     category: text("category"),
     pending: boolean("pending").notNull().default(false),
     isoCurrencyCode: text("iso_currency_code").default("USD"),
-    createdAt: timestamp("created_at").notNull().defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
   },
   (t) => [
     index("idx_transactions_account_id").on(t.accountId),
+    index("idx_transactions_account_id_date").on(t.accountId, t.date),
     index("idx_transactions_date_id").on(t.date, t.id),
   ]
 );
@@ -201,7 +218,9 @@ export const holdings = pgTable(
     value: numeric("value", { precision: 14, scale: 2 }).notNull(),
     costBasis: numeric("cost_basis", { precision: 14, scale: 2 }),
     isoCurrencyCode: text("iso_currency_code").default("USD"),
-    updatedAt: timestamp("updated_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
   },
   (t) => [index("idx_holdings_account_id").on(t.accountId)]
 );
@@ -219,8 +238,12 @@ export const manualAccounts = pgTable(
     balance: numeric("balance", { precision: 14, scale: 2 }).notNull(),
     isoCurrencyCode: text("iso_currency_code").default("USD"),
     notes: text("notes"),
-    createdAt: timestamp("created_at").notNull().defaultNow(),
-    updatedAt: timestamp("updated_at").notNull().defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
   },
   (t) => [index("idx_manual_accounts_user_id").on(t.userId)]
 );
@@ -253,7 +276,9 @@ export const userNetWorthSnapshots = pgTable(
       precision: 14,
       scale: 2,
     }),
-    createdAt: timestamp("created_at").notNull().defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
   },
   (t) => [
     unique("user_snapshots_user_date_unique").on(t.userId, t.date),
@@ -287,7 +312,9 @@ export const groupNetWorthSnapshots = pgTable(
       precision: 14,
       scale: 2,
     }),
-    createdAt: timestamp("created_at").notNull().defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
   },
   (t) => [
     unique("group_snapshots_group_date_unique").on(t.groupId, t.date),

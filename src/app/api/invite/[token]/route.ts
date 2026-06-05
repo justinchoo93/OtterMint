@@ -42,10 +42,14 @@ export async function GET(
       .from(groups)
       .where(eq(groups.id, invitation.groupId));
 
-    const [inviter] = await db
-      .select({ displayName: users.displayName })
-      .from(users)
-      .where(eq(users.id, invitation.invitedBy));
+    // invitedBy is nullable (set to null when the inviter deletes their
+    // account), so only look up the inviter when it is present.
+    const [inviter] = invitation.invitedBy
+      ? await db
+          .select({ displayName: users.displayName })
+          .from(users)
+          .where(eq(users.id, invitation.invitedBy))
+      : [];
 
     return NextResponse.json({
       groupId: invitation.groupId,

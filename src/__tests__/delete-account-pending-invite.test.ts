@@ -11,18 +11,22 @@ describe("group_invitations.invited_by foreign key", () => {
   });
 
   it("uses ON DELETE SET NULL", () => {
-    // Each column carries its inline foreign-key builders. We assert that a
-    // foreign key exists for invited_by whose onDelete action is "set null".
-    const fks = (groupInvitations as unknown as {
-      [Symbol.for("drizzle:PgInlineForeignKeys")]?: Array<{
-        onDelete?: string;
-        reference: () => { columns: { name: string }[] };
-      }>;
-    })[Symbol.for("drizzle:PgInlineForeignKeys")];
+    // Each column carries its inline foreign-key builders, stored on the table
+    // object under a Drizzle-internal symbol. We assert that a foreign key
+    // exists for invited_by whose onDelete action is "set null".
+    type InlineForeignKey = {
+      onDelete?: string;
+      reference: () => { columns: { name: string }[] };
+    };
+
+    const inlineFkSymbol = Symbol.for("drizzle:PgInlineForeignKeys");
+    const fks = (
+      groupInvitations as unknown as Record<symbol, InlineForeignKey[]>
+    )[inlineFkSymbol];
 
     expect(fks, "expected inline foreign keys on group_invitations").toBeTruthy();
 
-    const invitedByFk = fks!.find((fk) =>
+    const invitedByFk = fks.find((fk) =>
       fk.reference().columns.some((c) => c.name === "invited_by")
     );
 
