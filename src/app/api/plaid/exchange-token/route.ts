@@ -70,6 +70,7 @@ export async function POST(request: NextRequest) {
 
     for (const acct of balanceResponse.data.accounts) {
       await db.insert(accounts).values({
+        userId,
         plaidItemId: plaidItem.id,
         accountId: acct.account_id,
         name: acct.name,

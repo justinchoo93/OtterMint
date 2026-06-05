@@ -9,7 +9,8 @@ interface SyncHoldingsResult {
 
 export async function syncHoldings(
   accessToken: string,
-  investmentAccountIds: string[]
+  investmentAccountIds: string[],
+  userId: string
 ): Promise<SyncHoldingsResult> {
   const response = await plaidClient.investmentsHoldingsGet({
     access_token: accessToken,
@@ -34,6 +35,7 @@ export async function syncHoldings(
     const security = securityMap.get(holding.security_id);
 
     await db.insert(holdings).values({
+      userId,
       accountId: holding.account_id,
       securityId: holding.security_id,
       name: security?.name ?? "Unknown Security",

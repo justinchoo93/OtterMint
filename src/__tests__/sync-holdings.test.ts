@@ -38,6 +38,8 @@ vi.mock("@/lib/db/schema", () => ({
 
 import { syncHoldings } from "@/lib/sync-holdings";
 
+const USER_ID = "22222222-2222-2222-2222-222222222222";
+
 function makeSecurity(overrides: Partial<Security> = {}): Security {
   return {
     security_id: "sec_001",
@@ -81,7 +83,7 @@ describe("syncHoldings", () => {
       },
     });
 
-    await syncHoldings("access-token-123", []);
+    await syncHoldings("access-token-123", [], USER_ID);
 
     expect(mockHoldingsGet).toHaveBeenCalledWith({
       access_token: "access-token-123",
@@ -97,7 +99,7 @@ describe("syncHoldings", () => {
       },
     });
 
-    await syncHoldings("token", ["acc_001"]);
+    await syncHoldings("token", ["acc_001"], USER_ID);
 
     expect(mockDbDelete).toHaveBeenCalled();
   });
@@ -124,12 +126,13 @@ describe("syncHoldings", () => {
       },
     });
 
-    await syncHoldings("token", ["acc_001"]);
+    await syncHoldings("token", ["acc_001"], USER_ID);
 
     expect(mockDbInsert).toHaveBeenCalled();
     const insertValues = mockDbInsert.mock.results[0].value.values;
     expect(insertValues).toHaveBeenCalledWith(
       expect.objectContaining({
+        userId: USER_ID,
         name: "Tesla Inc",
         tickerSymbol: "TSLA",
         securityId: "sec_abc",
@@ -156,7 +159,7 @@ describe("syncHoldings", () => {
       },
     });
 
-    const result = await syncHoldings("token", ["acc_001"]);
+    const result = await syncHoldings("token", ["acc_001"], USER_ID);
 
     expect(result.count).toBe(2);
   });
@@ -172,7 +175,7 @@ describe("syncHoldings", () => {
       },
     });
 
-    const result = await syncHoldings("token", ["acc_001"]);
+    const result = await syncHoldings("token", ["acc_001"], USER_ID);
 
     expect(result.count).toBe(1);
     const insertValues = mockDbInsert.mock.results[0].value.values;

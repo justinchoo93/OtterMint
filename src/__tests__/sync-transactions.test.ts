@@ -44,6 +44,8 @@ vi.mock("@/lib/db/schema", () => ({
 
 import { syncTransactions } from "@/lib/sync-transactions";
 
+const USER_ID = "11111111-1111-1111-1111-111111111111";
+
 function makePlaidTransaction(
   overrides: Partial<Transaction> = {}
 ): Transaction {
@@ -89,7 +91,11 @@ describe("syncTransactions", () => {
       },
     });
 
-    const result = await syncTransactions("access-token-123", "old_cursor");
+    const result = await syncTransactions(
+      "access-token-123",
+      "old_cursor",
+      USER_ID
+    );
 
     expect(mockTransactionsSync).toHaveBeenCalledWith({
       access_token: "access-token-123",
@@ -110,9 +116,13 @@ describe("syncTransactions", () => {
       },
     });
 
-    await syncTransactions("token", null);
+    await syncTransactions("token", null, USER_ID);
 
     expect(mockDbInsert).toHaveBeenCalled();
+    const insertValues = mockDbInsert.mock.results[0].value.values;
+    expect(insertValues).toHaveBeenCalledWith(
+      expect.objectContaining({ userId: USER_ID })
+    );
   });
 
   it("deletes removed transactions from the database", async () => {
@@ -129,7 +139,7 @@ describe("syncTransactions", () => {
       },
     });
 
-    await syncTransactions("token", null);
+    await syncTransactions("token", null, USER_ID);
 
     expect(mockDbDelete).toHaveBeenCalled();
   });
@@ -155,7 +165,7 @@ describe("syncTransactions", () => {
         },
       });
 
-    const result = await syncTransactions("token", null);
+    const result = await syncTransactions("token", null, USER_ID);
 
     expect(mockTransactionsSync).toHaveBeenCalledTimes(2);
     expect(result.nextCursor).toBe("cursor_final");
@@ -176,7 +186,7 @@ describe("syncTransactions", () => {
       },
     });
 
-    const result = await syncTransactions("token", null);
+    const result = await syncTransactions("token", null, USER_ID);
 
     expect(result.added).toBe(2);
     expect(result.modified).toBe(1);

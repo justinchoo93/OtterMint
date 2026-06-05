@@ -156,6 +156,9 @@ export const accounts = pgTable(
   "accounts",
   {
     id: serial("id").primaryKey(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
     plaidItemId: integer("plaid_item_id")
       .notNull()
       .references(() => plaidItems.id, { onDelete: "cascade" }),
@@ -177,13 +180,19 @@ export const accounts = pgTable(
       .notNull()
       .defaultNow(),
   },
-  (t) => [index("idx_accounts_plaid_item_id").on(t.plaidItemId)]
+  (t) => [
+    index("idx_accounts_plaid_item_id").on(t.plaidItemId),
+    index("idx_accounts_user_id").on(t.userId),
+  ]
 );
 
 export const transactions = pgTable(
   "transactions",
   {
     id: serial("id").primaryKey(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
     accountId: text("account_id")
       .notNull()
       .references(() => accounts.accountId, { onDelete: "cascade" }),
@@ -203,6 +212,7 @@ export const transactions = pgTable(
     index("idx_transactions_account_id").on(t.accountId),
     index("idx_transactions_account_id_date").on(t.accountId, t.date),
     index("idx_transactions_date_id").on(t.date, t.id),
+    index("idx_transactions_user_id").on(t.userId),
   ]
 );
 
@@ -210,6 +220,9 @@ export const holdings = pgTable(
   "holdings",
   {
     id: serial("id").primaryKey(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
     accountId: text("account_id")
       .notNull()
       .references(() => accounts.accountId, { onDelete: "cascade" }),
@@ -225,7 +238,10 @@ export const holdings = pgTable(
       .notNull()
       .defaultNow(),
   },
-  (t) => [index("idx_holdings_account_id").on(t.accountId)]
+  (t) => [
+    index("idx_holdings_account_id").on(t.accountId),
+    index("idx_holdings_user_id").on(t.userId),
+  ]
 );
 
 export const manualAccounts = pgTable(

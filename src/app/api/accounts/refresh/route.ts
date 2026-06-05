@@ -86,7 +86,8 @@ export async function POST() {
       // Sync transactions
       const syncResult = await syncTransactions(
         accessToken,
-        item.transactionsCursor
+        item.transactionsCursor,
+        userId
       );
 
       await db
@@ -105,7 +106,7 @@ export async function POST() {
         .map((a) => a.accountId);
 
       if (investmentAccountIds.length > 0) {
-        await syncHoldings(accessToken, investmentAccountIds);
+        await syncHoldings(accessToken, investmentAccountIds, userId);
       }
 
       refreshedCount++;

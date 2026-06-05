@@ -12,7 +12,8 @@ interface SyncResult {
 
 export async function syncTransactions(
   accessToken: string,
-  cursor: string | null
+  cursor: string | null,
+  userId: string
 ): Promise<SyncResult> {
   let totalAdded = 0;
   let totalModified = 0;
@@ -33,6 +34,7 @@ export async function syncTransactions(
       await db
         .insert(transactions)
         .values({
+          userId,
           accountId: txn.account_id,
           transactionId: txn.transaction_id,
           amount: txn.amount.toString(),
@@ -62,6 +64,7 @@ export async function syncTransactions(
       await db
         .insert(transactions)
         .values({
+          userId,
           accountId: txn.account_id,
           transactionId: txn.transaction_id,
           amount: txn.amount.toString(),

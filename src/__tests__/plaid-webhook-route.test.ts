@@ -93,6 +93,7 @@ describe("POST /api/plaid/webhook", () => {
     selectReturns([
       {
         id: 7,
+        userId: "44444444-4444-4444-4444-444444444444",
         itemId: "i1",
         accessTokenEncrypted: "enc",
         transactionsCursor: "cur",
@@ -111,7 +112,8 @@ describe("POST /api/plaid/webhook", () => {
     expect(mockDecrypt).toHaveBeenCalledWith("enc");
     expect(mockSyncTransactions).toHaveBeenCalledWith(
       "decrypted-access-token",
-      "cur"
+      "cur",
+      "44444444-4444-4444-4444-444444444444"
     );
     expect(mockDbUpdate).toHaveBeenCalled();
   });

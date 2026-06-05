@@ -54,7 +54,8 @@ export async function POST(request: Request): Promise<Response> {
     ) {
       const result = await syncTransactions(
         accessToken,
-        item.transactionsCursor
+        item.transactionsCursor,
+        item.userId
       );
       await db
         .update(plaidItems)
@@ -103,7 +104,7 @@ export async function POST(request: Request): Promise<Response> {
         .filter((a) => a.type === "investment")
         .map((a) => a.accountId);
       if (investmentIds.length > 0) {
-        await syncHoldings(accessToken, investmentIds);
+        await syncHoldings(accessToken, investmentIds, item.userId);
       }
     }
     // Any other type/code: acknowledged below as a no-op.
