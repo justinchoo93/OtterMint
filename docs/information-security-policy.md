@@ -58,7 +58,7 @@ This policy applies to all systems, data, and processes involved in the operatio
 - Group/household features use role-based access (owner, member)
 - Share links provide scoped, read-only access with configurable data visibility (net worth, balances, transactions)
 - Share links can be revoked at any time and support optional expiration dates
-- Supabase-exposed tables in the `public` schema have PostgreSQL row-level security (RLS) enabled
+- Row-level security (RLS) is enabled on all public-schema application tables, but no policies exist yet and the application connects as the database owner, so RLS is **not currently enforced**. Tenant isolation is presently enforced at the application layer via `userId`-scoped queries. Enforced RLS as a defense-in-depth layer is tracked in `docs/exec_plans/tenant-isolation-rls.md`.
 - Supabase `anon` and `authenticated` roles do not have direct privileges on application tables or sequences
 
 ### 4.4 Infrastructure Access
@@ -185,7 +185,7 @@ Users can view all of their data through the application dashboard at any time, 
 - TypeScript provides compile-time type safety
 - SQL injection is prevented by the Drizzle ORM (parameterized queries)
 - XSS is mitigated by React's default output encoding and HTTP response hardening headers
-- Sensitive bearer tokens stored in Postgres are protected from Supabase API exposure via RLS and privilege revocation
+- Sensitive bearer tokens stored in Postgres are protected from Supabase API exposure via privilege revocation (the `anon`/`authenticated` roles have no table privileges); database-enforced RLS as an additional layer is planned (see `docs/exec_plans/tenant-isolation-rls.md`)
 
 ### 7.3 Security Headers
 The application enforces the following HTTP security headers:
@@ -217,3 +217,4 @@ The application enforces the following HTTP security headers:
 |---------|------|---------|
 | 1.0 | March 6, 2026 | Initial policy |
 | 1.1 | March 11, 2026 | Added Supabase RLS controls, auth/MFA lockout controls, and MFA session cleanup requirements |
+| 1.2 | June 4, 2026 | Documentation accuracy: corrected RLS enforcement claims; observability round. |

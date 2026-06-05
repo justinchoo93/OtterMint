@@ -329,6 +329,10 @@ Static page covering:
 - `plaid_items` table has a `userId` foreign key to `users`
 - `manual_accounts` table has a `userId` foreign key to `users`
 - `accounts` inherit user ownership transitively through `plaid_items.userId`
+- Tenant isolation is enforced at the application layer via these
+  `userId`-scoped queries. Database-enforced row-level security (RLS) is **not
+  yet active** as a defense-in-depth second layer and is tracked in
+  `docs/exec_plans/tenant-isolation-rls.md`.
 
 ### Net worth snapshots
 - `user_net_worth_snapshots`: one per user per day (upserted)

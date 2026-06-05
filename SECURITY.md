@@ -24,7 +24,12 @@
 
 ### Access Control
 - All data is scoped to authenticated users via `userId` foreign keys
-- Public-schema tables are protected with PostgreSQL row-level security (RLS)
+- Row-level security (RLS) is **enabled** on all public-schema application
+  tables, but enforcement is **not yet active**: there are no RLS policies and
+  the application currently connects as the database owner, which bypasses RLS.
+  Tenant isolation today is the live application-layer `userId` filtering above.
+  Making RLS a real, enforced second layer is tracked in
+  [docs/exec_plans/tenant-isolation-rls.md](docs/exec_plans/tenant-isolation-rls.md)
 - Supabase `anon` and `authenticated` roles are revoked from application tables and sequences
 - Role-based access for groups (owner/member)
 - Plaid OAuth tokens for financial institution access
@@ -70,7 +75,7 @@ If a security vulnerability is discovered:
 
 ## Audit Log
 
-Security audit history is tracked in [docs/security-audit-2026-03-11.md](/Users/justin/Documents/code/ai-playground/otterfin/docs/security-audit-2026-03-11.md).
+Security audit history is tracked in [docs/security-audit-2026-03-11.md](docs/security-audit-2026-03-11.md) and [docs/security-audit-2026-06-04.md](docs/security-audit-2026-06-04.md).
 
 ## Contact
 
