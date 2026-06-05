@@ -76,6 +76,11 @@ describe("middleware", () => {
     expect(response.status).toBe(200);
   });
 
+  it("allows /api/health without auth", () => {
+    const response = middleware(makeRequest("/api/health"));
+    expect(response.status).toBe(200);
+  });
+
   // Protected routes redirect to login when no session cookie
   it("redirects to /login for protected pages when no session cookie", () => {
     const response = middleware(makeRequest("/"));
