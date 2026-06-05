@@ -21,6 +21,9 @@ export default function ProfileSettingsPage() {
   // Account deletion
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleteConfirmText, setDeleteConfirmText] = useState("");
+  const [deletePassword, setDeletePassword] = useState("");
+  const [deleteCode, setDeleteCode] = useState("");
+  const [deleteMessage, setDeleteMessage] = useState("");
   const [deleting, setDeleting] = useState(false);
 
   // Password change
@@ -205,18 +208,26 @@ export default function ProfileSettingsPage() {
   }
 
   async function handleDeleteAccount() {
-    if (deleteConfirmText !== "DELETE") return;
+    if (deleteConfirmText !== "DELETE" || !deletePassword) return;
     setDeleting(true);
+    setDeleteMessage("");
     try {
-      const res = await fetch("/api/auth/delete-account", { method: "DELETE" });
+      const res = await fetch("/api/auth/delete-account", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          password: deletePassword,
+          ...(user?.mfaEnabled && { code: deleteCode }),
+        }),
+      });
       if (res.ok) {
         router.push("/login");
       } else {
         const data = await res.json();
-        alert(data.error || "Failed to delete account");
+        setDeleteMessage(data.error || "Failed to delete account");
       }
     } catch {
-      alert("Failed to delete account");
+      setDeleteMessage("Failed to delete account");
     } finally {
       setDeleting(false);
     }
@@ -558,10 +569,33 @@ export default function ProfileSettingsPage() {
               placeholder="Type DELETE to confirm"
               className="w-full rounded-lg border border-[var(--accent-red)]/30 bg-[var(--bg-tertiary)] px-3 py-2 text-sm text-[var(--text-primary)] outline-none transition-colors focus:border-[var(--accent-red)]"
             />
+            <input
+              type="password"
+              value={deletePassword}
+              onChange={(e) => setDeletePassword(e.target.value)}
+              placeholder="Current password"
+              className="w-full rounded-lg border border-[var(--accent-red)]/30 bg-[var(--bg-tertiary)] px-3 py-2 text-sm text-[var(--text-primary)] outline-none transition-colors focus:border-[var(--accent-red)]"
+            />
+            {user.mfaEnabled && (
+              <input
+                type="text"
+                inputMode="numeric"
+                value={deleteCode}
+                onChange={(e) => setDeleteCode(e.target.value)}
+                maxLength={6}
+                placeholder="Authenticator code"
+                className="w-full rounded-lg border border-[var(--accent-red)]/30 bg-[var(--bg-tertiary)] px-3 py-2 text-sm text-[var(--text-primary)] outline-none transition-colors focus:border-[var(--accent-red)] font-mono tracking-widest"
+              />
+            )}
+            {deleteMessage && (
+              <p className="text-xs text-[var(--accent-red)]">{deleteMessage}</p>
+            )}
             <div className="flex gap-3">
               <button
                 onClick={handleDeleteAccount}
-                disabled={deleteConfirmText !== "DELETE" || deleting}
+                disabled={
+                  deleteConfirmText !== "DELETE" || !deletePassword || deleting
+                }
                 className="rounded-lg bg-[var(--accent-red)] px-4 py-2 text-sm font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-50"
               >
                 {deleting ? "Deleting..." : "Permanently delete account"}
@@ -570,6 +604,9 @@ export default function ProfileSettingsPage() {
                 onClick={() => {
                   setShowDeleteConfirm(false);
                   setDeleteConfirmText("");
+                  setDeletePassword("");
+                  setDeleteCode("");
+                  setDeleteMessage("");
                 }}
                 className="rounded-lg px-4 py-2 text-sm text-[var(--text-muted)] hover:text-[var(--text-secondary)]"
               >

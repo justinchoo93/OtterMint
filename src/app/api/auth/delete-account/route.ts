@@ -1,8 +1,10 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
+import { TOTP } from "otpauth";
 import { db } from "@/lib/db";
 import { users, plaidItems } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import { getUserId, isAuthError } from "@/lib/auth/get-user-id";
+import { verifyPassword } from "@/lib/auth/password";
 import { plaidClient } from "@/lib/plaid";
 import { decrypt } from "@/lib/crypto";
 import {
@@ -12,9 +14,64 @@ import {
 } from "@/lib/auth/cookies";
 import { logServerError } from "@/lib/logging";
 
-export async function DELETE() {
+export async function DELETE(request: NextRequest) {
   try {
     const userId = await getUserId();
+    const body = await request.json().catch(() => ({}));
+    const password = body?.password;
+    const code = body?.code;
+
+    if (typeof password !== "string" || password.length === 0) {
+      return NextResponse.json(
+        { error: "Password is required" },
+        { status: 400 }
+      );
+    }
+
+    // Re-authenticate before this irreversible action
+    const [user] = await db
+      .select({
+        passwordHash: users.passwordHash,
+        mfaEnabled: users.mfaEnabled,
+        totpSecret: users.totpSecret,
+      })
+      .from(users)
+      .where(eq(users.id, userId));
+
+    if (!user) {
+      return NextResponse.json({ error: "User not found" }, { status: 404 });
+    }
+
+    const passwordValid = await verifyPassword(password, user.passwordHash);
+    if (!passwordValid) {
+      return NextResponse.json(
+        { error: "Incorrect password" },
+        { status: 401 }
+      );
+    }
+
+    if (user.mfaEnabled) {
+      if (typeof code !== "string" || code.length === 0) {
+        return NextResponse.json(
+          { error: "Verification code is required" },
+          { status: 403 }
+        );
+      }
+      if (!user.totpSecret) {
+        return NextResponse.json(
+          { error: "MFA is not configured" },
+          { status: 401 }
+        );
+      }
+      const secretBase32 = decrypt(user.totpSecret);
+      const totp = new TOTP({ issuer: "OtterMint", secret: secretBase32 });
+      if (totp.validate({ token: code, window: 1 }) === null) {
+        return NextResponse.json(
+          { error: "Invalid verification code" },
+          { status: 401 }
+        );
+      }
+    }
 
     // Revoke Plaid access tokens before deleting
     const items = await db
