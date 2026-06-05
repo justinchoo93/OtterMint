@@ -10,6 +10,7 @@ const PUBLIC_PATHS = [
   "/api/auth/register",
   "/api/auth/logout",
   "/api/auth/mfa/verify",
+  "/api/plaid/webhook",
 ];
 
 const PUBLIC_PREFIXES = ["/invite/", "/shared/", "/api/shared/", "/api/invite/"];
