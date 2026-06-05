@@ -9,3 +9,6 @@
 
 - Open the referenced `SKILL.md` and follow it before starting substantial work.
 - Keep outcomes concrete: findings, code fixes, verification, and documentation updates.
+
+## ExecPlans
+When writing complex features or significant refactors, use an ExecPlan (as described in docs/PLANS.md) from design to implementation.
