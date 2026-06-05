@@ -146,3 +146,66 @@ export async function GET(
     );
   }
 }
+
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const userId = await getUserId();
+    const { id: groupId } = await params;
+    const token = request.nextUrl.searchParams.get("token");
+
+    if (!token) {
+      return NextResponse.json(
+        { error: "Missing invitation token" },
+        { status: 400 }
+      );
+    }
+
+    const [membership] = await db
+      .select()
+      .from(groupMembers)
+      .where(
+        and(
+          eq(groupMembers.groupId, groupId),
+          eq(groupMembers.userId, userId)
+        )
+      );
+
+    if (!membership) {
+      return NextResponse.json(
+        { error: "Not a member of this group" },
+        { status: 403 }
+      );
+    }
+
+    if (membership.role !== "owner") {
+      return NextResponse.json(
+        { error: "Only the group owner can manage invitations" },
+        { status: 403 }
+      );
+    }
+
+    await db
+      .update(groupInvitations)
+      .set({ revokedAt: new Date() })
+      .where(
+        and(
+          eq(groupInvitations.groupId, groupId),
+          eq(groupInvitations.token, token)
+        )
+      );
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    if (isAuthError(error)) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    console.error("Failed to revoke invitation:", error);
+    return NextResponse.json(
+      { error: "Failed to revoke invitation" },
+      { status: 500 }
+    );
+  }
+}

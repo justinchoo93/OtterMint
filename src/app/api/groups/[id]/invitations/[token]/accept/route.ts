@@ -37,6 +37,13 @@ export async function POST(
       );
     }
 
+    if (invitation.revokedAt) {
+      return NextResponse.json(
+        { error: "This invitation is no longer available" },
+        { status: 410 }
+      );
+    }
+
     if (invitation.expiresAt < new Date()) {
       return NextResponse.json(
         { error: "This invitation has expired" },
@@ -64,12 +71,19 @@ export async function POST(
       await db.transaction(async (tx) => {
         // Re-check inside transaction to prevent race conditions
         const [freshInvitation] = await tx
-          .select({ acceptedAt: groupInvitations.acceptedAt })
+          .select({
+            acceptedAt: groupInvitations.acceptedAt,
+            revokedAt: groupInvitations.revokedAt,
+          })
           .from(groupInvitations)
           .where(eq(groupInvitations.id, invitation.id));
 
         if (freshInvitation?.acceptedAt) {
           throw new Error("ALREADY_ACCEPTED");
+        }
+
+        if (freshInvitation?.revokedAt) {
+          throw new Error("REVOKED");
         }
 
         const existingMembership = await tx
@@ -99,6 +113,12 @@ export async function POST(
         return NextResponse.json(
           { error: "This invitation has already been accepted" },
           { status: 409 }
+        );
+      }
+      if (message === "REVOKED") {
+        return NextResponse.json(
+          { error: "This invitation is no longer available" },
+          { status: 410 }
         );
       }
       if (

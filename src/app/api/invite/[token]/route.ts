@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { groupInvitations, groups, users } from "@/lib/db/schema";
-import { eq } from "drizzle-orm";
+import { eq, and, isNull } from "drizzle-orm";
 import { enforceRateLimit, getClientIp } from "@/lib/rate-limit";
 
 export async function GET(
@@ -17,7 +17,12 @@ export async function GET(
     const [invitation] = await db
       .select()
       .from(groupInvitations)
-      .where(eq(groupInvitations.token, token));
+      .where(
+        and(
+          eq(groupInvitations.token, token),
+          isNull(groupInvitations.revokedAt)
+        )
+      );
 
     if (!invitation) {
       return NextResponse.json(
