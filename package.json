@@ -17,6 +17,8 @@
     "audit:fix": "npm audit fix --production"
   },
   "dependencies": {
+    "@upstash/ratelimit": "^2.0.8",
+    "@upstash/redis": "^1.38.0",
     "bcryptjs": "^3.0.3",
     "drizzle-orm": "^0.45.1",
     "jose": "^6.2.3",
