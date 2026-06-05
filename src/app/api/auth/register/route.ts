@@ -10,6 +10,7 @@ import {
   SESSION_COOKIE_NAME,
 } from "@/lib/auth/cookies";
 import { logServerError } from "@/lib/logging";
+import { FIELD_LIMITS, validateBoundedString } from "@/lib/validate-request";
 
 export async function POST(request: NextRequest) {
   try {
@@ -52,9 +53,14 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (typeof displayName !== "string" || displayName.trim().length === 0) {
+    const displayNameResult = validateBoundedString(
+      displayName,
+      "name",
+      FIELD_LIMITS.DISPLAY_NAME
+    );
+    if (!displayNameResult.success) {
       return NextResponse.json(
-        { error: "Name is required" },
+        { error: displayNameResult.error },
         { status: 400 }
       );
     }

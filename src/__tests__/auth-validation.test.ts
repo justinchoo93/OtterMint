@@ -93,6 +93,28 @@ describe("Bug 11: login rejects non-string email/password", () => {
   });
 });
 
+describe("me PUT rejects oversized displayName", () => {
+  it("returns 400 when displayName is 201 characters", async () => {
+    const res = await mePut(
+      makeJsonRequest(
+        { displayName: "a".repeat(201) },
+        "http://localhost:3000/api/auth/me"
+      )
+    );
+    expect(res.status).toBe(400);
+  });
+
+  it("accepts a 200-character displayName", async () => {
+    const res = await mePut(
+      makeJsonRequest(
+        { displayName: "a".repeat(200) },
+        "http://localhost:3000/api/auth/me"
+      )
+    );
+    expect(res.status).toBe(200);
+  });
+});
+
 describe("Bug 12: password change rejects non-string currentPassword", () => {
   it("returns 400 when currentPassword is an object", async () => {
     const res = await mePut(

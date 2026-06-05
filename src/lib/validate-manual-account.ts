@@ -1,3 +1,10 @@
+import {
+  FIELD_LIMITS,
+  validateBoundedString,
+  validateOptionalBoundedString,
+  type ValidationResult,
+} from "@/lib/validate-request";
+
 export interface ManualAccountInput {
   name: string;
   type: "asset" | "liability";
@@ -7,16 +14,11 @@ export interface ManualAccountInput {
   notes?: string;
 }
 
-type ValidationResult =
-  | { success: true }
-  | { success: false; error: string };
-
 const VALID_TYPES = new Set(["asset", "liability"]);
 
 export function validateManualAccount(input: ManualAccountInput): ValidationResult {
-  if (!input.name || input.name.trim().length === 0) {
-    return { success: false, error: "name is required" };
-  }
+  const nameResult = validateBoundedString(input.name, "name", FIELD_LIMITS.NAME);
+  if (!nameResult.success) return nameResult;
 
   if (!VALID_TYPES.has(input.type)) {
     return { success: false, error: "type must be 'asset' or 'liability'" };
@@ -29,6 +31,20 @@ export function validateManualAccount(input: ManualAccountInput): ValidationResu
   if (isNaN(parseFloat(input.balance))) {
     return { success: false, error: "balance must be a valid number" };
   }
+
+  const subtypeResult = validateOptionalBoundedString(
+    input.subtype,
+    "subtype",
+    FIELD_LIMITS.SUBTYPE
+  );
+  if (!subtypeResult.success) return subtypeResult;
+
+  const notesResult = validateOptionalBoundedString(
+    input.notes,
+    "notes",
+    FIELD_LIMITS.NOTES
+  );
+  if (!notesResult.success) return notesResult;
 
   return { success: true };
 }

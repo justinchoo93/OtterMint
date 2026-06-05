@@ -4,6 +4,7 @@ import { users } from "@/lib/db/schema";
 import { getUserId, isAuthError } from "@/lib/auth/get-user-id";
 import { eq } from "drizzle-orm";
 import { hashPassword, verifyPassword } from "@/lib/auth/password";
+import { FIELD_LIMITS, validateBoundedString } from "@/lib/validate-request";
 
 export async function GET() {
   try {
@@ -51,12 +52,14 @@ export async function PUT(request: NextRequest) {
 
     // Update display name
     if (body.displayName !== undefined) {
-      if (
-        typeof body.displayName !== "string" ||
-        body.displayName.trim().length === 0
-      ) {
+      const displayNameResult = validateBoundedString(
+        body.displayName,
+        "name",
+        FIELD_LIMITS.DISPLAY_NAME
+      );
+      if (!displayNameResult.success) {
         return NextResponse.json(
-          { error: "Name is required" },
+          { error: displayNameResult.error },
           { status: 400 }
         );
       }

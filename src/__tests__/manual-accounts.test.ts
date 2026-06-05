@@ -68,4 +68,23 @@ describe("validateManualAccount", () => {
     const result = validateManualAccount(validInput({ balance: "-500.00" }));
     expect(result.success).toBe(true);
   });
+
+  it("rejects a name longer than 200 characters", () => {
+    const result = validateManualAccount(validInput({ name: "a".repeat(201) }));
+    expect(result.success).toBe(false);
+    if (!result.success) expect(result.error).toContain("name");
+  });
+
+  it("rejects notes longer than 1000 characters", () => {
+    const result = validateManualAccount(validInput({ notes: "a".repeat(1001) }));
+    expect(result.success).toBe(false);
+    if (!result.success) expect(result.error).toContain("notes");
+  });
+
+  it("accepts a 200-character name and 1000-character notes", () => {
+    const result = validateManualAccount(
+      validInput({ name: "a".repeat(200), notes: "b".repeat(1000) })
+    );
+    expect(result.success).toBe(true);
+  });
 });

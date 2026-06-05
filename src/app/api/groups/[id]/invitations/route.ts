@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { groupInvitations, groupMembers } from "@/lib/db/schema";
 import { eq, and } from "drizzle-orm";
 import { getUserId, isAuthError } from "@/lib/auth/get-user-id";
+import { validateEmail } from "@/lib/validate-request";
 import crypto from "crypto";
 
 export async function POST(
@@ -39,7 +40,15 @@ export async function POST(
     }
 
     const body = await request.json().catch(() => ({}));
-    const invitedEmail = body.email?.trim()?.toLowerCase() || null;
+
+    const rawEmail = typeof body.email === "string" ? body.email.trim() : "";
+    if (rawEmail.length > 0) {
+      const emailResult = validateEmail(rawEmail);
+      if (!emailResult.success) {
+        return NextResponse.json({ error: emailResult.error }, { status: 400 });
+      }
+    }
+    const invitedEmail = rawEmail ? rawEmail.toLowerCase() : null;
     const token = crypto.randomBytes(32).toString("base64url");
     const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
 

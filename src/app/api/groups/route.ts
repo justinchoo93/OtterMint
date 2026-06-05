@@ -4,6 +4,7 @@ import { groups, groupMembers } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import { getUserId, isAuthError } from "@/lib/auth/get-user-id";
 import { users } from "@/lib/db/schema";
+import { FIELD_LIMITS, validateBoundedString } from "@/lib/validate-request";
 
 export async function GET() {
   try {
@@ -83,6 +84,14 @@ export async function POST(request: NextRequest) {
       .where(eq(users.id, userId));
 
     const body = await request.json().catch(() => ({}));
+
+    if (body.name !== undefined && body.name !== null && body.name !== "") {
+      const nameResult = validateBoundedString(body.name, "name", FIELD_LIMITS.NAME);
+      if (!nameResult.success) {
+        return NextResponse.json({ error: nameResult.error }, { status: 400 });
+      }
+    }
+
     const groupName =
       body.name?.trim() || `${user?.displayName || "My"}'s Group`;
 
