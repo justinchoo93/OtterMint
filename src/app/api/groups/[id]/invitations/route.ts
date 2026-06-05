@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { logServerError } from "@/lib/logging";
-import { db } from "@/lib/db";
 import { groupInvitations, groupMembers } from "@/lib/db/schema";
 import { eq, and } from "drizzle-orm";
 import { getUserId, isAuthError } from "@/lib/auth/get-user-id";
 import { validateEmail } from "@/lib/validate-request";
+import { withUser } from "@/lib/db/with-user";
 import crypto from "crypto";
 
 export async function POST(
@@ -14,31 +14,6 @@ export async function POST(
   try {
     const userId = await getUserId();
     const { id: groupId } = await params;
-
-    // Check caller is a member (any member can invite in Phase 1)
-    const [membership] = await db
-      .select()
-      .from(groupMembers)
-      .where(
-        and(
-          eq(groupMembers.groupId, groupId),
-          eq(groupMembers.userId, userId)
-        )
-      );
-
-    if (!membership) {
-      return NextResponse.json(
-        { error: "Not a member of this group" },
-        { status: 403 }
-      );
-    }
-
-    if (membership.role !== "owner") {
-      return NextResponse.json(
-        { error: "Only the group owner can manage invitations" },
-        { status: 403 }
-      );
-    }
 
     const body = await request.json().catch(() => ({}));
 
@@ -53,16 +28,51 @@ export async function POST(
     const token = crypto.randomBytes(32).toString("base64url");
     const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
 
-    const [invitation] = await db
-      .insert(groupInvitations)
-      .values({
-        groupId,
-        invitedBy: userId,
-        invitedEmail,
-        token,
-        expiresAt,
-      })
-      .returning();
+    const outcome = await withUser(userId, async (tx) => {
+      // Check caller is a member, and an owner (only owners manage invites).
+      const [membership] = await tx
+        .select()
+        .from(groupMembers)
+        .where(
+          and(
+            eq(groupMembers.groupId, groupId),
+            eq(groupMembers.userId, userId)
+          )
+        );
+
+      if (!membership) {
+        return { error: "Not a member of this group", status: 403 } as const;
+      }
+
+      if (membership.role !== "owner") {
+        return {
+          error: "Only the group owner can manage invitations",
+          status: 403,
+        } as const;
+      }
+
+      const [invitation] = await tx
+        .insert(groupInvitations)
+        .values({
+          groupId,
+          invitedBy: userId,
+          invitedEmail,
+          token,
+          expiresAt,
+        })
+        .returning();
+
+      return { error: null, invitation } as const;
+    });
+
+    if (outcome.error) {
+      return NextResponse.json(
+        { error: outcome.error },
+        { status: outcome.status }
+      );
+    }
+
+    const invitation = outcome.invitation;
 
     return NextResponse.json(
       {
@@ -96,38 +106,46 @@ export async function GET(
     const userId = await getUserId();
     const { id: groupId } = await params;
 
-    // Verify membership
-    const [membership] = await db
-      .select()
-      .from(groupMembers)
-      .where(
-        and(
-          eq(groupMembers.groupId, groupId),
-          eq(groupMembers.userId, userId)
-        )
-      );
+    const outcome = await withUser(userId, async (tx) => {
+      // Verify membership + ownership
+      const [membership] = await tx
+        .select()
+        .from(groupMembers)
+        .where(
+          and(
+            eq(groupMembers.groupId, groupId),
+            eq(groupMembers.userId, userId)
+          )
+        );
 
-    if (!membership) {
+      if (!membership) {
+        return { error: "Not a member of this group", status: 403 } as const;
+      }
+
+      if (membership.role !== "owner") {
+        return {
+          error: "Only the group owner can view invitations",
+          status: 403,
+        } as const;
+      }
+
+      const invitations = await tx
+        .select()
+        .from(groupInvitations)
+        .where(eq(groupInvitations.groupId, groupId));
+
+      return { error: null, invitations } as const;
+    });
+
+    if (outcome.error) {
       return NextResponse.json(
-        { error: "Not a member of this group" },
-        { status: 403 }
+        { error: outcome.error },
+        { status: outcome.status }
       );
     }
-
-    if (membership.role !== "owner") {
-      return NextResponse.json(
-        { error: "Only the group owner can view invitations" },
-        { status: 403 }
-      );
-    }
-
-    const invitations = await db
-      .select()
-      .from(groupInvitations)
-      .where(eq(groupInvitations.groupId, groupId));
 
     return NextResponse.json({
-      invitations: invitations.map((inv) => ({
+      invitations: outcome.invitations.map((inv) => ({
         id: inv.id,
         token: inv.token,
         invitedEmail: inv.invitedEmail,
@@ -164,39 +182,47 @@ export async function DELETE(
       );
     }
 
-    const [membership] = await db
-      .select()
-      .from(groupMembers)
-      .where(
-        and(
-          eq(groupMembers.groupId, groupId),
-          eq(groupMembers.userId, userId)
-        )
-      );
+    const outcome = await withUser(userId, async (tx) => {
+      const [membership] = await tx
+        .select()
+        .from(groupMembers)
+        .where(
+          and(
+            eq(groupMembers.groupId, groupId),
+            eq(groupMembers.userId, userId)
+          )
+        );
 
-    if (!membership) {
+      if (!membership) {
+        return { error: "Not a member of this group", status: 403 } as const;
+      }
+
+      if (membership.role !== "owner") {
+        return {
+          error: "Only the group owner can manage invitations",
+          status: 403,
+        } as const;
+      }
+
+      await tx
+        .update(groupInvitations)
+        .set({ revokedAt: new Date() })
+        .where(
+          and(
+            eq(groupInvitations.groupId, groupId),
+            eq(groupInvitations.token, token)
+          )
+        );
+
+      return { error: null } as const;
+    });
+
+    if (outcome.error) {
       return NextResponse.json(
-        { error: "Not a member of this group" },
-        { status: 403 }
+        { error: outcome.error },
+        { status: outcome.status }
       );
     }
-
-    if (membership.role !== "owner") {
-      return NextResponse.json(
-        { error: "Only the group owner can manage invitations" },
-        { status: 403 }
-      );
-    }
-
-    await db
-      .update(groupInvitations)
-      .set({ revokedAt: new Date() })
-      .where(
-        and(
-          eq(groupInvitations.groupId, groupId),
-          eq(groupInvitations.token, token)
-        )
-      );
 
     return NextResponse.json({ success: true });
   } catch (error) {

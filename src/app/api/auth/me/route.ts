@@ -1,25 +1,27 @@
 import { NextRequest, NextResponse } from "next/server";
 import { logServerError } from "@/lib/logging";
-import { db } from "@/lib/db";
 import { users } from "@/lib/db/schema";
 import { getUserId, isAuthError } from "@/lib/auth/get-user-id";
 import { eq } from "drizzle-orm";
 import { hashPassword, verifyPassword } from "@/lib/auth/password";
 import { FIELD_LIMITS, validateBoundedString } from "@/lib/validate-request";
+import { withUser } from "@/lib/db/with-user";
 
 export async function GET() {
   try {
     const userId = await getUserId();
 
-    const [user] = await db
-      .select({
-        id: users.id,
-        email: users.email,
-        displayName: users.displayName,
-        mfaEnabled: users.mfaEnabled,
-      })
-      .from(users)
-      .where(eq(users.id, userId));
+    const [user] = await withUser(userId, (tx) =>
+      tx
+        .select({
+          id: users.id,
+          email: users.email,
+          displayName: users.displayName,
+          mfaEnabled: users.mfaEnabled,
+        })
+        .from(users)
+        .where(eq(users.id, userId))
+    );
 
     if (!user) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
@@ -67,6 +69,8 @@ export async function PUT(request: NextRequest) {
       updates.displayName = body.displayName.trim();
     }
 
+    let passwordError: { error: string; status: number } | null = null;
+
     // Change password
     if (body.newPassword !== undefined) {
       if (typeof body.currentPassword !== "string" || !body.currentPassword) {
@@ -85,46 +89,57 @@ export async function PUT(request: NextRequest) {
           { status: 400 }
         );
       }
-
-      // Verify current password
-      const [user] = await db
-        .select({ passwordHash: users.passwordHash })
-        .from(users)
-        .where(eq(users.id, userId));
-
-      if (!user) {
-        return NextResponse.json(
-          { error: "User not found" },
-          { status: 404 }
-        );
-      }
-
-      const valid = await verifyPassword(
-        body.currentPassword,
-        user.passwordHash
-      );
-      if (!valid) {
-        return NextResponse.json(
-          { error: "Current password is incorrect" },
-          { status: 401 }
-        );
-      }
-
-      updates.passwordHash = await hashPassword(body.newPassword);
     }
 
-    await db.update(users).set(updates).where(eq(users.id, userId));
+    const updated = await withUser(userId, async (tx) => {
+      // Verify current password (when changing it) under the user's RLS scope.
+      if (body.newPassword !== undefined) {
+        const [user] = await tx
+          .select({ passwordHash: users.passwordHash })
+          .from(users)
+          .where(eq(users.id, userId));
 
-    // Return updated user
-    const [updated] = await db
-      .select({
-        id: users.id,
-        email: users.email,
-        displayName: users.displayName,
-        mfaEnabled: users.mfaEnabled,
-      })
-      .from(users)
-      .where(eq(users.id, userId));
+        if (!user) {
+          passwordError = { error: "User not found", status: 404 };
+          return null;
+        }
+
+        const valid = await verifyPassword(
+          body.currentPassword,
+          user.passwordHash
+        );
+        if (!valid) {
+          passwordError = {
+            error: "Current password is incorrect",
+            status: 401,
+          };
+          return null;
+        }
+
+        updates.passwordHash = await hashPassword(body.newPassword);
+      }
+
+      await tx.update(users).set(updates).where(eq(users.id, userId));
+
+      // Return updated user
+      const [row] = await tx
+        .select({
+          id: users.id,
+          email: users.email,
+          displayName: users.displayName,
+          mfaEnabled: users.mfaEnabled,
+        })
+        .from(users)
+        .where(eq(users.id, userId));
+      return row;
+    });
+
+    if (passwordError) {
+      return NextResponse.json(
+        { error: (passwordError as { error: string }).error },
+        { status: (passwordError as { status: number }).status }
+      );
+    }
 
     return NextResponse.json({ user: updated });
   } catch (error) {

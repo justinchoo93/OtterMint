@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server";
 import { logServerError } from "@/lib/logging";
-import { db } from "@/lib/db";
 import { holdings, accounts, plaidItems } from "@/lib/db/schema";
 import { eq, getTableColumns } from "drizzle-orm";
 import { getUserId, isAuthError } from "@/lib/auth/get-user-id";
+import { withUser } from "@/lib/db/with-user";
 
 export type HoldingRow = {
   id: number;
@@ -22,12 +22,14 @@ export async function GET() {
   try {
     const userId = await getUserId();
 
-    const rows = await db
-      .select({ ...getTableColumns(holdings) })
-      .from(holdings)
-      .innerJoin(accounts, eq(holdings.accountId, accounts.accountId))
-      .innerJoin(plaidItems, eq(accounts.plaidItemId, plaidItems.id))
-      .where(eq(plaidItems.userId, userId));
+    const rows = await withUser(userId, (tx) =>
+      tx
+        .select({ ...getTableColumns(holdings) })
+        .from(holdings)
+        .innerJoin(accounts, eq(holdings.accountId, accounts.accountId))
+        .innerJoin(plaidItems, eq(accounts.plaidItemId, plaidItems.id))
+        .where(eq(plaidItems.userId, userId))
+    );
 
     const result: HoldingRow[] = rows.map((row) => ({
       id: row.id,

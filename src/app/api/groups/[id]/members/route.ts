@@ -2,8 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { logServerError } from "@/lib/logging";
 import { db } from "@/lib/db";
 import { groupMembers, users } from "@/lib/db/schema";
-import { eq, and } from "drizzle-orm";
+import { eq, and, sql } from "drizzle-orm";
 import { getUserId, isAuthError } from "@/lib/auth/get-user-id";
+import { withUser } from "@/lib/db/with-user";
 
 export async function GET(
   _request: NextRequest,
@@ -13,38 +14,46 @@ export async function GET(
     const userId = await getUserId();
     const { id: groupId } = await params;
 
-    // Verify caller is a member
-    const [membership] = await db
-      .select()
-      .from(groupMembers)
-      .where(
-        and(
-          eq(groupMembers.groupId, groupId),
-          eq(groupMembers.userId, userId)
-        )
-      );
+    const outcome = await withUser(userId, async (tx) => {
+      // Verify caller is a member
+      const [membership] = await tx
+        .select()
+        .from(groupMembers)
+        .where(
+          and(
+            eq(groupMembers.groupId, groupId),
+            eq(groupMembers.userId, userId)
+          )
+        );
 
-    if (!membership) {
+      if (!membership) {
+        return { forbidden: true as const };
+      }
+
+      const members = await tx
+        .select({
+          id: groupMembers.id,
+          userId: groupMembers.userId,
+          role: groupMembers.role,
+          joinedAt: groupMembers.joinedAt,
+          displayName: users.displayName,
+          email: users.email,
+        })
+        .from(groupMembers)
+        .innerJoin(users, eq(groupMembers.userId, users.id))
+        .where(eq(groupMembers.groupId, groupId));
+
+      return { forbidden: false as const, members };
+    });
+
+    if (outcome.forbidden) {
       return NextResponse.json(
         { error: "Not a member of this group" },
         { status: 403 }
       );
     }
 
-    const members = await db
-      .select({
-        id: groupMembers.id,
-        userId: groupMembers.userId,
-        role: groupMembers.role,
-        joinedAt: groupMembers.joinedAt,
-        displayName: users.displayName,
-        email: users.email,
-      })
-      .from(groupMembers)
-      .innerJoin(users, eq(groupMembers.userId, users.id))
-      .where(eq(groupMembers.groupId, groupId));
-
-    return NextResponse.json({ members });
+    return NextResponse.json({ members: outcome.members });
   } catch (error) {
     if (isAuthError(error)) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -74,48 +83,52 @@ export async function DELETE(
       );
     }
 
-    // Check caller's role
-    const [callerMembership] = await db
-      .select()
-      .from(groupMembers)
-      .where(
-        and(
-          eq(groupMembers.groupId, groupId),
-          eq(groupMembers.userId, userId)
-        )
+    const result = await withUser(userId, async (tx) => {
+      // Check caller's role
+      const [callerMembership] = await tx
+        .select()
+        .from(groupMembers)
+        .where(
+          and(
+            eq(groupMembers.groupId, groupId),
+            eq(groupMembers.userId, userId)
+          )
+        );
+
+      if (!callerMembership) {
+        return { error: "Not a member of this group", status: 403 } as const;
+      }
+
+      // Owners cannot remove themselves (use DELETE /api/groups/:id to disband)
+      if (targetUserId === userId && callerMembership.role === "owner") {
+        return {
+          error:
+            "Owners cannot leave their group. Disband the group instead.",
+          status: 400,
+        } as const;
+      }
+
+      // Members can only remove themselves; owners can remove anyone
+      if (targetUserId !== userId && callerMembership.role !== "owner") {
+        return { error: "Only owners can remove other members", status: 403 } as const;
+      }
+
+      // group_members_self only permits deleting your OWN row, so an owner
+      // removing another member must go through the SECURITY DEFINER, which
+      // re-checks the caller is the target (self-leave) or the group owner.
+      await tx.execute(
+        sql`select remove_group_member(${groupId}, ${targetUserId}, ${userId})`
       );
 
-    if (!callerMembership) {
+      return { error: null } as const;
+    });
+
+    if (result.error) {
       return NextResponse.json(
-        { error: "Not a member of this group" },
-        { status: 403 }
+        { error: result.error },
+        { status: result.status }
       );
     }
-
-    // Owners cannot remove themselves (use DELETE /api/groups/:id to disband)
-    if (targetUserId === userId && callerMembership.role === "owner") {
-      return NextResponse.json(
-        { error: "Owners cannot leave their group. Disband the group instead." },
-        { status: 400 }
-      );
-    }
-
-    // Members can only remove themselves; owners can remove anyone
-    if (targetUserId !== userId && callerMembership.role !== "owner") {
-      return NextResponse.json(
-        { error: "Only owners can remove other members" },
-        { status: 403 }
-      );
-    }
-
-    await db
-      .delete(groupMembers)
-      .where(
-        and(
-          eq(groupMembers.groupId, groupId),
-          eq(groupMembers.userId, targetUserId)
-        )
-      );
 
     return NextResponse.json({ success: true });
   } catch (error) {

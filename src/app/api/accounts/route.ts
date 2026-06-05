@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server";
 import { logServerError } from "@/lib/logging";
-import { db } from "@/lib/db";
 import { accounts, plaidItems } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import { getUserId, isAuthError } from "@/lib/auth/get-user-id";
+import { withUser } from "@/lib/db/with-user";
 
 export type AccountWithInstitution = {
   id: number;
@@ -34,47 +34,51 @@ export async function GET() {
   try {
     const userId = await getUserId();
 
-    const allItems = await db
-      .select()
-      .from(plaidItems)
-      .where(eq(plaidItems.userId, userId));
-
-    const allAccounts: AccountWithInstitution[] = [];
-    const itemStatuses: PlaidItemStatus[] = [];
-
-    for (const item of allItems) {
-      itemStatuses.push({
-        id: item.id,
-        itemId: item.itemId,
-        institutionName: item.institutionName,
-        errorCode: item.errorCode,
-        errorMessage: item.errorMessage,
-      });
-
-      const itemAccounts = await db
+    const { allAccounts, itemStatuses } = await withUser(userId, async (tx) => {
+      const allItems = await tx
         .select()
-        .from(accounts)
-        .where(eq(accounts.plaidItemId, item.id));
+        .from(plaidItems)
+        .where(eq(plaidItems.userId, userId));
 
-      for (const acct of itemAccounts) {
-        allAccounts.push({
-          id: acct.id,
-          accountId: acct.accountId,
-          name: acct.name,
-          officialName: acct.officialName,
-          type: acct.type,
-          subtype: acct.subtype,
-          mask: acct.mask,
-          currentBalance: acct.currentBalance,
-          availableBalance: acct.availableBalance,
-          limitAmount: acct.limitAmount,
-          isoCurrencyCode: acct.isoCurrencyCode,
-          lastRefreshedAt: acct.lastRefreshedAt?.toISOString() ?? null,
+      const allAccounts: AccountWithInstitution[] = [];
+      const itemStatuses: PlaidItemStatus[] = [];
+
+      for (const item of allItems) {
+        itemStatuses.push({
+          id: item.id,
+          itemId: item.itemId,
           institutionName: item.institutionName,
           errorCode: item.errorCode,
+          errorMessage: item.errorMessage,
         });
+
+        const itemAccounts = await tx
+          .select()
+          .from(accounts)
+          .where(eq(accounts.plaidItemId, item.id));
+
+        for (const acct of itemAccounts) {
+          allAccounts.push({
+            id: acct.id,
+            accountId: acct.accountId,
+            name: acct.name,
+            officialName: acct.officialName,
+            type: acct.type,
+            subtype: acct.subtype,
+            mask: acct.mask,
+            currentBalance: acct.currentBalance,
+            availableBalance: acct.availableBalance,
+            limitAmount: acct.limitAmount,
+            isoCurrencyCode: acct.isoCurrencyCode,
+            lastRefreshedAt: acct.lastRefreshedAt?.toISOString() ?? null,
+            institutionName: item.institutionName,
+            errorCode: item.errorCode,
+          });
+        }
       }
-    }
+
+      return { allAccounts, itemStatuses };
+    });
 
     return NextResponse.json({ accounts: allAccounts, itemStatuses });
   } catch (error) {

@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 import { logServerError } from "@/lib/logging";
-import { db } from "@/lib/db";
 import {
   accounts,
   plaidItems,
@@ -9,6 +8,7 @@ import {
 } from "@/lib/db/schema";
 import { eq, and, inArray } from "drizzle-orm";
 import { getUserId, isAuthError } from "@/lib/auth/get-user-id";
+import { withUser } from "@/lib/db/with-user";
 
 export async function GET(
   _request: NextRequest,
@@ -18,48 +18,47 @@ export async function GET(
     const userId = await getUserId();
     const { id: groupId } = await params;
 
-    // Verify membership
-    const [membership] = await db
-      .select()
-      .from(groupMembers)
-      .where(
-        and(
-          eq(groupMembers.groupId, groupId),
-          eq(groupMembers.userId, userId)
-        )
-      );
+    const data = await withUser(userId, async (tx) => {
+      // Verify membership
+      const [membership] = await tx
+        .select()
+        .from(groupMembers)
+        .where(
+          and(
+            eq(groupMembers.groupId, groupId),
+            eq(groupMembers.userId, userId)
+          )
+        );
 
-    if (!membership) {
-      return NextResponse.json(
-        { error: "Not a member of this group" },
-        { status: 403 }
-      );
-    }
+      if (!membership) {
+        return { forbidden: true as const };
+      }
 
-    // Get all member IDs
-    const members = await db
-      .select({ userId: groupMembers.userId })
-      .from(groupMembers)
-      .where(eq(groupMembers.groupId, groupId));
+      // Get all member IDs
+      const members = await tx
+        .select({ userId: groupMembers.userId })
+        .from(groupMembers)
+        .where(eq(groupMembers.groupId, groupId));
 
-    const memberIds = members.map((m) => m.userId);
+      const memberIds = members.map((m) => m.userId);
 
-    // Get all plaid items for group members
-    const memberPlaidItems = await db
-      .select()
-      .from(plaidItems)
-      .where(inArray(plaidItems.userId, memberIds));
+      // Get all plaid items for group members (group-aware read policies allow
+      // a member to read fellow members' rows).
+      const memberPlaidItems = await tx
+        .select()
+        .from(plaidItems)
+        .where(inArray(plaidItems.userId, memberIds));
 
-    const memberItemIds = memberPlaidItems.map((i) => i.id);
+      const memberItemIds = memberPlaidItems.map((i) => i.id);
 
-    // Get all accounts
-    const allAccounts =
-      memberItemIds.length > 0
-        ? await db
-            .select()
-            .from(accounts)
-            .where(inArray(accounts.plaidItemId, memberItemIds))
-        : [];
+      // Get all accounts
+      const allAccounts =
+        memberItemIds.length > 0
+          ? await tx
+              .select()
+              .from(accounts)
+              .where(inArray(accounts.plaidItemId, memberItemIds))
+          : [];
 
     // Map accounts with institution info
     const accountResults = allAccounts.map((acct) => {
@@ -83,28 +82,38 @@ export async function GET(
       };
     });
 
-    // Get all manual accounts for group members
-    const allManual = await db
-      .select()
-      .from(manualAccounts)
-      .where(inArray(manualAccounts.userId, memberIds));
+      // Get all manual accounts for group members
+      const allManual = await tx
+        .select()
+        .from(manualAccounts)
+        .where(inArray(manualAccounts.userId, memberIds));
 
-    const manualResults = allManual.map((row) => ({
-      id: row.id,
-      name: row.name,
-      type: row.type,
-      subtype: row.subtype,
-      balance: row.balance,
-      isoCurrencyCode: row.isoCurrencyCode,
-      notes: row.notes,
-      createdAt: row.createdAt.toISOString(),
-      updatedAt: row.updatedAt.toISOString(),
-      userId: row.userId,
-    }));
+      const manualResults = allManual.map((row) => ({
+        id: row.id,
+        name: row.name,
+        type: row.type,
+        subtype: row.subtype,
+        balance: row.balance,
+        isoCurrencyCode: row.isoCurrencyCode,
+        notes: row.notes,
+        createdAt: row.createdAt.toISOString(),
+        updatedAt: row.updatedAt.toISOString(),
+        userId: row.userId,
+      }));
+
+      return { forbidden: false as const, accountResults, manualResults };
+    });
+
+    if (data.forbidden) {
+      return NextResponse.json(
+        { error: "Not a member of this group" },
+        { status: 403 }
+      );
+    }
 
     return NextResponse.json({
-      accounts: accountResults,
-      manualAccounts: manualResults,
+      accounts: data.accountResults,
+      manualAccounts: data.manualResults,
     });
   } catch (error) {
     if (isAuthError(error)) {

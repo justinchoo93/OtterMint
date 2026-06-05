@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { logServerError } from "@/lib/logging";
-import { db } from "@/lib/db";
 import { shareLinks } from "@/lib/db/schema";
 import { eq, and, isNull } from "drizzle-orm";
 import { getUserId, isAuthError } from "@/lib/auth/get-user-id";
+import { withUser } from "@/lib/db/with-user";
 import {
   FIELD_LIMITS,
   validateBoundedInteger,
@@ -15,15 +15,17 @@ export async function GET() {
   try {
     const userId = await getUserId();
 
-    const links = await db
-      .select()
-      .from(shareLinks)
-      .where(
-        and(
-          eq(shareLinks.userId, userId),
-          isNull(shareLinks.revokedAt)
+    const links = await withUser(userId, (tx) =>
+      tx
+        .select()
+        .from(shareLinks)
+        .where(
+          and(
+            eq(shareLinks.userId, userId),
+            isNull(shareLinks.revokedAt)
+          )
         )
-      );
+    );
 
     return NextResponse.json({
       shareLinks: links.map((link) => ({
@@ -75,20 +77,22 @@ export async function POST(request: NextRequest) {
 
     const token = crypto.randomBytes(32).toString("base64url");
 
-    const [link] = await db
-      .insert(shareLinks)
-      .values({
-        userId,
-        token,
-        label: body.label?.trim() || null,
-        includeNetWorth: body.includeNetWorth ?? true,
-        includeBalances: body.includeBalances ?? false,
-        includeTransactions: body.includeTransactions ?? false,
-        expiresAt: new Date(
-          Date.now() + body.expiresInDays * 24 * 60 * 60 * 1000
-        ),
-      })
-      .returning();
+    const [link] = await withUser(userId, (tx) =>
+      tx
+        .insert(shareLinks)
+        .values({
+          userId,
+          token,
+          label: body.label?.trim() || null,
+          includeNetWorth: body.includeNetWorth ?? true,
+          includeBalances: body.includeBalances ?? false,
+          includeTransactions: body.includeTransactions ?? false,
+          expiresAt: new Date(
+            Date.now() + body.expiresInDays * 24 * 60 * 60 * 1000
+          ),
+        })
+        .returning()
+    );
 
     return NextResponse.json(
       {
@@ -130,12 +134,14 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
-    await db
-      .update(shareLinks)
-      .set({ revokedAt: new Date() })
-      .where(
-        and(eq(shareLinks.id, linkId), eq(shareLinks.userId, userId))
-      );
+    await withUser(userId, (tx) =>
+      tx
+        .update(shareLinks)
+        .set({ revokedAt: new Date() })
+        .where(
+          and(eq(shareLinks.id, linkId), eq(shareLinks.userId, userId))
+        )
+    );
 
     return NextResponse.json({ success: true });
   } catch (error) {

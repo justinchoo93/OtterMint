@@ -1,7 +1,7 @@
 import { plaidClient } from "@/lib/plaid";
-import { db } from "@/lib/db";
 import { holdings } from "@/lib/db/schema";
 import { eq, inArray } from "drizzle-orm";
+import type { DbExecutor } from "@/lib/db/with-user";
 
 interface SyncHoldingsResult {
   count: number;
@@ -10,8 +10,10 @@ interface SyncHoldingsResult {
 export async function syncHoldings(
   accessToken: string,
   investmentAccountIds: string[],
-  userId: string
+  userId: string,
+  executor: DbExecutor
 ): Promise<SyncHoldingsResult> {
+  const db = executor;
   const response = await plaidClient.investmentsHoldingsGet({
     access_token: accessToken,
   });

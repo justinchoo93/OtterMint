@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { logServerError } from "@/lib/logging";
-import { db } from "@/lib/db";
 import { manualAccounts } from "@/lib/db/schema";
 import { eq, and } from "drizzle-orm";
 import { validateManualAccount } from "@/lib/validate-manual-account";
 import { getUserId, isAuthError } from "@/lib/auth/get-user-id";
+import { withUser } from "@/lib/db/with-user";
 
 export type ManualAccountRow = {
   id: number;
@@ -22,10 +22,12 @@ export async function GET() {
   try {
     const userId = await getUserId();
 
-    const rows = await db
-      .select()
-      .from(manualAccounts)
-      .where(eq(manualAccounts.userId, userId));
+    const rows = await withUser(userId, (tx) =>
+      tx
+        .select()
+        .from(manualAccounts)
+        .where(eq(manualAccounts.userId, userId))
+    );
 
     const result: ManualAccountRow[] = rows.map((row) => ({
       id: row.id,
@@ -60,17 +62,19 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: validation.error }, { status: 400 });
     }
 
-    const [row] = await db
-      .insert(manualAccounts)
-      .values({
-        userId,
-        name: body.name.trim(),
-        type: body.type,
-        subtype: body.subtype?.trim() || null,
-        balance: body.balance,
-        notes: body.notes?.trim() || null,
-      })
-      .returning();
+    const [row] = await withUser(userId, (tx) =>
+      tx
+        .insert(manualAccounts)
+        .values({
+          userId,
+          name: body.name.trim(),
+          type: body.type,
+          subtype: body.subtype?.trim() || null,
+          balance: body.balance,
+          notes: body.notes?.trim() || null,
+        })
+        .returning()
+    );
 
     return NextResponse.json({ manualAccount: row }, { status: 201 });
   } catch (error) {
@@ -100,18 +104,20 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error: validation.error }, { status: 400 });
     }
 
-    const [row] = await db
-      .update(manualAccounts)
-      .set({
-        name: fields.name.trim(),
-        type: fields.type,
-        subtype: fields.subtype?.trim() || null,
-        balance: fields.balance,
-        notes: fields.notes?.trim() || null,
-        updatedAt: new Date(),
-      })
-      .where(and(eq(manualAccounts.id, id), eq(manualAccounts.userId, userId)))
-      .returning();
+    const [row] = await withUser(userId, (tx) =>
+      tx
+        .update(manualAccounts)
+        .set({
+          name: fields.name.trim(),
+          type: fields.type,
+          subtype: fields.subtype?.trim() || null,
+          balance: fields.balance,
+          notes: fields.notes?.trim() || null,
+          updatedAt: new Date(),
+        })
+        .where(and(eq(manualAccounts.id, id), eq(manualAccounts.userId, userId)))
+        .returning()
+    );
 
     if (!row) {
       return NextResponse.json({ error: "Account not found" }, { status: 404 });
@@ -140,9 +146,11 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: "id is required" }, { status: 400 });
     }
 
-    await db
-      .delete(manualAccounts)
-      .where(and(eq(manualAccounts.id, id), eq(manualAccounts.userId, userId)));
+    await withUser(userId, (tx) =>
+      tx
+        .delete(manualAccounts)
+        .where(and(eq(manualAccounts.id, id), eq(manualAccounts.userId, userId)))
+    );
 
     return NextResponse.json({ success: true });
   } catch (error) {

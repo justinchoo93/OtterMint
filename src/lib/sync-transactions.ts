@@ -1,7 +1,7 @@
 import { plaidClient } from "@/lib/plaid";
-import { db } from "@/lib/db";
 import { transactions } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
+import type { DbExecutor } from "@/lib/db/with-user";
 
 interface SyncResult {
   added: number;
@@ -13,8 +13,10 @@ interface SyncResult {
 export async function syncTransactions(
   accessToken: string,
   cursor: string | null,
-  userId: string
+  userId: string,
+  executor: DbExecutor
 ): Promise<SyncResult> {
+  const db = executor;
   let totalAdded = 0;
   let totalModified = 0;
   let totalRemoved = 0;

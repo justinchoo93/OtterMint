@@ -1,5 +1,5 @@
-import { db } from "@/lib/db";
 import { userNetWorthSnapshots, groupNetWorthSnapshots } from "@/lib/db/schema";
+import type { DbExecutor } from "@/lib/db/with-user";
 
 export interface SnapshotData {
   totalAssets: string;
@@ -82,11 +82,12 @@ function snapshotValues(data: SnapshotData) {
 
 export async function saveUserSnapshot(
   userId: string,
-  data: SnapshotData
+  data: SnapshotData,
+  executor: DbExecutor
 ): Promise<void> {
   const today = new Date().toISOString().split("T")[0];
 
-  await db
+  await executor
     .insert(userNetWorthSnapshots)
     .values({
       userId,
@@ -101,11 +102,12 @@ export async function saveUserSnapshot(
 
 export async function saveGroupSnapshot(
   groupId: string,
-  data: SnapshotData
+  data: SnapshotData,
+  executor: DbExecutor
 ): Promise<void> {
   const today = new Date().toISOString().split("T")[0];
 
-  await db
+  await executor
     .insert(groupNetWorthSnapshots)
     .values({
       groupId,

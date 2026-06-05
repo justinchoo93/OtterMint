@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { logServerError } from "@/lib/logging";
-import { db } from "@/lib/db";
 import { userNetWorthSnapshots } from "@/lib/db/schema";
 import { asc, and, gte, eq } from "drizzle-orm";
 import { getUserId, isAuthError } from "@/lib/auth/get-user-id";
+import { withUser } from "@/lib/db/with-user";
 
 export type NetWorthSnapshotRow = {
   date: string;
@@ -29,16 +29,18 @@ export async function GET(request: NextRequest) {
     sinceDate.setDate(sinceDate.getDate() - days);
     const sinceDateStr = sinceDate.toISOString().split("T")[0];
 
-    const rows = await db
-      .select()
-      .from(userNetWorthSnapshots)
-      .where(
-        and(
-          eq(userNetWorthSnapshots.userId, userId),
-          gte(userNetWorthSnapshots.date, sinceDateStr)
+    const rows = await withUser(userId, (tx) =>
+      tx
+        .select()
+        .from(userNetWorthSnapshots)
+        .where(
+          and(
+            eq(userNetWorthSnapshots.userId, userId),
+            gte(userNetWorthSnapshots.date, sinceDateStr)
+          )
         )
-      )
-      .orderBy(asc(userNetWorthSnapshots.date));
+        .orderBy(asc(userNetWorthSnapshots.date))
+    );
 
     const result: NetWorthSnapshotRow[] = rows.map((row) => ({
       date: row.date,

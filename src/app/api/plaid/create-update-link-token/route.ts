@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { plaidClient } from "@/lib/plaid";
-import { db } from "@/lib/db";
 import { plaidItems } from "@/lib/db/schema";
 import { decrypt } from "@/lib/crypto";
 import { eq, and } from "drizzle-orm";
 import { CountryCode, type LinkTokenCreateRequest } from "plaid";
 import { getUserId, isAuthError } from "@/lib/auth/get-user-id";
+import { withUser } from "@/lib/db/with-user";
 import { logServerError } from "@/lib/logging";
 import { validateBoundedInteger } from "@/lib/validate-request";
 
@@ -24,10 +24,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: itemIdResult.error }, { status: 400 });
     }
 
-    const [item] = await db
-      .select()
-      .from(plaidItems)
-      .where(and(eq(plaidItems.id, itemId), eq(plaidItems.userId, userId)));
+    const [item] = await withUser(userId, (tx) =>
+      tx
+        .select()
+        .from(plaidItems)
+        .where(and(eq(plaidItems.id, itemId), eq(plaidItems.userId, userId)))
+    );
 
     if (!item) {
       return NextResponse.json({ error: "Item not found" }, { status: 404 });

@@ -2,10 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { TOTP } from "otpauth";
 import { getUserId } from "@/lib/auth/get-user-id";
 import { decrypt } from "@/lib/crypto";
-import { db } from "@/lib/db";
 import { users, sessions } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import { isAuthError } from "@/lib/auth/get-user-id";
+import { withUser } from "@/lib/db/with-user";
 import {
   formatLockoutMessage,
   getLockoutState,
@@ -39,67 +39,21 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Invalid session" }, { status: 400 });
     }
 
-    const [session] = await db
-      .select()
-      .from(sessions)
-      .where(eq(sessions.id, sessionId));
-
-    if (!session || session.userId !== userId) {
-      return NextResponse.json({ error: "Invalid session" }, { status: 400 });
-    }
-
-    if (isCurrentlyLocked(session.mfaLockedUntil)) {
-      return NextResponse.json(
-        {
-          error: formatLockoutMessage(
-            session.mfaLockedUntil!,
-            "Too many MFA attempts."
-          ),
-        },
-        { status: 429 }
-      );
-    }
-
-    const [user] = await db
-      .select({ totpSecret: users.totpSecret })
-      .from(users)
-      .where(eq(users.id, userId));
-
-    if (!user?.totpSecret) {
-      return NextResponse.json(
-        { error: "MFA setup not initiated" },
-        { status: 400 }
-      );
-    }
-
-    const secretBase32 = decrypt(user.totpSecret);
-    const totp = new TOTP({
-      issuer: "OtterMint",
-      secret: secretBase32,
-    });
-
-    const isValid = totp.validate({ token: code, window: 1 }) !== null;
-
-    if (!isValid) {
-      const lockoutState = getLockoutState({
-        failedAttempts: session.mfaFailedAttempts,
-        maxAttempts: MAX_MFA_ATTEMPTS,
-        lockoutMs: MFA_LOCKOUT_MS,
-      });
-
-      await db
-        .update(sessions)
-        .set({
-          mfaFailedAttempts: lockoutState.failedAttempts,
-          mfaLockedUntil: lockoutState.lockedUntil,
-        })
+    return await withUser(userId, async (tx) => {
+      const [session] = await tx
+        .select()
+        .from(sessions)
         .where(eq(sessions.id, sessionId));
 
-      if (lockoutState.isLocked && lockoutState.lockedUntil) {
+      if (!session || session.userId !== userId) {
+        return NextResponse.json({ error: "Invalid session" }, { status: 400 });
+      }
+
+      if (isCurrentlyLocked(session.mfaLockedUntil)) {
         return NextResponse.json(
           {
             error: formatLockoutMessage(
-              lockoutState.lockedUntil,
+              session.mfaLockedUntil!,
               "Too many MFA attempts."
             ),
           },
@@ -107,23 +61,71 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      return NextResponse.json(
-        { error: "Invalid verification code" },
-        { status: 400 }
-      );
-    }
+      const [user] = await tx
+        .select({ totpSecret: users.totpSecret })
+        .from(users)
+        .where(eq(users.id, userId));
 
-    await db
-      .update(sessions)
-      .set({ mfaFailedAttempts: 0, mfaLockedUntil: null })
-      .where(eq(sessions.id, sessionId));
+      if (!user?.totpSecret) {
+        return NextResponse.json(
+          { error: "MFA setup not initiated" },
+          { status: 400 }
+        );
+      }
 
-    await db
-      .update(users)
-      .set({ mfaEnabled: true, updatedAt: new Date() })
-      .where(eq(users.id, userId));
+      const secretBase32 = decrypt(user.totpSecret);
+      const totp = new TOTP({
+        issuer: "OtterMint",
+        secret: secretBase32,
+      });
 
-    return NextResponse.json({ success: true });
+      const isValid = totp.validate({ token: code, window: 1 }) !== null;
+
+      if (!isValid) {
+        const lockoutState = getLockoutState({
+          failedAttempts: session.mfaFailedAttempts,
+          maxAttempts: MAX_MFA_ATTEMPTS,
+          lockoutMs: MFA_LOCKOUT_MS,
+        });
+
+        await tx
+          .update(sessions)
+          .set({
+            mfaFailedAttempts: lockoutState.failedAttempts,
+            mfaLockedUntil: lockoutState.lockedUntil,
+          })
+          .where(eq(sessions.id, sessionId));
+
+        if (lockoutState.isLocked && lockoutState.lockedUntil) {
+          return NextResponse.json(
+            {
+              error: formatLockoutMessage(
+                lockoutState.lockedUntil,
+                "Too many MFA attempts."
+              ),
+            },
+            { status: 429 }
+          );
+        }
+
+        return NextResponse.json(
+          { error: "Invalid verification code" },
+          { status: 400 }
+        );
+      }
+
+      await tx
+        .update(sessions)
+        .set({ mfaFailedAttempts: 0, mfaLockedUntil: null })
+        .where(eq(sessions.id, sessionId));
+
+      await tx
+        .update(users)
+        .set({ mfaEnabled: true, updatedAt: new Date() })
+        .where(eq(users.id, userId));
+
+      return NextResponse.json({ success: true });
+    });
   } catch (error) {
     if (isAuthError(error)) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

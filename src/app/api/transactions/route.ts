@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { logServerError } from "@/lib/logging";
-import { db } from "@/lib/db";
 import { transactions, accounts, plaidItems } from "@/lib/db/schema";
 import { desc, eq, getTableColumns } from "drizzle-orm";
 import { getUserId, isAuthError } from "@/lib/auth/get-user-id";
+import { withUser } from "@/lib/db/with-user";
 
 export type TransactionRow = {
   id: number;
@@ -25,15 +25,18 @@ export async function GET(request: NextRequest) {
     const parsed = parseInt(searchParams.get("limit") ?? "50", 10);
     const limit = Number.isNaN(parsed) || parsed < 1 ? 50 : Math.min(parsed, 200);
 
-    // Scope transactions to the authenticated user via join
-    const rows = await db
-      .select({ ...getTableColumns(transactions) })
-      .from(transactions)
-      .innerJoin(accounts, eq(transactions.accountId, accounts.accountId))
-      .innerJoin(plaidItems, eq(accounts.plaidItemId, plaidItems.id))
-      .where(eq(plaidItems.userId, userId))
-      .orderBy(desc(transactions.date), desc(transactions.id))
-      .limit(limit);
+    // Scope transactions to the authenticated user via join (RLS also enforces
+    // the boundary on every joined table).
+    const rows = await withUser(userId, (tx) =>
+      tx
+        .select({ ...getTableColumns(transactions) })
+        .from(transactions)
+        .innerJoin(accounts, eq(transactions.accountId, accounts.accountId))
+        .innerJoin(plaidItems, eq(accounts.plaidItemId, plaidItems.id))
+        .where(eq(plaidItems.userId, userId))
+        .orderBy(desc(transactions.date), desc(transactions.id))
+        .limit(limit)
+    );
 
     const result: TransactionRow[] = rows.map((row) => ({
       id: row.id,

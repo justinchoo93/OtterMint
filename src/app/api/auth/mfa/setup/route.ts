@@ -5,20 +5,22 @@ import * as QRCode from "qrcode";
 import bcrypt from "bcryptjs";
 import { getUserId } from "@/lib/auth/get-user-id";
 import { encrypt } from "@/lib/crypto";
-import { db } from "@/lib/db";
 import { users } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import { isAuthError } from "@/lib/auth/get-user-id";
+import { withUser } from "@/lib/db/with-user";
 import { logServerError } from "@/lib/logging";
 
 export async function POST() {
   try {
     const userId = await getUserId();
 
-    const [user] = await db
-      .select({ email: users.email, mfaEnabled: users.mfaEnabled })
-      .from(users)
-      .where(eq(users.id, userId));
+    const [user] = await withUser(userId, (tx) =>
+      tx
+        .select({ email: users.email, mfaEnabled: users.mfaEnabled })
+        .from(users)
+        .where(eq(users.id, userId))
+    );
 
     if (!user) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
@@ -56,14 +58,16 @@ export async function POST() {
 
     // Store encrypted secret + hashed recovery codes (don't enable MFA yet)
     const encryptedSecret = encrypt(secret.base32);
-    await db
-      .update(users)
-      .set({
-        totpSecret: encryptedSecret,
-        recoveryCodes: JSON.stringify(hashedCodes),
-        updatedAt: new Date(),
-      })
-      .where(eq(users.id, userId));
+    await withUser(userId, (tx) =>
+      tx
+        .update(users)
+        .set({
+          totpSecret: encryptedSecret,
+          recoveryCodes: JSON.stringify(hashedCodes),
+          updatedAt: new Date(),
+        })
+        .where(eq(users.id, userId))
+    );
 
     return NextResponse.json({
       qrCodeUrl,

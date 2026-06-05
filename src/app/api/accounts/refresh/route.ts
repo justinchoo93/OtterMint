@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server";
-import { db } from "@/lib/db";
 import {
   accounts,
   plaidItems,
@@ -14,6 +13,7 @@ import { computeSnapshot, saveUserSnapshot, saveGroupSnapshot } from "@/lib/comp
 import { eq, inArray } from "drizzle-orm";
 import { PlaidError } from "plaid";
 import { getUserId, isAuthError } from "@/lib/auth/get-user-id";
+import { withUser } from "@/lib/db/with-user";
 import { enforceRateLimit } from "@/lib/rate-limit";
 import { logServerError } from "@/lib/logging";
 
@@ -42,17 +42,22 @@ export async function POST() {
   const limited = await enforceRateLimit("accountsRefresh", userId);
   if (limited) return limited;
 
-  const userItems = await db
+  let refreshedCount = 0;
+  const errors: { institutionName: string; error: string }[] = [];
+
+  // All DB work runs under the caller's RLS context. The single transaction
+  // wraps the per-item refresh + sync writers and the snapshot recompute;
+  // the group-snapshot block relies on the group-aware read policies to see
+  // fellow members' financial rows.
+  await withUser(userId, async (tx) => {
+  const userItems = await tx
     .select()
     .from(plaidItems)
     .where(eq(plaidItems.userId, userId));
 
-  let refreshedCount = 0;
-  const errors: { institutionName: string; error: string }[] = [];
-
   for (const item of userItems) {
     try {
-      const itemAccounts = await db
+      const itemAccounts = await tx
         .select()
         .from(accounts)
         .where(eq(accounts.plaidItemId, item.id));
@@ -72,7 +77,7 @@ export async function POST() {
       });
 
       for (const plaidAcct of balanceResponse.data.accounts) {
-        await db
+        await tx
           .update(accounts)
           .set({
             currentBalance: plaidAcct.balances.current?.toString() ?? null,
@@ -88,10 +93,11 @@ export async function POST() {
       const syncResult = await syncTransactions(
         accessToken,
         item.transactionsCursor,
-        userId
+        userId,
+        tx
       );
 
-      await db
+      await tx
         .update(plaidItems)
         .set({
           transactionsCursor: syncResult.nextCursor,
@@ -107,7 +113,7 @@ export async function POST() {
         .map((a) => a.accountId);
 
       if (investmentAccountIds.length > 0) {
-        await syncHoldings(accessToken, investmentAccountIds, userId);
+        await syncHoldings(accessToken, investmentAccountIds, userId, tx);
       }
 
       refreshedCount++;
@@ -117,7 +123,7 @@ export async function POST() {
         const errorCode = plaidErr.error_code ?? "UNKNOWN";
         const errorMessage = plaidErr.error_message ?? "Unknown Plaid error";
 
-        await db
+        await tx
           .update(plaidItems)
           .set({
             errorCode,
@@ -146,7 +152,7 @@ export async function POST() {
 
   // Compute and save user snapshot
   try {
-    const userPlaidItems = await db
+    const userPlaidItems = await tx
       .select()
       .from(plaidItems)
       .where(eq(plaidItems.userId, userId));
@@ -154,22 +160,22 @@ export async function POST() {
 
     const userAccounts =
       userItemIds.length > 0
-        ? await db
+        ? await tx
             .select()
             .from(accounts)
             .where(inArray(accounts.plaidItemId, userItemIds))
         : [];
 
-    const userManual = await db
+    const userManual = await tx
       .select()
       .from(manualAccounts)
       .where(eq(manualAccounts.userId, userId));
 
     const snapshotData = computeSnapshot(userAccounts, userManual);
-    await saveUserSnapshot(userId, snapshotData);
+    await saveUserSnapshot(userId, snapshotData, tx);
 
     // Also recompute group snapshots for any groups this user is in
-    const userGroups = await db
+    const userGroups = await tx
       .select({ groupId: groupMembers.groupId })
       .from(groupMembers)
       .where(eq(groupMembers.userId, userId));
@@ -177,15 +183,16 @@ export async function POST() {
     for (const { groupId } of userGroups) {
       try {
         // Get all member user IDs in this group
-        const members = await db
+        const members = await tx
           .select({ userId: groupMembers.userId })
           .from(groupMembers)
           .where(eq(groupMembers.groupId, groupId));
 
         const memberIds = members.map((m) => m.userId);
 
-        // Get all plaid items for group members
-        const memberPlaidItems = await db
+        // Get all plaid items for group members (group-aware read policies
+        // permit a member to read fellow members' financial rows).
+        const memberPlaidItems = await tx
           .select()
           .from(plaidItems)
           .where(inArray(plaidItems.userId, memberIds));
@@ -193,13 +200,13 @@ export async function POST() {
 
         const groupPlaidAccounts =
           memberItemIds.length > 0
-            ? await db
+            ? await tx
                 .select()
                 .from(accounts)
                 .where(inArray(accounts.plaidItemId, memberItemIds))
             : [];
 
-        const groupManualAccounts = await db
+        const groupManualAccounts = await tx
           .select()
           .from(manualAccounts)
           .where(inArray(manualAccounts.userId, memberIds));
@@ -208,7 +215,7 @@ export async function POST() {
           groupPlaidAccounts,
           groupManualAccounts
         );
-        await saveGroupSnapshot(groupId, groupSnapshot);
+        await saveGroupSnapshot(groupId, groupSnapshot, tx);
       } catch (err) {
         logServerError(`Failed to save group snapshot for ${groupId}`, err);
       }
@@ -216,6 +223,7 @@ export async function POST() {
   } catch (err) {
     logServerError("Failed to save snapshot", err);
   }
+  });
 
   return NextResponse.json({
     success: true,
