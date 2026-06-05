@@ -19,6 +19,7 @@
   "dependencies": {
     "bcryptjs": "^3.0.3",
     "drizzle-orm": "^0.45.1",
+    "jose": "^6.2.3",
     "next": "16.2.7",
     "otpauth": "^9.5.0",
     "plaid": "^41.1.0",
