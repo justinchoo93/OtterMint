@@ -16,12 +16,19 @@ export async function POST() {
     const userId = await getUserId();
 
     const [user] = await db
-      .select({ email: users.email })
+      .select({ email: users.email, mfaEnabled: users.mfaEnabled })
       .from(users)
       .where(eq(users.id, userId));
 
     if (!user) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
+    }
+
+    if (user.mfaEnabled) {
+      return NextResponse.json(
+        { error: "MFA is already enabled. Disable it first to reconfigure." },
+        { status: 409 }
+      );
     }
 
     // Generate TOTP secret
