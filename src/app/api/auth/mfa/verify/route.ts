@@ -20,6 +20,7 @@ import {
 } from "@/lib/auth/cookies";
 import { SESSION_DURATION_MS } from "@/lib/auth/session";
 import { logServerError } from "@/lib/logging";
+import { enforceRateLimit, getClientIp } from "@/lib/rate-limit";
 
 export async function POST(request: NextRequest) {
   try {
@@ -48,6 +49,12 @@ export async function POST(request: NextRequest) {
     }
 
     const sessionId = pendingSessionId;
+
+    const limited = await enforceRateLimit(
+      "mfaVerify",
+      `${getClientIp(request)}:${pendingSessionId}`
+    );
+    if (limited) return limited;
 
     // Look up the pending session
     const [session] = await db

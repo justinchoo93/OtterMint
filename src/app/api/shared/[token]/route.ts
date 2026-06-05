@@ -10,6 +10,7 @@ import {
   users,
 } from "@/lib/db/schema";
 import { eq, and, gte, asc, desc, isNull, inArray, getTableColumns } from "drizzle-orm";
+import { enforceRateLimit, getClientIp } from "@/lib/rate-limit";
 
 export async function GET(
   request: NextRequest,
@@ -17,6 +18,9 @@ export async function GET(
 ) {
   try {
     const { token } = await params;
+
+    const limited = await enforceRateLimit("shareLookup", getClientIp(request));
+    if (limited) return limited;
 
     // Look up share link
     const [link] = await db

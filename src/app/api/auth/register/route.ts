@@ -11,9 +11,13 @@ import {
 } from "@/lib/auth/cookies";
 import { logServerError } from "@/lib/logging";
 import { FIELD_LIMITS, validateBoundedString } from "@/lib/validate-request";
+import { enforceRateLimit, getClientIp } from "@/lib/rate-limit";
 
 export async function POST(request: NextRequest) {
   try {
+    const limited = await enforceRateLimit("register", getClientIp(request));
+    if (limited) return limited;
+
     const body = await request.json();
     if (typeof body !== "object" || body === null || Array.isArray(body)) {
       return NextResponse.json(

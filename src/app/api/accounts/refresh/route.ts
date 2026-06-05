@@ -14,6 +14,7 @@ import { computeSnapshot, saveUserSnapshot, saveGroupSnapshot } from "@/lib/comp
 import { eq, inArray } from "drizzle-orm";
 import { PlaidError } from "plaid";
 import { getUserId, isAuthError } from "@/lib/auth/get-user-id";
+import { enforceRateLimit } from "@/lib/rate-limit";
 
 const STALE_THRESHOLD_MS = 2 * 60 * 60 * 1000; // 2 hours
 
@@ -36,6 +37,9 @@ export async function POST() {
     }
     throw error;
   }
+
+  const limited = await enforceRateLimit("accountsRefresh", userId);
+  if (limited) return limited;
 
   const userItems = await db
     .select()

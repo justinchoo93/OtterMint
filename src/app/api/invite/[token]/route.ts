@@ -2,13 +2,17 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { groupInvitations, groups, users } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
+import { enforceRateLimit, getClientIp } from "@/lib/rate-limit";
 
 export async function GET(
-  _request: NextRequest,
+  request: NextRequest,
   { params }: { params: Promise<{ token: string }> }
 ) {
   try {
     const { token } = await params;
+
+    const limited = await enforceRateLimit("inviteLookup", getClientIp(request));
+    if (limited) return limited;
 
     const [invitation] = await db
       .select()

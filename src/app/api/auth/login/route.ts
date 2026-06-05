@@ -20,6 +20,7 @@ import {
   SESSION_COOKIE_NAME,
 } from "@/lib/auth/cookies";
 import { logServerError } from "@/lib/logging";
+import { enforceRateLimit, getClientIp } from "@/lib/rate-limit";
 import { eq } from "drizzle-orm";
 
 export async function POST(request: NextRequest) {
@@ -46,6 +47,12 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
+
+    const limited = await enforceRateLimit(
+      "login",
+      `${getClientIp(request)}:${email.toLowerCase().trim()}`
+    );
+    if (limited) return limited;
 
     const [user] = await db
       .select()
