@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { users } from "@/lib/db/schema";
+import { sql } from "drizzle-orm";
 import { verifyPassword } from "@/lib/auth/password";
 import {
   createSession,
@@ -21,7 +21,16 @@ import {
 } from "@/lib/auth/cookies";
 import { logServerError } from "@/lib/logging";
 import { enforceRateLimit, getClientIp } from "@/lib/rate-limit";
-import { eq } from "drizzle-orm";
+
+interface LoginUserRow {
+  id: string;
+  password_hash: string;
+  display_name: string;
+  email: string;
+  mfa_enabled: boolean;
+  failed_login_attempts: number;
+  locked_until: Date | null;
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -54,10 +63,10 @@ export async function POST(request: NextRequest) {
     );
     if (limited) return limited;
 
-    const [user] = await db
-      .select()
-      .from(users)
-      .where(eq(users.email, email.toLowerCase().trim()));
+    const userRows = (await db.execute(
+      sql`select * from lookup_user_for_login(${email.toLowerCase().trim()})`
+    )) as unknown as LoginUserRow[];
+    const user = userRows[0];
 
     if (!user) {
       return NextResponse.json(
@@ -66,11 +75,11 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (isCurrentlyLocked(user.lockedUntil)) {
+    if (isCurrentlyLocked(user.locked_until)) {
       return NextResponse.json(
         {
           error: formatLockoutMessage(
-            user.lockedUntil!,
+            user.locked_until!,
             "Too many sign-in attempts."
           ),
         },
@@ -78,22 +87,17 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const passwordValid = await verifyPassword(password, user.passwordHash);
+    const passwordValid = await verifyPassword(password, user.password_hash);
     if (!passwordValid) {
       const lockoutState = getLockoutState({
-        failedAttempts: user.failedLoginAttempts,
+        failedAttempts: user.failed_login_attempts,
         maxAttempts: MAX_LOGIN_ATTEMPTS,
         lockoutMs: LOGIN_LOCKOUT_MS,
       });
 
-      await db
-        .update(users)
-        .set({
-          failedLoginAttempts: lockoutState.failedAttempts,
-          lockedUntil: lockoutState.lockedUntil,
-          updatedAt: new Date(),
-        })
-        .where(eq(users.id, user.id));
+      await db.execute(
+        sql`select record_login_failure(${user.id}, ${lockoutState.failedAttempts}, ${lockoutState.lockedUntil})`
+      );
 
       if (lockoutState.isLocked && lockoutState.lockedUntil) {
         return NextResponse.json(
@@ -113,19 +117,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (user.failedLoginAttempts > 0 || user.lockedUntil) {
-      await db
-        .update(users)
-        .set({
-          failedLoginAttempts: 0,
-          lockedUntil: null,
-          updatedAt: new Date(),
-        })
-        .where(eq(users.id, user.id));
+    if (user.failed_login_attempts > 0 || user.locked_until) {
+      await db.execute(sql`select record_login_success(${user.id})`);
     }
 
     // If MFA is enabled, create a pending session (no cookie yet)
-    if (user.mfaEnabled) {
+    if (user.mfa_enabled) {
       const sessionId = await createSession(user.id, {
         durationMs: MFA_PENDING_DURATION_MS,
         mfaPending: true,
@@ -155,7 +152,7 @@ export async function POST(request: NextRequest) {
       user: {
         id: user.id,
         email: user.email,
-        displayName: user.displayName,
+        displayName: user.display_name,
       },
     });
 

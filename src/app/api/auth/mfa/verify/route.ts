@@ -3,8 +3,7 @@ import { TOTP } from "otpauth";
 import bcrypt from "bcryptjs";
 import { decrypt } from "@/lib/crypto";
 import { db } from "@/lib/db";
-import { users, sessions } from "@/lib/db/schema";
-import { eq } from "drizzle-orm";
+import { sql } from "drizzle-orm";
 import {
   formatLockoutMessage,
   getLockoutState,
@@ -21,6 +20,20 @@ import {
 import { SESSION_DURATION_MS } from "@/lib/auth/session";
 import { logServerError } from "@/lib/logging";
 import { enforceRateLimit, getClientIp } from "@/lib/rate-limit";
+
+interface SessionLookupRow {
+  user_id: string;
+  expires_at: Date;
+  mfa_pending: boolean;
+  mfa_failed_attempts: number;
+  mfa_locked_until: Date | null;
+}
+
+interface MfaSecretRow {
+  user_id: string;
+  totp_secret: string | null;
+  recovery_codes: string | null;
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -56,31 +69,32 @@ export async function POST(request: NextRequest) {
     );
     if (limited) return limited;
 
-    // Look up the pending session
-    const [session] = await db
-      .select()
-      .from(sessions)
-      .where(eq(sessions.id, sessionId));
+    // Look up the pending session via the SECURITY DEFINER function (pre-auth:
+    // no per-user RLS context exists yet).
+    const sessionRows = (await db.execute(
+      sql`select * from lookup_session(${sessionId})`
+    )) as unknown as SessionLookupRow[];
+    const session = sessionRows[0];
 
-    if (!session || !session.mfaPending) {
+    if (!session || !session.mfa_pending) {
       return NextResponse.json(
         { error: "Invalid or expired MFA session" },
         { status: 400 }
       );
     }
 
-    if (session.expiresAt < new Date()) {
+    if (new Date(session.expires_at) < new Date()) {
       return NextResponse.json(
         { error: "Session expired" },
         { status: 400 }
       );
     }
 
-    if (isCurrentlyLocked(session.mfaLockedUntil)) {
+    if (isCurrentlyLocked(session.mfa_locked_until)) {
       return NextResponse.json(
         {
           error: formatLockoutMessage(
-            session.mfaLockedUntil!,
+            session.mfa_locked_until!,
             "Too many MFA attempts."
           ),
         },
@@ -88,23 +102,21 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Get user's TOTP secret and recovery codes
-    const [user] = await db
-      .select({
-        totpSecret: users.totpSecret,
-        recoveryCodes: users.recoveryCodes,
-      })
-      .from(users)
-      .where(eq(users.id, session.userId));
+    // Get user's TOTP secret and recovery codes via the SECURITY DEFINER
+    // function (no broad users read is granted pre-auth).
+    const userRows = (await db.execute(
+      sql`select * from lookup_mfa_secret(${session.user_id})`
+    )) as unknown as MfaSecretRow[];
+    const user = userRows[0];
 
-    if (!user?.totpSecret) {
+    if (!user?.totp_secret) {
       return NextResponse.json(
         { error: "MFA not configured" },
         { status: 400 }
       );
     }
 
-    const secretBase32 = decrypt(user.totpSecret);
+    const secretBase32 = decrypt(user.totp_secret);
     const totp = new TOTP({
       issuer: "OtterMint",
       secret: secretBase32,
@@ -113,21 +125,17 @@ export async function POST(request: NextRequest) {
     let isValid = totp.validate({ token: code, window: 1 }) !== null;
 
     // If TOTP didn't match, try recovery codes
-    if (!isValid && user.recoveryCodes) {
-      const hashedCodes: string[] = JSON.parse(user.recoveryCodes);
+    if (!isValid && user.recovery_codes) {
+      const hashedCodes: string[] = JSON.parse(user.recovery_codes);
       for (let i = 0; i < hashedCodes.length; i++) {
         const match = await bcrypt.compare(code, hashedCodes[i]);
         if (match) {
           isValid = true;
           // Remove the used recovery code
           hashedCodes.splice(i, 1);
-          await db
-            .update(users)
-            .set({
-              recoveryCodes: JSON.stringify(hashedCodes),
-              updatedAt: new Date(),
-            })
-            .where(eq(users.id, session.userId));
+          await db.execute(
+            sql`select consume_recovery_code(${session.user_id}, ${JSON.stringify(hashedCodes)})`
+          );
           break;
         }
       }
@@ -135,18 +143,14 @@ export async function POST(request: NextRequest) {
 
     if (!isValid) {
       const lockoutState = getLockoutState({
-        failedAttempts: session.mfaFailedAttempts,
+        failedAttempts: session.mfa_failed_attempts,
         maxAttempts: MAX_MFA_ATTEMPTS,
         lockoutMs: MFA_LOCKOUT_MS,
       });
 
-      await db
-        .update(sessions)
-        .set({
-          mfaFailedAttempts: lockoutState.failedAttempts,
-          mfaLockedUntil: lockoutState.lockedUntil,
-        })
-        .where(eq(sessions.id, sessionId));
+      await db.execute(
+        sql`select record_mfa_failure(${sessionId}, ${lockoutState.failedAttempts}, ${lockoutState.lockedUntil})`
+      );
 
       if (lockoutState.isLocked && lockoutState.lockedUntil) {
         return NextResponse.json(
@@ -167,15 +171,11 @@ export async function POST(request: NextRequest) {
     }
 
     // Mark session as fully authenticated
-    await db
-      .update(sessions)
-      .set({
-        mfaPending: false,
-        mfaFailedAttempts: 0,
-        mfaLockedUntil: null,
-        expiresAt: new Date(Date.now() + SESSION_DURATION_MS),
-      })
-      .where(eq(sessions.id, sessionId));
+    await db.execute(
+      sql`select mark_session_authenticated(${sessionId}, ${new Date(
+        Date.now() + SESSION_DURATION_MS
+      )})`
+    );
 
     // Set the session cookie
     const response = NextResponse.json({ success: true });

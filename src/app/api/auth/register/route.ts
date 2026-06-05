@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { users } from "@/lib/db/schema";
+import { sql } from "drizzle-orm";
 import { hashPassword } from "@/lib/auth/password";
 import { createSession } from "@/lib/auth/session";
 import {
@@ -71,22 +71,21 @@ export async function POST(request: NextRequest) {
 
     const passwordHash = await hashPassword(password);
 
-    let user;
+    let user: { id: string; email: string; display_name: string };
     try {
-      [user] = await db
-        .insert(users)
-        .values({
-          email: email.toLowerCase().trim(),
-          passwordHash,
-          displayName: displayName.trim(),
-          consentGivenAt: new Date(),
-        })
-        .returning();
+      const rows = (await db.execute(
+        sql`select * from create_user(${email.toLowerCase().trim()}, ${passwordHash}, ${displayName.trim()}, ${new Date()})`
+      )) as unknown as {
+        id: string;
+        email: string;
+        display_name: string;
+      }[];
+      user = rows[0];
     } catch (err: unknown) {
-      // Check for unique constraint violation (duplicate email)
+      // create_user raises EMAIL_TAKEN on the unique-email violation.
       if (
         err instanceof Error &&
-        err.message.includes("unique")
+        (err.message.includes("EMAIL_TAKEN") || err.message.includes("unique"))
       ) {
         return NextResponse.json(
           { error: "An account with this email already exists" },
@@ -103,7 +102,7 @@ export async function POST(request: NextRequest) {
         user: {
           id: user.id,
           email: user.email,
-          displayName: user.displayName,
+          displayName: user.display_name,
         },
       },
       { status: 201 }

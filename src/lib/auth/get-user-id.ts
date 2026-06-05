@@ -1,14 +1,27 @@
 import { cookies } from "next/headers";
 import { db } from "@/lib/db";
-import { sessions } from "@/lib/db/schema";
-import { eq } from "drizzle-orm";
+import { sql } from "drizzle-orm";
 
 const SESSION_DURATION_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
+
+interface SessionLookupRow {
+  user_id: string;
+  expires_at: Date;
+  mfa_pending: boolean;
+  mfa_failed_attempts: number;
+  mfa_locked_until: Date | null;
+}
 
 /**
  * Gets the authenticated user's ID by validating the session cookie against the DB.
  * Called from API route handlers (Node.js runtime, so postgres.js works).
  * Throws if no valid session exists.
+ *
+ * Runs on the global (un-scoped) `db` connection: the session row must be
+ * findable BEFORE we know whose it is, so it cannot be read under a per-user
+ * RLS context (chicken-and-egg). Reads/slides go through the SECURITY DEFINER
+ * functions `lookup_session` / `slide_session`, which is the only way the
+ * non-superuser app_user role may touch `sessions` outside its own RLS scope.
  */
 export async function getUserId(): Promise<string> {
   const cookieStore = await cookies();
@@ -25,32 +38,28 @@ export async function getUserId(): Promise<string> {
     throw new AuthError("Invalid session cookie");
   }
 
-  const rows = await db
-    .select()
-    .from(sessions)
-    .where(eq(sessions.id, sessionId));
+  const rows = (await db.execute(
+    sql`select * from lookup_session(${sessionId})`
+  )) as unknown as SessionLookupRow[];
 
   if (rows.length === 0) {
     throw new AuthError("Session not found");
   }
 
   const session = rows[0];
-  if (session.expiresAt < new Date()) {
+  if (new Date(session.expires_at) < new Date()) {
     throw new AuthError("Session expired");
   }
 
-  if (session.mfaPending) {
+  if (session.mfa_pending) {
     throw new AuthError("MFA verification required");
   }
 
   // Sliding expiry: refresh on each request
   const newExpiry = new Date(Date.now() + SESSION_DURATION_MS);
-  await db
-    .update(sessions)
-    .set({ expiresAt: newExpiry })
-    .where(eq(sessions.id, sessionId));
+  await db.execute(sql`select slide_session(${sessionId}, ${newExpiry})`);
 
-  return session.userId;
+  return session.user_id;
 }
 
 export class AuthError extends Error {
