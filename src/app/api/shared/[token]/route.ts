@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { logServerError } from "@/lib/logging";
 import { db } from "@/lib/db";
 import {
   shareLinks,
@@ -161,7 +162,7 @@ export async function GET(
 
     return NextResponse.json(result);
   } catch (error) {
-    console.error("Failed to fetch shared data:", error);
+    logServerError("Failed to fetch shared data", error);
     return NextResponse.json(
       { error: "Failed to fetch shared data" },
       { status: 500 }

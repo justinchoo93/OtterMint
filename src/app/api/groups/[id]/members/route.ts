@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { logServerError } from "@/lib/logging";
 import { db } from "@/lib/db";
 import { groupMembers, users } from "@/lib/db/schema";
 import { eq, and } from "drizzle-orm";
@@ -48,7 +49,7 @@ export async function GET(
     if (isAuthError(error)) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
-    console.error("Failed to fetch members:", error);
+    logServerError("Failed to fetch members", error);
     return NextResponse.json(
       { error: "Failed to fetch members" },
       { status: 500 }
@@ -121,7 +122,7 @@ export async function DELETE(
     if (isAuthError(error)) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
-    console.error("Failed to remove member:", error);
+    logServerError("Failed to remove member", error);
     return NextResponse.json(
       { error: "Failed to remove member" },
       { status: 500 }

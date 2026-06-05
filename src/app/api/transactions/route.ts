@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { logServerError } from "@/lib/logging";
 import { db } from "@/lib/db";
 import { transactions, accounts, plaidItems } from "@/lib/db/schema";
 import { desc, eq, getTableColumns } from "drizzle-orm";
@@ -52,7 +53,7 @@ export async function GET(request: NextRequest) {
     if (isAuthError(error)) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
-    console.error("Failed to fetch transactions:", error);
+    logServerError("Failed to fetch transactions", error);
     return NextResponse.json(
       { error: "Failed to fetch transactions" },
       { status: 500 }

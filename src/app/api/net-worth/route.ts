@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { logServerError } from "@/lib/logging";
 import { db } from "@/lib/db";
 import { userNetWorthSnapshots } from "@/lib/db/schema";
 import { asc, and, gte, eq } from "drizzle-orm";
@@ -57,7 +58,7 @@ export async function GET(request: NextRequest) {
     if (isAuthError(error)) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
-    console.error("Failed to fetch net worth history:", error);
+    logServerError("Failed to fetch net worth history", error);
     return NextResponse.json(
       { error: "Failed to fetch net worth history" },
       { status: 500 }

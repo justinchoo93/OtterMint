@@ -15,6 +15,7 @@ import { eq, inArray } from "drizzle-orm";
 import { PlaidError } from "plaid";
 import { getUserId, isAuthError } from "@/lib/auth/get-user-id";
 import { enforceRateLimit } from "@/lib/rate-limit";
+import { logServerError } from "@/lib/logging";
 
 const STALE_THRESHOLD_MS = 2 * 60 * 60 * 1000; // 2 hours
 
@@ -129,11 +130,12 @@ export async function POST() {
           institutionName: item.institutionName,
           error: errorCode,
         });
-        console.error(
-          `Plaid error for ${item.institutionName}: ${errorCode} - ${errorMessage}`
+        logServerError(
+          `Plaid error for ${item.institutionName}: ${errorCode}`,
+          undefined
         );
       } else {
-        console.error(`Failed to refresh ${item.institutionName}:`, err);
+        logServerError(`Failed to refresh ${item.institutionName}`, err);
         errors.push({
           institutionName: item.institutionName,
           error: "REFRESH_FAILED",
@@ -208,11 +210,11 @@ export async function POST() {
         );
         await saveGroupSnapshot(groupId, groupSnapshot);
       } catch (err) {
-        console.error(`Failed to save group snapshot for ${groupId}:`, err);
+        logServerError(`Failed to save group snapshot for ${groupId}`, err);
       }
     }
   } catch (err) {
-    console.error("Failed to save snapshot:", err);
+    logServerError("Failed to save snapshot", err);
   }
 
   return NextResponse.json({

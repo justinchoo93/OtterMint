@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { logServerError } from "@/lib/logging";
 import { db } from "@/lib/db";
 import { groupInvitations, groupMembers } from "@/lib/db/schema";
 import { eq, and } from "drizzle-orm";
@@ -79,7 +80,7 @@ export async function POST(
     if (isAuthError(error)) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
-    console.error("Failed to create invitation:", error);
+    logServerError("Failed to create invitation", error);
     return NextResponse.json(
       { error: "Failed to create invitation" },
       { status: 500 }
@@ -139,7 +140,7 @@ export async function GET(
     if (isAuthError(error)) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
-    console.error("Failed to fetch invitations:", error);
+    logServerError("Failed to fetch invitations", error);
     return NextResponse.json(
       { error: "Failed to fetch invitations" },
       { status: 500 }
@@ -202,7 +203,7 @@ export async function DELETE(
     if (isAuthError(error)) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
-    console.error("Failed to revoke invitation:", error);
+    logServerError("Failed to revoke invitation", error);
     return NextResponse.json(
       { error: "Failed to revoke invitation" },
       { status: 500 }

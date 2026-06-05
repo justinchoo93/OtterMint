@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { logServerError } from "@/lib/logging";
 import { db } from "@/lib/db";
 import { groups, groupMembers } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
@@ -52,7 +53,7 @@ export async function GET() {
     if (isAuthError(error)) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
-    console.error("Failed to fetch groups:", error);
+    logServerError("Failed to fetch groups", error);
     return NextResponse.json(
       { error: "Failed to fetch groups" },
       { status: 500 }
@@ -130,7 +131,7 @@ export async function POST(request: NextRequest) {
     if (isAuthError(error)) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
-    console.error("Failed to create group:", error);
+    logServerError("Failed to create group", error);
     return NextResponse.json(
       { error: "Failed to create group" },
       { status: 500 }

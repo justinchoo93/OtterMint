@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { logServerError } from "@/lib/logging";
 import { db } from "@/lib/db";
 import { manualAccounts } from "@/lib/db/schema";
 import { eq, and } from "drizzle-orm";
@@ -42,7 +43,7 @@ export async function GET() {
     if (isAuthError(error)) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
-    console.error("Failed to fetch manual accounts:", error);
+    logServerError("Failed to fetch manual accounts", error);
     return NextResponse.json(
       { error: "Failed to fetch manual accounts" },
       { status: 500 }
@@ -76,7 +77,7 @@ export async function POST(request: NextRequest) {
     if (isAuthError(error)) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
-    console.error("Failed to create manual account:", error);
+    logServerError("Failed to create manual account", error);
     return NextResponse.json(
       { error: "Failed to create manual account" },
       { status: 500 }
@@ -121,7 +122,7 @@ export async function PUT(request: NextRequest) {
     if (isAuthError(error)) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
-    console.error("Failed to update manual account:", error);
+    logServerError("Failed to update manual account", error);
     return NextResponse.json(
       { error: "Failed to update manual account" },
       { status: 500 }
@@ -148,7 +149,7 @@ export async function DELETE(request: NextRequest) {
     if (isAuthError(error)) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
-    console.error("Failed to delete manual account:", error);
+    logServerError("Failed to delete manual account", error);
     return NextResponse.json(
       { error: "Failed to delete manual account" },
       { status: 500 }

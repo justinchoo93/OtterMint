@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { logServerError } from "@/lib/logging";
 import { db } from "@/lib/db";
 import { groups, groupMembers } from "@/lib/db/schema";
 import { eq, and } from "drizzle-orm";
@@ -38,7 +39,7 @@ export async function DELETE(
     if (isAuthError(error)) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
-    console.error("Failed to disband group:", error);
+    logServerError("Failed to disband group", error);
     return NextResponse.json(
       { error: "Failed to disband group" },
       { status: 500 }

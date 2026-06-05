@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { logServerError } from "@/lib/logging";
 import { db } from "@/lib/db";
 import { shareLinks } from "@/lib/db/schema";
 import { eq, and, isNull } from "drizzle-orm";
@@ -40,7 +41,7 @@ export async function GET() {
     if (isAuthError(error)) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
-    console.error("Failed to fetch share links:", error);
+    logServerError("Failed to fetch share links", error);
     return NextResponse.json(
       { error: "Failed to fetch share links" },
       { status: 500 }
@@ -108,7 +109,7 @@ export async function POST(request: NextRequest) {
     if (isAuthError(error)) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
-    console.error("Failed to create share link:", error);
+    logServerError("Failed to create share link", error);
     return NextResponse.json(
       { error: "Failed to create share link" },
       { status: 500 }
@@ -141,7 +142,7 @@ export async function DELETE(request: NextRequest) {
     if (isAuthError(error)) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
-    console.error("Failed to revoke share link:", error);
+    logServerError("Failed to revoke share link", error);
     return NextResponse.json(
       { error: "Failed to revoke share link" },
       { status: 500 }

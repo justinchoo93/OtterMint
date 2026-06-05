@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { logServerError } from "@/lib/logging";
 import { db } from "@/lib/db";
 import { groupInvitations, groupMembers, users } from "@/lib/db/schema";
 import { eq, and } from "drizzle-orm";
@@ -141,7 +142,7 @@ export async function POST(
     if (isAuthError(error)) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
-    console.error("Failed to accept invitation:", error);
+    logServerError("Failed to accept invitation", error);
     return NextResponse.json(
       { error: "Failed to accept invitation" },
       { status: 500 }

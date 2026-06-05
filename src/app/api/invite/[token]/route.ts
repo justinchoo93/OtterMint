@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { logServerError } from "@/lib/logging";
 import { db } from "@/lib/db";
 import { groupInvitations, groups, users } from "@/lib/db/schema";
 import { eq, and, isNull } from "drizzle-orm";
@@ -66,7 +67,7 @@ export async function GET(
       inviterName: inviter?.displayName ?? "Someone",
     });
   } catch (error) {
-    console.error("Failed to validate invitation:", error);
+    logServerError("Failed to validate invitation", error);
     return NextResponse.json(
       { error: "Failed to validate invitation" },
       { status: 500 }

@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { logServerError } from "@/lib/logging";
 import { plaidClient } from "@/lib/plaid";
 import { CountryCode, Products, type LinkTokenCreateRequest } from "plaid";
 import { getUserId, isAuthError } from "@/lib/auth/get-user-id";
@@ -27,7 +28,7 @@ export async function POST() {
     if (isAuthError(error)) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
-    console.error("Failed to create link token:", error);
+    logServerError("Failed to create link token", error);
     return NextResponse.json(
       { error: "Failed to create link token" },
       { status: 500 }
