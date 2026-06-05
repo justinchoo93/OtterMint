@@ -1,30 +1,36 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
-// Captures the values passed into the most recent db.insert(...).values(...)
+// Captures the values passed into the most recent tx.insert(...).values(...)
 let lastInsertValues: Record<string, unknown> | null = null;
 
-vi.mock("@/lib/db", () => ({
-  db: {
-    insert: vi.fn(() => ({
-      values: vi.fn((vals: Record<string, unknown>) => {
-        lastInsertValues = vals;
-        return {
-          returning: vi.fn(() => [
-            {
-              id: "link-id",
-              token: "tok",
-              label: vals.label ?? null,
-              includeNetWorth: vals.includeNetWorth ?? true,
-              includeBalances: vals.includeBalances ?? false,
-              includeTransactions: vals.includeTransactions ?? false,
-              expiresAt: vals.expiresAt ?? null,
-              createdAt: new Date(),
-            },
-          ]),
-        };
-      }),
-    })),
-  },
+// The route now does its insert inside withUser(userId, tx => ...). The mock
+// invokes the callback with a fake tx whose insert chain captures the values.
+const fakeTx = {
+  insert: vi.fn(() => ({
+    values: vi.fn((vals: Record<string, unknown>) => {
+      lastInsertValues = vals;
+      return {
+        returning: vi.fn(() => [
+          {
+            id: "link-id",
+            token: "tok",
+            label: vals.label ?? null,
+            includeNetWorth: vals.includeNetWorth ?? true,
+            includeBalances: vals.includeBalances ?? false,
+            includeTransactions: vals.includeTransactions ?? false,
+            expiresAt: vals.expiresAt ?? null,
+            createdAt: new Date(),
+          },
+        ]),
+      };
+    }),
+  })),
+};
+
+vi.mock("@/lib/db/with-user", () => ({
+  withUser: vi.fn(async (_userId: string, fn: (tx: unknown) => unknown) =>
+    fn(fakeTx)
+  ),
 }));
 
 vi.mock("@/lib/auth/get-user-id", () => ({

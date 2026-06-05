@@ -37,8 +37,11 @@ vi.mock("@/lib/db/schema", () => ({
 }));
 
 import { syncHoldings } from "@/lib/sync-holdings";
+import { db } from "@/lib/db";
 
 const USER_ID = "22222222-2222-2222-2222-222222222222";
+// The function now takes an explicit executor; the tests pass the mocked db.
+const exec = db as unknown as Parameters<typeof syncHoldings>[3];
 
 function makeSecurity(overrides: Partial<Security> = {}): Security {
   return {
@@ -83,7 +86,7 @@ describe("syncHoldings", () => {
       },
     });
 
-    await syncHoldings("access-token-123", [], USER_ID);
+    await syncHoldings("access-token-123", [], USER_ID, exec);
 
     expect(mockHoldingsGet).toHaveBeenCalledWith({
       access_token: "access-token-123",
@@ -99,7 +102,7 @@ describe("syncHoldings", () => {
       },
     });
 
-    await syncHoldings("token", ["acc_001"], USER_ID);
+    await syncHoldings("token", ["acc_001"], USER_ID, exec);
 
     expect(mockDbDelete).toHaveBeenCalled();
   });
@@ -126,7 +129,7 @@ describe("syncHoldings", () => {
       },
     });
 
-    await syncHoldings("token", ["acc_001"], USER_ID);
+    await syncHoldings("token", ["acc_001"], USER_ID, exec);
 
     expect(mockDbInsert).toHaveBeenCalled();
     const insertValues = mockDbInsert.mock.results[0].value.values;
@@ -159,7 +162,7 @@ describe("syncHoldings", () => {
       },
     });
 
-    const result = await syncHoldings("token", ["acc_001"], USER_ID);
+    const result = await syncHoldings("token", ["acc_001"], USER_ID, exec);
 
     expect(result.count).toBe(2);
   });
@@ -175,7 +178,7 @@ describe("syncHoldings", () => {
       },
     });
 
-    const result = await syncHoldings("token", ["acc_001"], USER_ID);
+    const result = await syncHoldings("token", ["acc_001"], USER_ID, exec);
 
     expect(result.count).toBe(1);
     const insertValues = mockDbInsert.mock.results[0].value.values;

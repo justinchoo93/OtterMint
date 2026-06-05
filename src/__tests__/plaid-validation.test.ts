@@ -41,6 +41,14 @@ vi.mock("@/lib/db", () => ({
   },
 }));
 
+// Both routes now run their DB work inside withUser(userId, tx => ...). The
+// fake tx exposes the same insert/select mocks the tests control.
+vi.mock("@/lib/db/with-user", () => ({
+  withUser: vi.fn(async (_userId: string, fn: (tx: unknown) => unknown) =>
+    fn({ insert: mockInsert, select: mockSelect })
+  ),
+}));
+
 import { NextRequest } from "next/server";
 import { POST as exchangePost } from "@/app/api/plaid/exchange-token/route";
 import { POST as updateLinkPost } from "@/app/api/plaid/create-update-link-token/route";

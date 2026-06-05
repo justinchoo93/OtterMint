@@ -2,15 +2,17 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 
 const {
   mockVerify,
-  mockDbSelect,
-  mockDbUpdate,
+  mockExecute,
+  mockTxSelect,
+  mockTxUpdate,
   mockDecrypt,
   mockSyncTransactions,
   mockSyncHoldings,
 } = vi.hoisted(() => ({
   mockVerify: vi.fn(),
-  mockDbSelect: vi.fn(),
-  mockDbUpdate: vi.fn(),
+  mockExecute: vi.fn(),
+  mockTxSelect: vi.fn(),
+  mockTxUpdate: vi.fn(),
   mockDecrypt: vi.fn(),
   mockSyncTransactions: vi.fn(),
   mockSyncHoldings: vi.fn(),
@@ -20,11 +22,16 @@ vi.mock("@/lib/plaid-webhook", () => ({
   verifyPlaidWebhook: mockVerify,
 }));
 
+// The route resolves the owner via db.execute(resolve_item_owner) then does its
+// reads/writes inside withUser(ownerId, tx => ...).
 vi.mock("@/lib/db", () => ({
-  db: {
-    select: mockDbSelect,
-    update: mockDbUpdate,
-  },
+  db: { execute: mockExecute },
+}));
+
+vi.mock("@/lib/db/with-user", () => ({
+  withUser: vi.fn(async (_userId: string, fn: (tx: unknown) => unknown) =>
+    fn({ select: mockTxSelect, update: mockTxUpdate })
+  ),
 }));
 
 vi.mock("@/lib/db/schema", () => ({
@@ -51,9 +58,14 @@ function makeRequest(body: string, header?: string): Request {
   });
 }
 
-// db.select().from(...).where(...) resolves to the given rows.
+// resolve_item_owner returns one { user_id } row.
+function ownerResolves(userId: string | null) {
+  mockExecute.mockResolvedValue([{ user_id: userId }]);
+}
+
+// tx.select().from(...).where(...) resolves to the given rows.
 function selectReturns(rows: unknown[]) {
-  mockDbSelect.mockReturnValue({
+  mockTxSelect.mockReturnValue({
     from: vi.fn().mockReturnValue({
       where: vi.fn().mockResolvedValue(rows),
     }),
@@ -63,7 +75,7 @@ function selectReturns(rows: unknown[]) {
 describe("POST /api/plaid/webhook", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockDbUpdate.mockReturnValue({
+    mockTxUpdate.mockReturnValue({
       set: vi.fn().mockReturnValue({ where: vi.fn().mockResolvedValue([]) }),
     });
     mockDecrypt.mockReturnValue("decrypted-access-token");
@@ -74,8 +86,8 @@ describe("POST /api/plaid/webhook", () => {
     const res = await POST(makeRequest(body));
     expect(res.status).toBe(401);
     expect(mockVerify).not.toHaveBeenCalled();
-    expect(mockDbSelect).not.toHaveBeenCalled();
-    expect(mockDbUpdate).not.toHaveBeenCalled();
+    expect(mockExecute).not.toHaveBeenCalled();
+    expect(mockTxUpdate).not.toHaveBeenCalled();
   });
 
   it("returns 401 and does no db work when verification fails", async () => {
@@ -84,12 +96,13 @@ describe("POST /api/plaid/webhook", () => {
     const res = await POST(makeRequest(body, "bad-jwt"));
     expect(res.status).toBe(401);
     expect(mockVerify).toHaveBeenCalledWith(body, "bad-jwt");
-    expect(mockDbSelect).not.toHaveBeenCalled();
-    expect(mockDbUpdate).not.toHaveBeenCalled();
+    expect(mockExecute).not.toHaveBeenCalled();
+    expect(mockTxUpdate).not.toHaveBeenCalled();
   });
 
   it("returns 200 and dispatches SYNC_UPDATES_AVAILABLE to syncTransactions", async () => {
     mockVerify.mockResolvedValue(true);
+    ownerResolves("44444444-4444-4444-4444-444444444444");
     selectReturns([
       {
         id: 7,
@@ -113,14 +126,15 @@ describe("POST /api/plaid/webhook", () => {
     expect(mockSyncTransactions).toHaveBeenCalledWith(
       "decrypted-access-token",
       "cur",
-      "44444444-4444-4444-4444-444444444444"
+      "44444444-4444-4444-4444-444444444444",
+      expect.anything()
     );
-    expect(mockDbUpdate).toHaveBeenCalled();
+    expect(mockTxUpdate).toHaveBeenCalled();
   });
 
-  it("returns 200 (no dispatch) when the item is not found", async () => {
+  it("returns 200 (no dispatch) when the item owner is not found", async () => {
     mockVerify.mockResolvedValue(true);
-    selectReturns([]);
+    ownerResolves(null);
     const body = JSON.stringify({
       webhook_type: "TRANSACTIONS",
       webhook_code: "SYNC_UPDATES_AVAILABLE",

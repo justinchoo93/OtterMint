@@ -46,6 +46,13 @@ vi.mock("@/lib/rate-limit", () => ({
 vi.mock("@/lib/db", () => ({
   db: { select: mockDbSelect, update: mockDbUpdate },
 }));
+// The route now runs its DB work inside withUser(userId, tx => ...). The fake
+// tx exposes the same select/update mocks the test controls.
+vi.mock("@/lib/db/with-user", () => ({
+  withUser: vi.fn(async (_userId: string, fn: (tx: unknown) => unknown) =>
+    fn({ select: mockDbSelect, update: mockDbUpdate })
+  ),
+}));
 vi.mock("@/lib/db/schema", () => ({
   accounts: { plaidItemId: "plaid_item_id", accountId: "account_id" },
   plaidItems: { id: "id", userId: "user_id" },

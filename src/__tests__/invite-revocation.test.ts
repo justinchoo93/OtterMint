@@ -1,19 +1,45 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 
-// getUserId returns a fixed caller id; tests vary the membership/invite row.
+// getUserId returns a fixed caller id; tests vary the definer/membership rows.
 vi.mock("@/lib/auth/get-user-id", () => ({
   getUserId: vi.fn(async () => "caller-id"),
   isAuthError: () => false,
 }));
 
-// A controllable db mock: tests set `selectResult` to the rows returned.
-let selectResult: unknown[] = [];
-const updateWhere = vi.fn(async () => undefined);
+// The invite GET and accept POST now call SECURITY DEFINER functions via
+// db.execute(sql`...`). `executeResult` is the rows returned; `executeError`,
+// if set, is thrown (to simulate accept_invitation's typed RAISE).
+// The DELETE invitation route runs inside withUser(userId, tx => ...); the
+// fake tx select returns `membershipRows` and update resolves.
+const { mockExecute, updateWhere, getState } = vi.hoisted(() => {
+  const state: {
+    executeResult: unknown[];
+    executeError: Error | null;
+    membershipRows: unknown[];
+  } = { executeResult: [], executeError: null, membershipRows: [] };
+  return {
+    getState: () => state,
+    mockExecute: vi.fn(async () => {
+      if (state.executeError) throw state.executeError;
+      return state.executeResult;
+    }),
+    updateWhere: vi.fn(async () => undefined),
+  };
+});
+
 vi.mock("@/lib/db", () => ({
-  db: {
-    select: () => ({ from: () => ({ where: () => selectResult }) }),
-    update: () => ({ set: () => ({ where: updateWhere }) }),
-  },
+  db: { execute: mockExecute },
+}));
+
+vi.mock("@/lib/db/with-user", () => ({
+  withUser: vi.fn(async (_userId: string, fn: (tx: unknown) => unknown) =>
+    fn({
+      select: () => ({
+        from: () => ({ where: () => getState().membershipRows }),
+      }),
+      update: () => ({ set: () => ({ where: updateWhere }) }),
+    })
+  ),
 }));
 
 import { NextRequest } from "next/server";
@@ -24,15 +50,19 @@ import { DELETE as invitationsDelete } from "@/app/api/groups/[id]/invitations/r
 beforeEach(() => {
   vi.unstubAllEnvs();
   vi.stubEnv("UPSTASH_REDIS_REST_URL", "");
-  selectResult = [];
+  const state = getState();
+  state.executeResult = [];
+  state.executeError = null;
+  state.membershipRows = [];
   updateWhere.mockClear();
+  mockExecute.mockClear();
 });
 
 describe("public invite lookup ignores revoked invites", () => {
   it("returns 404 not-found for a revoked invitation", async () => {
-    // The handler filters isNull(revokedAt) in the query, so a revoked
-    // invite is simply absent from selectResult.
-    selectResult = [];
+    // resolve_invitation filters revoked invites, so a revoked invite returns
+    // no row -> 404.
+    getState().executeResult = [];
     const req = new NextRequest("http://localhost:3000/api/invite/tok", {
       headers: { "x-forwarded-for": `10.1.0.${Math.floor(Math.random() * 250) + 1}` },
     });
@@ -45,17 +75,8 @@ describe("public invite lookup ignores revoked invites", () => {
 
 describe("accept rejects a revoked invitation", () => {
   it("returns 410 'no longer available' for a revoked invitation", async () => {
-    selectResult = [
-      {
-        id: "inv1",
-        groupId: "g1",
-        token: "tok",
-        acceptedAt: null,
-        revokedAt: new Date(),
-        expiresAt: new Date(Date.now() + 60_000),
-        invitedEmail: null,
-      },
-    ];
+    // accept_invitation raises REVOKED for a revoked invitation.
+    getState().executeError = new Error("REVOKED");
     const req = new NextRequest(
       "http://localhost:3000/api/groups/g1/invitations/tok/accept",
       { method: "POST" }
@@ -69,7 +90,7 @@ describe("accept rejects a revoked invitation", () => {
 
 describe("DELETE invitation (revoke) authorization", () => {
   it("returns 403 when the caller is not the group owner", async () => {
-    selectResult = [{ id: 1, role: "member", userId: "caller-id" }];
+    getState().membershipRows = [{ id: 1, role: "member", userId: "caller-id" }];
     const req = new NextRequest(
       "http://localhost:3000/api/groups/g1/invitations?token=tok",
       { method: "DELETE" }
@@ -82,7 +103,7 @@ describe("DELETE invitation (revoke) authorization", () => {
   });
 
   it("returns 200 and revokes when the caller is the owner", async () => {
-    selectResult = [{ id: 1, role: "owner", userId: "caller-id" }];
+    getState().membershipRows = [{ id: 1, role: "owner", userId: "caller-id" }];
     const req = new NextRequest(
       "http://localhost:3000/api/groups/g1/invitations?token=tok",
       { method: "DELETE" }
@@ -95,7 +116,7 @@ describe("DELETE invitation (revoke) authorization", () => {
   });
 
   it("returns 400 when no token query param is provided", async () => {
-    selectResult = [{ id: 1, role: "owner", userId: "caller-id" }];
+    getState().membershipRows = [{ id: 1, role: "owner", userId: "caller-id" }];
     const req = new NextRequest(
       "http://localhost:3000/api/groups/g1/invitations",
       { method: "DELETE" }

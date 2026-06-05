@@ -22,11 +22,13 @@ vi.mock("@/lib/crypto", () => ({
   decrypt: vi.fn(() => totpSecretBase32),
 }));
 
-vi.mock("@/lib/db", () => ({
-  db: {
-    select: mockSelect,
-    update: mockUpdate,
-  },
+// setup / verify-setup / disable now run their DB work inside
+// withUser(userId, tx => ...). The fake tx exposes the same select/update
+// mocks the tests control.
+vi.mock("@/lib/db/with-user", () => ({
+  withUser: vi.fn(async (_userId: string, fn: (tx: unknown) => unknown) =>
+    fn({ select: mockSelect, update: mockUpdate })
+  ),
 }));
 
 import { NextRequest } from "next/server";

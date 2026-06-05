@@ -1,19 +1,38 @@
 import { describe, it, expect, vi } from "vitest";
 
-// Mock db and auth modules before importing routes
+// Mock db and auth modules before importing routes. login uses db.execute for
+// its SECURITY DEFINER lookups; me PUT runs its DB work inside withUser.
+const fakeTx = {
+  select: vi.fn(() => ({
+    from: vi.fn(() => ({
+      where: vi.fn(() => [
+        {
+          id: "test-user-id",
+          email: "a@b.com",
+          displayName: "a".repeat(200),
+          mfaEnabled: false,
+          passwordHash: "hash",
+        },
+      ]),
+    })),
+  })),
+  update: vi.fn(() => ({
+    set: vi.fn(() => ({
+      where: vi.fn(),
+    })),
+  })),
+};
+
 vi.mock("@/lib/db", () => ({
   db: {
-    select: vi.fn(() => ({
-      from: vi.fn(() => ({
-        where: vi.fn(() => []),
-      })),
-    })),
-    update: vi.fn(() => ({
-      set: vi.fn(() => ({
-        where: vi.fn(),
-      })),
-    })),
+    execute: vi.fn(async () => []),
   },
+}));
+
+vi.mock("@/lib/db/with-user", () => ({
+  withUser: vi.fn(async (_userId: string, fn: (tx: unknown) => unknown) =>
+    fn(fakeTx)
+  ),
 }));
 
 vi.mock("@/lib/auth/session", () => ({

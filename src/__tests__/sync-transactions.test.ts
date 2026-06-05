@@ -43,8 +43,11 @@ vi.mock("@/lib/db/schema", () => ({
 }));
 
 import { syncTransactions } from "@/lib/sync-transactions";
+import { db } from "@/lib/db";
 
 const USER_ID = "11111111-1111-1111-1111-111111111111";
+// The function now takes an explicit executor; the tests pass the mocked db.
+const exec = db as unknown as Parameters<typeof syncTransactions>[3];
 
 function makePlaidTransaction(
   overrides: Partial<Transaction> = {}
@@ -94,7 +97,8 @@ describe("syncTransactions", () => {
     const result = await syncTransactions(
       "access-token-123",
       "old_cursor",
-      USER_ID
+      USER_ID,
+      exec
     );
 
     expect(mockTransactionsSync).toHaveBeenCalledWith({
@@ -116,7 +120,7 @@ describe("syncTransactions", () => {
       },
     });
 
-    await syncTransactions("token", null, USER_ID);
+    await syncTransactions("token", null, USER_ID, exec);
 
     expect(mockDbInsert).toHaveBeenCalled();
     const insertValues = mockDbInsert.mock.results[0].value.values;
@@ -139,7 +143,7 @@ describe("syncTransactions", () => {
       },
     });
 
-    await syncTransactions("token", null, USER_ID);
+    await syncTransactions("token", null, USER_ID, exec);
 
     expect(mockDbDelete).toHaveBeenCalled();
   });
@@ -165,7 +169,7 @@ describe("syncTransactions", () => {
         },
       });
 
-    const result = await syncTransactions("token", null, USER_ID);
+    const result = await syncTransactions("token", null, USER_ID, exec);
 
     expect(mockTransactionsSync).toHaveBeenCalledTimes(2);
     expect(result.nextCursor).toBe("cursor_final");
@@ -186,7 +190,7 @@ describe("syncTransactions", () => {
       },
     });
 
-    const result = await syncTransactions("token", null, USER_ID);
+    const result = await syncTransactions("token", null, USER_ID, exec);
 
     expect(result.added).toBe(2);
     expect(result.modified).toBe(1);

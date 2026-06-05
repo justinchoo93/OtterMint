@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 import { logServerError } from "@/lib/logging";
-import { db } from "@/lib/db";
 import { groupMembers, users } from "@/lib/db/schema";
 import { eq, and, sql } from "drizzle-orm";
 import { getUserId, isAuthError } from "@/lib/auth/get-user-id";

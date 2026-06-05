@@ -1,19 +1,15 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
-const { mockInsert, mockDelete } = vi.hoisted(() => ({
-  mockInsert: vi.fn(),
-  mockDelete: vi.fn(),
+const { mockExecute } = vi.hoisted(() => ({
+  mockExecute: vi.fn(),
 }));
 
+// createSession/deleteSession now call SECURITY DEFINER functions via
+// db.execute(sql`select create_session(...)` / `select delete_session(...)`).
 vi.mock("@/lib/db", () => ({
   db: {
-    insert: mockInsert,
-    delete: mockDelete,
+    execute: mockExecute,
   },
-}));
-
-vi.mock("@/lib/db/schema", () => ({
-  sessions: { id: "id", userId: "user_id", expiresAt: "expires_at" },
 }));
 
 import {
@@ -28,30 +24,21 @@ describe("session helpers", () => {
   });
 
   describe("createSession", () => {
-    it("inserts a session row and returns session id", async () => {
-      const mockReturning = vi.fn().mockResolvedValue([
-        { id: "new-session-id", userId: "user-1", expiresAt: new Date() },
-      ]);
-      mockInsert.mockReturnValue({
-        values: vi.fn().mockReturnValue({
-          returning: mockReturning,
-        }),
-      });
+    it("calls create_session and returns the new session id", async () => {
+      mockExecute.mockResolvedValue([{ id: "new-session-id" }]);
 
       const sessionId = await createSession("user-1");
       expect(sessionId).toBe("new-session-id");
-      expect(mockInsert).toHaveBeenCalled();
+      expect(mockExecute).toHaveBeenCalledTimes(1);
     });
   });
 
   describe("deleteSession", () => {
-    it("deletes the session row", async () => {
-      mockDelete.mockReturnValue({
-        where: vi.fn().mockResolvedValue([]),
-      });
+    it("calls delete_session", async () => {
+      mockExecute.mockResolvedValue([]);
 
       await deleteSession("sess-1");
-      expect(mockDelete).toHaveBeenCalled();
+      expect(mockExecute).toHaveBeenCalledTimes(1);
     });
   });
 

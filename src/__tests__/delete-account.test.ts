@@ -33,11 +33,12 @@ vi.mock("@/lib/crypto", () => ({
   decrypt: vi.fn(() => totpSecretBase32),
 }));
 
-vi.mock("@/lib/db", () => ({
-  db: {
-    select: mockSelect,
-    delete: mockDelete,
-  },
+// The route now runs its reads/delete inside withUser(userId, tx => ...). The
+// fake tx exposes the same select/delete chain the test controls.
+vi.mock("@/lib/db/with-user", () => ({
+  withUser: vi.fn(async (_userId: string, fn: (tx: unknown) => unknown) =>
+    fn({ select: mockSelect, delete: mockDelete })
+  ),
 }));
 
 import { NextRequest } from "next/server";
@@ -51,8 +52,8 @@ function makeDelete(body: unknown) {
   });
 }
 
-// The route calls db.select({projection}).from(users) for the user row, then
-// db.select().from(plaidItems) (no projection) for the items. Key the returned
+// The route calls tx.select({projection}).from(users) for the user row, then
+// tx.select().from(plaidItems) (no projection) for the items. Key the returned
 // rows off whether a projection argument was passed to select().
 function setupUser(opts: { mfaEnabled: boolean; totpSecret?: string }) {
   mockSelect.mockImplementation((projection?: unknown) => {

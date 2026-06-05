@@ -1,8 +1,10 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 
+// The shared route resolves the link via db.execute(resolve_share_link).
+// Returning [] means "no link" -> the under-limit response is the 404 path.
 vi.mock("@/lib/db", () => ({
   db: {
-    select: () => ({ from: () => ({ where: () => [] }) }),
+    execute: vi.fn(async () => []),
   },
 }));
 
