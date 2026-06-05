@@ -4,7 +4,7 @@ import { db } from "@/lib/db";
 import { plaidItems } from "@/lib/db/schema";
 import { decrypt } from "@/lib/crypto";
 import { eq, and } from "drizzle-orm";
-import { CountryCode } from "plaid";
+import { CountryCode, type LinkTokenCreateRequest } from "plaid";
 import { getUserId, isAuthError } from "@/lib/auth/get-user-id";
 import { logServerError } from "@/lib/logging";
 
@@ -24,13 +24,20 @@ export async function POST(request: NextRequest) {
 
     const accessToken = decrypt(item.accessTokenEncrypted);
 
-    const response = await plaidClient.linkTokenCreate({
+    const req: LinkTokenCreateRequest = {
       user: { client_user_id: `user-${userId}` },
       client_name: "OtterMint",
       access_token: accessToken,
       country_codes: [CountryCode.Us],
       language: "en",
-    });
+    };
+    // Only send these when configured: an empty redirect_uri breaks sandbox linking.
+    if (process.env.PLAID_REDIRECT_URI)
+      req.redirect_uri = process.env.PLAID_REDIRECT_URI;
+    if (process.env.PLAID_WEBHOOK_URL)
+      req.webhook = process.env.PLAID_WEBHOOK_URL;
+
+    const response = await plaidClient.linkTokenCreate(req);
 
     return NextResponse.json({ link_token: response.data.link_token });
   } catch (error) {
