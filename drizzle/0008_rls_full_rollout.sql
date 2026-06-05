@@ -79,6 +79,40 @@ ALTER TABLE group_net_worth_snapshots ENABLE ROW LEVEL SECURITY;--> statement-br
 ALTER TABLE group_net_worth_snapshots FORCE ROW LEVEL SECURITY;--> statement-breakpoint
 
 -- ===========================================================================
+-- B1. Current-user helper.
+--     Returns the GUC user's id as uuid, or NULL when the GUC is unset OR has
+--     been reset to '' (a pooled connection that previously set the custom GUC
+--     leaves it as '' rather than truly unset) — so an unset/empty GUC denies
+--     every row (fail-closed).
+--
+--     CRITICAL: this and the group helpers below are LANGUAGE plpgsql and
+--     VOLATILE — NOT `LANGUAGE sql`, and NOT STABLE. Two distinct hazards:
+--       (1) A `LANGUAGE sql` single-statement function is INLINED by the
+--           planner: the call is replaced by its body, so
+--           `created_by = app_current_user_id()` becomes
+--           `created_by = NULLIF(current_setting(...), '')::uuid` and the
+--           current_setting is then folded into the cached plan that postgres.js
+--           (the app's driver) prepares, capturing an effectively-NULL GUC.
+--           Subsequent INSERT/UPDATE WITH CHECK then compared rows against NULL
+--           and raised "new row violates row-level security policy" for VALID
+--           rows. plpgsql functions are NEVER inlined, so the live GUC is read
+--           on every evaluation.
+--       (2) VOLATILE (not STABLE) additionally forbids const-folding/caching of
+--           the result across rows within a statement.
+--     Symptom if regressed: authenticated writes (e.g. POST /api/groups) fail
+--     with a row-level-security violation even though the row is the caller's.
+-- ===========================================================================
+CREATE OR REPLACE FUNCTION app_current_user_id()
+RETURNS uuid
+LANGUAGE plpgsql VOLATILE SET search_path = public AS $$
+BEGIN
+  RETURN NULLIF(current_setting('app.current_user_id', true), '')::uuid;
+END;
+$$;--> statement-breakpoint
+REVOKE ALL ON FUNCTION app_current_user_id() FROM public;--> statement-breakpoint
+GRANT EXECUTE ON FUNCTION app_current_user_id() TO app_user;--> statement-breakpoint
+
+-- ===========================================================================
 -- B2. Group-membership helpers (SECURITY DEFINER, bypass RLS).
 --     A policy on `group_members` whose subquery itself scans `group_members`
 --     triggers "infinite recursion detected in policy for relation
@@ -90,9 +124,12 @@ ALTER TABLE group_net_worth_snapshots FORCE ROW LEVEL SECURITY;--> statement-bre
 -- ===========================================================================
 CREATE OR REPLACE FUNCTION app_user_group_ids()
 RETURNS SETOF uuid
-LANGUAGE sql SECURITY DEFINER STABLE SET search_path = public AS $$
-  SELECT group_id FROM group_members
-  WHERE user_id = NULLIF(current_setting('app.current_user_id', true), '')::uuid;
+LANGUAGE plpgsql SECURITY DEFINER VOLATILE SET search_path = public AS $$
+BEGIN
+  RETURN QUERY
+    SELECT group_id FROM group_members
+    WHERE user_id = app_current_user_id();
+END;
 $$;--> statement-breakpoint
 REVOKE ALL ON FUNCTION app_user_group_ids() FROM public;--> statement-breakpoint
 GRANT EXECUTE ON FUNCTION app_user_group_ids() TO app_user;--> statement-breakpoint
@@ -100,12 +137,14 @@ GRANT EXECUTE ON FUNCTION app_user_group_ids() TO app_user;--> statement-breakpo
 -- True when the GUC user shares any group with p_other_user_id.
 CREATE OR REPLACE FUNCTION app_user_shares_group_with(p_other_user_id uuid)
 RETURNS boolean
-LANGUAGE sql SECURITY DEFINER STABLE SET search_path = public AS $$
-  SELECT EXISTS (
+LANGUAGE plpgsql SECURITY DEFINER VOLATILE SET search_path = public AS $$
+BEGIN
+  RETURN EXISTS (
     SELECT 1 FROM group_members
     WHERE user_id = p_other_user_id
       AND group_id IN (SELECT app_user_group_ids())
   );
+END;
 $$;--> statement-breakpoint
 REVOKE ALL ON FUNCTION app_user_shares_group_with(uuid) FROM public;--> statement-breakpoint
 GRANT EXECUTE ON FUNCTION app_user_shares_group_with(uuid) TO app_user;--> statement-breakpoint
@@ -120,50 +159,50 @@ GRANT EXECUTE ON FUNCTION app_user_shares_group_with(uuid) TO app_user;--> state
 DROP POLICY IF EXISTS sessions_isolation ON sessions;--> statement-breakpoint
 CREATE POLICY sessions_isolation ON sessions
   FOR ALL TO app_user
-  USING (user_id = NULLIF(current_setting('app.current_user_id', true), '')::uuid)
-  WITH CHECK (user_id = NULLIF(current_setting('app.current_user_id', true), '')::uuid);--> statement-breakpoint
+  USING (user_id = app_current_user_id())
+  WITH CHECK (user_id = app_current_user_id());--> statement-breakpoint
 
 DROP POLICY IF EXISTS share_links_isolation ON share_links;--> statement-breakpoint
 CREATE POLICY share_links_isolation ON share_links
   FOR ALL TO app_user
-  USING (user_id = NULLIF(current_setting('app.current_user_id', true), '')::uuid)
-  WITH CHECK (user_id = NULLIF(current_setting('app.current_user_id', true), '')::uuid);--> statement-breakpoint
+  USING (user_id = app_current_user_id())
+  WITH CHECK (user_id = app_current_user_id());--> statement-breakpoint
 
 DROP POLICY IF EXISTS user_snapshots_isolation ON user_net_worth_snapshots;--> statement-breakpoint
 CREATE POLICY user_snapshots_isolation ON user_net_worth_snapshots
   FOR ALL TO app_user
-  USING (user_id = NULLIF(current_setting('app.current_user_id', true), '')::uuid)
-  WITH CHECK (user_id = NULLIF(current_setting('app.current_user_id', true), '')::uuid);--> statement-breakpoint
+  USING (user_id = app_current_user_id())
+  WITH CHECK (user_id = app_current_user_id());--> statement-breakpoint
 
 DROP POLICY IF EXISTS manual_accounts_isolation ON manual_accounts;--> statement-breakpoint
 CREATE POLICY manual_accounts_isolation ON manual_accounts
   FOR ALL TO app_user
-  USING (user_id = NULLIF(current_setting('app.current_user_id', true), '')::uuid)
-  WITH CHECK (user_id = NULLIF(current_setting('app.current_user_id', true), '')::uuid);--> statement-breakpoint
+  USING (user_id = app_current_user_id())
+  WITH CHECK (user_id = app_current_user_id());--> statement-breakpoint
 
 DROP POLICY IF EXISTS plaid_items_isolation ON plaid_items;--> statement-breakpoint
 CREATE POLICY plaid_items_isolation ON plaid_items
   FOR ALL TO app_user
-  USING (user_id = NULLIF(current_setting('app.current_user_id', true), '')::uuid)
-  WITH CHECK (user_id = NULLIF(current_setting('app.current_user_id', true), '')::uuid);--> statement-breakpoint
+  USING (user_id = app_current_user_id())
+  WITH CHECK (user_id = app_current_user_id());--> statement-breakpoint
 
 DROP POLICY IF EXISTS accounts_isolation ON accounts;--> statement-breakpoint
 CREATE POLICY accounts_isolation ON accounts
   FOR ALL TO app_user
-  USING (user_id = NULLIF(current_setting('app.current_user_id', true), '')::uuid)
-  WITH CHECK (user_id = NULLIF(current_setting('app.current_user_id', true), '')::uuid);--> statement-breakpoint
+  USING (user_id = app_current_user_id())
+  WITH CHECK (user_id = app_current_user_id());--> statement-breakpoint
 
 DROP POLICY IF EXISTS transactions_isolation ON transactions;--> statement-breakpoint
 CREATE POLICY transactions_isolation ON transactions
   FOR ALL TO app_user
-  USING (user_id = NULLIF(current_setting('app.current_user_id', true), '')::uuid)
-  WITH CHECK (user_id = NULLIF(current_setting('app.current_user_id', true), '')::uuid);--> statement-breakpoint
+  USING (user_id = app_current_user_id())
+  WITH CHECK (user_id = app_current_user_id());--> statement-breakpoint
 
 DROP POLICY IF EXISTS holdings_isolation ON holdings;--> statement-breakpoint
 CREATE POLICY holdings_isolation ON holdings
   FOR ALL TO app_user
-  USING (user_id = NULLIF(current_setting('app.current_user_id', true), '')::uuid)
-  WITH CHECK (user_id = NULLIF(current_setting('app.current_user_id', true), '')::uuid);--> statement-breakpoint
+  USING (user_id = app_current_user_id())
+  WITH CHECK (user_id = app_current_user_id());--> statement-breakpoint
 
 -- ===========================================================================
 -- D. users: self (full access to own row) + group-read (fellow members).
@@ -172,8 +211,8 @@ CREATE POLICY holdings_isolation ON holdings
 DROP POLICY IF EXISTS users_self ON users;--> statement-breakpoint
 CREATE POLICY users_self ON users
   FOR ALL TO app_user
-  USING (id = NULLIF(current_setting('app.current_user_id', true), '')::uuid)
-  WITH CHECK (id = NULLIF(current_setting('app.current_user_id', true), '')::uuid);--> statement-breakpoint
+  USING (id = app_current_user_id())
+  WITH CHECK (id = app_current_user_id());--> statement-breakpoint
 
 DROP POLICY IF EXISTS users_group_read ON users;--> statement-breakpoint
 CREATE POLICY users_group_read ON users
@@ -202,24 +241,48 @@ CREATE POLICY plaid_items_group_read ON plaid_items
 
 -- ===========================================================================
 -- F. Group-owned tables: access for members of the group.
+--
+--    `groups` is split into PER-COMMAND policies on purpose. A combined
+--    `FOR ALL` policy whose USING/WITH CHECK contains a subquery
+--    (`id IN (SELECT app_user_group_ids())`) cannot create a group: at INSERT
+--    time the creator is NOT YET a member (the membership row is inserted in
+--    the same request, just after), so the subquery is empty, and the
+--    OR-with-subquery WITH CHECK mis-evaluates under the app's prepared-protocol
+--    driver and rejects the row. Splitting lets INSERT use a SUBQUERY-FREE
+--    check (`created_by = app_current_user_id()`), and SELECT additionally
+--    allows `created_by` so INSERT ... RETURNING can read back the new row
+--    before the membership exists. group_invitations / group snapshots /
+--    group_members keep their FOR ALL policies because their writers are always
+--    ALREADY members, so the membership subquery is satisfied at write time.
 -- ===========================================================================
 DROP POLICY IF EXISTS groups_member ON groups;--> statement-breakpoint
-CREATE POLICY groups_member ON groups
-  FOR ALL TO app_user
-  USING (groups.id IN (SELECT app_user_group_ids()))
-  WITH CHECK (
-    -- creating a group: created_by must be the current user; once members
-    -- exist, membership also satisfies the check (for updates).
-    created_by = NULLIF(current_setting('app.current_user_id', true), '')::uuid
+DROP POLICY IF EXISTS groups_insert ON groups;--> statement-breakpoint
+CREATE POLICY groups_insert ON groups
+  FOR INSERT TO app_user
+  WITH CHECK (created_by = app_current_user_id());--> statement-breakpoint
+DROP POLICY IF EXISTS groups_select ON groups;--> statement-breakpoint
+CREATE POLICY groups_select ON groups
+  FOR SELECT TO app_user
+  USING (
+    created_by = app_current_user_id()
     OR groups.id IN (SELECT app_user_group_ids())
   );--> statement-breakpoint
+DROP POLICY IF EXISTS groups_update ON groups;--> statement-breakpoint
+CREATE POLICY groups_update ON groups
+  FOR UPDATE TO app_user
+  USING (groups.id IN (SELECT app_user_group_ids()))
+  WITH CHECK (groups.id IN (SELECT app_user_group_ids()));--> statement-breakpoint
+DROP POLICY IF EXISTS groups_delete ON groups;--> statement-breakpoint
+CREATE POLICY groups_delete ON groups
+  FOR DELETE TO app_user
+  USING (groups.id IN (SELECT app_user_group_ids()));--> statement-breakpoint
 
 DROP POLICY IF EXISTS group_invitations_member ON group_invitations;--> statement-breakpoint
 CREATE POLICY group_invitations_member ON group_invitations
   FOR ALL TO app_user
   USING (group_invitations.group_id IN (SELECT app_user_group_ids()))
   WITH CHECK (
-    invited_by = NULLIF(current_setting('app.current_user_id', true), '')::uuid
+    invited_by = app_current_user_id()
   );--> statement-breakpoint
 
 DROP POLICY IF EXISTS group_snapshots_member ON group_net_worth_snapshots;--> statement-breakpoint
@@ -237,8 +300,8 @@ CREATE POLICY group_snapshots_member ON group_net_worth_snapshots
 DROP POLICY IF EXISTS group_members_self ON group_members;--> statement-breakpoint
 CREATE POLICY group_members_self ON group_members
   FOR ALL TO app_user
-  USING (user_id = NULLIF(current_setting('app.current_user_id', true), '')::uuid)
-  WITH CHECK (user_id = NULLIF(current_setting('app.current_user_id', true), '')::uuid);--> statement-breakpoint
+  USING (user_id = app_current_user_id())
+  WITH CHECK (user_id = app_current_user_id());--> statement-breakpoint
 
 DROP POLICY IF EXISTS group_members_group_read ON group_members;--> statement-breakpoint
 CREATE POLICY group_members_group_read ON group_members

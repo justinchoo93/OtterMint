@@ -35,12 +35,17 @@ DROP POLICY IF EXISTS holdings_isolation ON holdings;
 DROP POLICY IF EXISTS users_self ON users;
 DROP POLICY IF EXISTS users_group_read ON users;
 DROP POLICY IF EXISTS groups_member ON groups;
+DROP POLICY IF EXISTS groups_insert ON groups;
+DROP POLICY IF EXISTS groups_select ON groups;
+DROP POLICY IF EXISTS groups_update ON groups;
+DROP POLICY IF EXISTS groups_delete ON groups;
 DROP POLICY IF EXISTS group_invitations_member ON group_invitations;
 DROP POLICY IF EXISTS group_snapshots_member ON group_net_worth_snapshots;
 DROP POLICY IF EXISTS group_members_self ON group_members;
 DROP POLICY IF EXISTS group_members_group_read ON group_members;
 
--- 2. Drop all SECURITY DEFINER functions (exact arg types) -------------------
+-- 2. Drop all helper + SECURITY DEFINER functions (exact arg types) ----------
+DROP FUNCTION IF EXISTS app_current_user_id();
 DROP FUNCTION IF EXISTS app_user_group_ids();
 DROP FUNCTION IF EXISTS app_user_shares_group_with(uuid);
 DROP FUNCTION IF EXISTS lookup_session(uuid);
