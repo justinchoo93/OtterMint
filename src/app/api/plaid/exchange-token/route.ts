@@ -5,11 +5,44 @@ import { db } from "@/lib/db";
 import { plaidItems, accounts } from "@/lib/db/schema";
 import { getUserId, isAuthError } from "@/lib/auth/get-user-id";
 import { logServerError } from "@/lib/logging";
+import { FIELD_LIMITS, validateBoundedString } from "@/lib/validate-request";
 
 export async function POST(request: NextRequest) {
   try {
     const userId = await getUserId();
     const { public_token, institution } = await request.json();
+
+    if (typeof public_token !== "string" || public_token.trim().length === 0) {
+      return NextResponse.json(
+        { error: "public_token is required" },
+        { status: 400 }
+      );
+    }
+
+    if (typeof institution !== "object" || institution === null) {
+      return NextResponse.json(
+        { error: "institution is required" },
+        { status: 400 }
+      );
+    }
+
+    const idResult = validateBoundedString(
+      institution.institution_id,
+      "institution_id",
+      FIELD_LIMITS.INSTITUTION_ID
+    );
+    if (!idResult.success) {
+      return NextResponse.json({ error: idResult.error }, { status: 400 });
+    }
+
+    const nameResult = validateBoundedString(
+      institution.name,
+      "institution name",
+      FIELD_LIMITS.INSTITUTION_NAME
+    );
+    if (!nameResult.success) {
+      return NextResponse.json({ error: nameResult.error }, { status: 400 });
+    }
 
     // Exchange public token for access token
     const exchangeResponse = await plaidClient.itemPublicTokenExchange({

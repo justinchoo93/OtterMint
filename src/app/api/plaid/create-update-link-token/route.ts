@@ -7,11 +7,22 @@ import { eq, and } from "drizzle-orm";
 import { CountryCode, type LinkTokenCreateRequest } from "plaid";
 import { getUserId, isAuthError } from "@/lib/auth/get-user-id";
 import { logServerError } from "@/lib/logging";
+import { validateBoundedInteger } from "@/lib/validate-request";
 
 export async function POST(request: NextRequest) {
   try {
     const userId = await getUserId();
     const { itemId } = await request.json();
+
+    const itemIdResult = validateBoundedInteger(
+      itemId,
+      "itemId",
+      1,
+      Number.MAX_SAFE_INTEGER
+    );
+    if (!itemIdResult.success) {
+      return NextResponse.json({ error: itemIdResult.error }, { status: 400 });
+    }
 
     const [item] = await db
       .select()
