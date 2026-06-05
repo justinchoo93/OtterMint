@@ -96,7 +96,7 @@ export async function POST(request: NextRequest) {
       });
 
       await db.execute(
-        sql`select record_login_failure(${user.id}, ${lockoutState.failedAttempts}, ${lockoutState.lockedUntil})`
+        sql`select record_login_failure(${user.id}, ${lockoutState.failedAttempts}, ${lockoutState.lockedUntil?.toISOString() ?? null}::timestamptz)`
       );
 
       if (lockoutState.isLocked && lockoutState.lockedUntil) {

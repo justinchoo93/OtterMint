@@ -25,7 +25,7 @@ export async function createSession(
   );
 
   const rows = (await db.execute(
-    sql`select create_session(${userId}, ${expiresAt}, ${options.mfaPending ?? false}) as id`
+    sql`select create_session(${userId}, ${expiresAt.toISOString()}::timestamptz, ${options.mfaPending ?? false}) as id`
   )) as unknown as { id: string }[];
 
   return rows[0].id;

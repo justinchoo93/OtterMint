@@ -74,7 +74,7 @@ export async function POST(request: NextRequest) {
     let user: { id: string; email: string; display_name: string };
     try {
       const rows = (await db.execute(
-        sql`select * from create_user(${email.toLowerCase().trim()}, ${passwordHash}, ${displayName.trim()}, ${new Date()})`
+        sql`select * from create_user(${email.toLowerCase().trim()}, ${passwordHash}, ${displayName.trim()}, ${new Date().toISOString()}::timestamptz)`
       )) as unknown as {
         id: string;
         email: string;

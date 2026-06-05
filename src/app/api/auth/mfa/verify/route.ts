@@ -149,7 +149,7 @@ export async function POST(request: NextRequest) {
       });
 
       await db.execute(
-        sql`select record_mfa_failure(${sessionId}, ${lockoutState.failedAttempts}, ${lockoutState.lockedUntil})`
+        sql`select record_mfa_failure(${sessionId}, ${lockoutState.failedAttempts}, ${lockoutState.lockedUntil?.toISOString() ?? null}::timestamptz)`
       );
 
       if (lockoutState.isLocked && lockoutState.lockedUntil) {
@@ -174,7 +174,7 @@ export async function POST(request: NextRequest) {
     await db.execute(
       sql`select mark_session_authenticated(${sessionId}, ${new Date(
         Date.now() + SESSION_DURATION_MS
-      )})`
+      ).toISOString()}::timestamptz)`
     );
 
     // Set the session cookie

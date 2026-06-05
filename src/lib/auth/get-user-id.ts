@@ -57,7 +57,9 @@ export async function getUserId(): Promise<string> {
 
   // Sliding expiry: refresh on each request
   const newExpiry = new Date(Date.now() + SESSION_DURATION_MS);
-  await db.execute(sql`select slide_session(${sessionId}, ${newExpiry})`);
+  await db.execute(
+    sql`select slide_session(${sessionId}, ${newExpiry.toISOString()}::timestamptz)`
+  );
 
   return session.user_id;
 }
