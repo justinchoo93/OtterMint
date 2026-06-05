@@ -100,6 +100,7 @@ export const groupInvitations = pgTable("group_invitations", {
   invitedEmail: text("invited_email"), // nullable for link-only invites
   token: text("token").notNull().unique(),
   acceptedAt: timestamp("accepted_at", { withTimezone: true }),
+  revokedAt: timestamp("revoked_at", { withTimezone: true }),
   expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
