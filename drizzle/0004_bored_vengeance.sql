@@ -1,0 +1,2 @@
+ALTER TABLE "group_members" ALTER COLUMN "joined_at" SET DATA TYPE timestamptz USING "joined_at" AT TIME ZONE 'UTC';--> statement-breakpoint
+ALTER TABLE "group_members" ALTER COLUMN "joined_at" SET DEFAULT now();
