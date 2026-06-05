@@ -1,3 +1,18 @@
+// ╔══════════════════════════════════════════════════════════════════════════╗
+// ║  ROW-LEVEL SECURITY LIVES IN HAND-WRITTEN MIGRATIONS — NEVER db:push       ║
+// ╠══════════════════════════════════════════════════════════════════════════╣
+// ║  The Row-Level Security policies, the `app_user` database role, and the    ║
+// ║  SECURITY DEFINER functions that enforce tenant isolation are defined in   ║
+// ║  hand-written migrations (drizzle/0006_rls_prototype.sql and              ║
+// ║  drizzle/0008_rls_full_rollout.sql), NOT in this schema file. Drizzle does ║
+// ║  not model policies, roles, or functions.                                  ║
+// ║                                                                            ║
+// ║  DO NOT run `npm run db:push`. It only knows about this schema file and    ║
+// ║  will SILENTLY DROP every RLS policy/role/function, disabling the entire   ║
+// ║  database-enforced tenant boundary. Apply schema changes via journaled     ║
+// ║  migrations (`npm run db:generate` + `npm run db:migrate`) only.           ║
+// ╚══════════════════════════════════════════════════════════════════════════╝
+
 import {
   pgTable,
   pgEnum,

@@ -1,9 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import { logServerError } from "@/lib/logging";
 import { db } from "@/lib/db";
-import { groupInvitations, groups, users } from "@/lib/db/schema";
-import { eq, and, isNull } from "drizzle-orm";
+import { sql } from "drizzle-orm";
 import { enforceRateLimit, getClientIp } from "@/lib/rate-limit";
+
+interface InvitationRow {
+  group_id: string;
+  group_name: string;
+  inviter_name: string;
+  accepted_at: Date | null;
+  expires_at: Date;
+}
 
 export async function GET(
   request: NextRequest,
@@ -15,15 +22,13 @@ export async function GET(
     const limited = await enforceRateLimit("inviteLookup", getClientIp(request));
     if (limited) return limited;
 
-    const [invitation] = await db
-      .select()
-      .from(groupInvitations)
-      .where(
-        and(
-          eq(groupInvitations.token, token),
-          isNull(groupInvitations.revokedAt)
-        )
-      );
+    // Resolve the (non-revoked) invitation's safe public fields via the
+    // SECURITY DEFINER. No withUser: the recipient is not yet authenticated
+    // as a member of the group.
+    const rows = (await db.execute(
+      sql`select * from resolve_invitation(${token})`
+    )) as unknown as InvitationRow[];
+    const invitation = rows[0];
 
     if (!invitation) {
       return NextResponse.json(
@@ -32,39 +37,24 @@ export async function GET(
       );
     }
 
-    if (invitation.expiresAt < new Date()) {
+    if (new Date(invitation.expires_at) < new Date()) {
       return NextResponse.json(
         { error: "This invitation has expired" },
         { status: 410 }
       );
     }
 
-    if (invitation.acceptedAt) {
+    if (invitation.accepted_at) {
       return NextResponse.json(
         { error: "This invitation has already been accepted" },
         { status: 410 }
       );
     }
 
-    // Get group and inviter info
-    const [group] = await db
-      .select()
-      .from(groups)
-      .where(eq(groups.id, invitation.groupId));
-
-    // invitedBy is nullable (set to null when the inviter deletes their
-    // account), so only look up the inviter when it is present.
-    const [inviter] = invitation.invitedBy
-      ? await db
-          .select({ displayName: users.displayName })
-          .from(users)
-          .where(eq(users.id, invitation.invitedBy))
-      : [];
-
     return NextResponse.json({
-      groupId: invitation.groupId,
-      groupName: group?.name ?? "Unknown Group",
-      inviterName: inviter?.displayName ?? "Someone",
+      groupId: invitation.group_id,
+      groupName: invitation.group_name ?? "Unknown Group",
+      inviterName: invitation.inviter_name ?? "Someone",
     });
   } catch (error) {
     logServerError("Failed to validate invitation", error);
