@@ -1,4 +1,12 @@
 /**
+ * DEPRECATED / HISTORICAL — DO NOT RUN against a current database.
+ * One-time data backfill for the single-user → multi-user transition.
+ * The schema source of truth is the drizzle/ directory; apply with
+ * `npm run db:migrate`. Never use `npm run db:push` (it drops RLS/grants
+ * defined only in drizzle/0002_tranquil_morlocks.sql).
+ */
+
+/**
  * Migration script: Single-user to multi-user
  *
  * This script:

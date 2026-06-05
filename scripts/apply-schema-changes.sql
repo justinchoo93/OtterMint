@@ -1,3 +1,13 @@
+-- DEPRECATED / HISTORICAL — DO NOT RUN against a current database.
+-- This hand-written script performed the one-time single-user → multi-user
+-- transition before Drizzle migrations existed. The single source of truth
+-- for the schema is now the drizzle/ directory (apply with `npm run db:migrate`).
+-- This file is retained only for historical reference. It disagrees with the
+-- current schema (e.g. it adds plaid_items.user_id as NULLABLE, whereas the
+-- live schema requires NOT NULL). Never use `npm run db:push`: it diffs
+-- schema.ts against the live DB and would silently drop the Row Level Security
+-- and REVOKE grants that live only in drizzle/0002_tranquil_morlocks.sql.
+
 -- Migration: Add multi-user support tables and modify existing tables
 -- This applies the schema changes needed for auth, groups, and sharing.
 
