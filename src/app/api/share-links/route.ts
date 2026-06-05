@@ -3,6 +3,11 @@ import { db } from "@/lib/db";
 import { shareLinks } from "@/lib/db/schema";
 import { eq, and, isNull } from "drizzle-orm";
 import { getUserId, isAuthError } from "@/lib/auth/get-user-id";
+import {
+  FIELD_LIMITS,
+  validateBoundedInteger,
+  validateOptionalBoundedString,
+} from "@/lib/validate-request";
 import crypto from "crypto";
 
 export async function GET() {
@@ -48,6 +53,25 @@ export async function POST(request: NextRequest) {
     const userId = await getUserId();
     const body = await request.json();
 
+    const labelResult = validateOptionalBoundedString(
+      body.label,
+      "label",
+      FIELD_LIMITS.LABEL
+    );
+    if (!labelResult.success) {
+      return NextResponse.json({ error: labelResult.error }, { status: 400 });
+    }
+
+    const expiryResult = validateBoundedInteger(
+      body.expiresInDays,
+      "expiresInDays",
+      1,
+      365
+    );
+    if (!expiryResult.success) {
+      return NextResponse.json({ error: expiryResult.error }, { status: 400 });
+    }
+
     const token = crypto.randomBytes(32).toString("base64url");
 
     const [link] = await db
@@ -59,11 +83,9 @@ export async function POST(request: NextRequest) {
         includeNetWorth: body.includeNetWorth ?? true,
         includeBalances: body.includeBalances ?? false,
         includeTransactions: body.includeTransactions ?? false,
-        expiresAt: body.expiresInDays
-          ? new Date(
-              Date.now() + body.expiresInDays * 24 * 60 * 60 * 1000
-            )
-          : null,
+        expiresAt: new Date(
+          Date.now() + body.expiresInDays * 24 * 60 * 60 * 1000
+        ),
       })
       .returning();
 
