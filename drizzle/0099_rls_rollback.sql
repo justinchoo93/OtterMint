@@ -41,6 +41,8 @@ DROP POLICY IF EXISTS group_members_self ON group_members;
 DROP POLICY IF EXISTS group_members_group_read ON group_members;
 
 -- 2. Drop all SECURITY DEFINER functions (exact arg types) -------------------
+DROP FUNCTION IF EXISTS app_user_group_ids();
+DROP FUNCTION IF EXISTS app_user_shares_group_with(uuid);
 DROP FUNCTION IF EXISTS lookup_session(uuid);
 DROP FUNCTION IF EXISTS create_session(uuid, timestamptz, boolean);
 DROP FUNCTION IF EXISTS slide_session(uuid, timestamptz);
