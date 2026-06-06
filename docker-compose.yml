@@ -1,0 +1,49 @@
+services:
+  db:
+    image: postgres:17
+    container_name: ottermint-db-1
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ottermint
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_SUPERUSER_PASSWORD}
+      TZ: America/Los_Angeles
+    volumes:
+      - /mnt/cache/appdata/ottermint/pgdata:/var/lib/postgresql/data
+    networks:
+      - default
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d ottermint"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+    # NO ports: section — the DB is never published to the host.
+
+  ottermint:
+    build: .
+    image: ottermint:latest
+    container_name: ottermint-app-1
+    restart: unless-stopped
+    env_file:
+      - ./.env
+    environment:
+      NODE_ENV: production
+      PORT: "3000"
+      TZ: America/Los_Angeles
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - default
+      - proxy_net
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:3000/api/health || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+    # NO ports: section — Caddy reaches it via proxy_net Docker DNS (ottermint:3000).
+
+networks:
+  default: {}
+  proxy_net:
+    external: true
