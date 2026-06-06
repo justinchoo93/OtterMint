@@ -7,13 +7,9 @@ program.
 
 ## This round (observability & documentation)
 
-- Integrated `@sentry/nextjs` for server- and client-side error capture via the
-  Next.js instrumentation convention (`src/instrumentation.ts`,
-  `src/instrumentation-client.ts`, `sentry.server.config.ts`,
-  `sentry.edge.config.ts`, `src/app/global-error.tsx`, and `withSentryConfig`
-  in `next.config.ts`). The DSN is read from env; with no DSN the SDK no-ops, so
-  builds, tests, and local development are unaffected until a DSN is provisioned
-  at deploy time.
+- Observability is structured server logging plus a health check — no external
+  error-tracking service. (An earlier pass integrated `@sentry/nextjs`; it was
+  removed on 2026-06-05 as unneeded for this project.)
 - Standardized all `src/app/api` error logging on `logServerError`
   (`src/lib/logging.ts`), removing every raw `console.error` call. The helper
   logs only `error.name` and `error.message`, never the full error object.
@@ -47,9 +43,9 @@ program.
   session variable) is tracked in plan 6 below. Migration 0006 landed an RLS
   prototype and 0007 denormalized `user_id` onto derived tables; full
   enforcement and the production `app_user` cutover remain pending.
-- **Sentry DSN is a deploy-time secret.** Code integration is complete and
-  verified to no-op without a DSN; a real DSN (and optional source-map upload
-  auth token) must be provisioned at deploy time before events are transmitted.
+- **No external error tracking.** Errors are captured in structured server logs
+  via `logServerError`; there is no Sentry/Datadog/etc. integration (removed as
+  unneeded). Revisit if production triage needs aggregated error reporting.
 
 ## Hardening program (seven ExecPlans)
 

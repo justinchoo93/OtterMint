@@ -26,7 +26,7 @@ PostgreSQL (Supabase in production) accessed through Drizzle ORM.
    `PLAID_SECRET`, `PLAID_ENV` (use `sandbox`), and `ENCRYPTION_KEY` (a 32-byte
    hex string — generate with
    `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"`).
-   The Sentry and Upstash Redis variables are optional locally and documented in
+   The Upstash Redis variables are optional locally and documented in
    `.env.example`.
 2. `npm install`
 3. `npm run db:migrate` — apply the database schema.
@@ -52,7 +52,7 @@ PostgreSQL (Supabase in production) accessed through Drizzle ORM.
 ## Environment variables
 
 `.env.example` is the source of truth. Copy it to `.env` and fill it in; `.env`
-is git-ignored. Real Plaid, database, Sentry, and Redis values are provided at
+is git-ignored. Real Plaid, database, and Redis values are provided at
 deploy time.
 
 ## Health check
