@@ -2,6 +2,7 @@
 
 import { useCallback, useState } from "react";
 import { usePlaidLink } from "react-plaid-link";
+import { exchangeNewLink, persistLinkRestore } from "./plaid-restore";
 
 interface PlaidLinkButtonProps {
   onSuccess?: () => void;
@@ -19,6 +20,7 @@ export function PlaidLinkButton({ onSuccess }: PlaidLinkButtonProps) {
       });
       const data = await res.json();
       setLinkToken(data.link_token);
+      persistLinkRestore(data.link_token, "link");
     } catch (err) {
       console.error("Failed to get link token:", err);
     } finally {
@@ -30,14 +32,7 @@ export function PlaidLinkButton({ onSuccess }: PlaidLinkButtonProps) {
     token: linkToken,
     onSuccess: async (publicToken, metadata) => {
       try {
-        await fetch("/api/plaid/exchange-token", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            public_token: publicToken,
-            institution: metadata.institution,
-          }),
-        });
+        await exchangeNewLink(publicToken, metadata.institution);
         onSuccess?.();
       } catch (err) {
         console.error("Failed to exchange token:", err);

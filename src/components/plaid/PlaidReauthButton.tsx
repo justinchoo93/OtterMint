@@ -2,6 +2,7 @@
 
 import { useCallback, useState } from "react";
 import { usePlaidLink } from "react-plaid-link";
+import { clearLinkRestore, persistLinkRestore } from "./plaid-restore";
 
 interface PlaidReauthButtonProps {
   itemId: number;
@@ -25,6 +26,7 @@ export function PlaidReauthButton({
       });
       const data = await res.json();
       setLinkToken(data.link_token);
+      persistLinkRestore(data.link_token, "update", itemId);
     } catch (err) {
       console.error("Failed to get update link token:", err);
     } finally {
@@ -36,6 +38,7 @@ export function PlaidReauthButton({
     token: linkToken,
     onSuccess: () => {
       setLinkToken(null);
+      clearLinkRestore();
       onSuccess?.();
     },
   });
