@@ -7,8 +7,10 @@
 // run. It is gated behind RLS_TEST_DATABASE_URL: when that env var is unset the
 // whole suite is SKIPPED, so the default `npm test` (no database) stays green.
 //
-// To run it (apply migrations 0000-0008 to the DB first):
-//   RLS_TEST_DATABASE_URL=postgresql://app_user:app_user_local_pw@localhost:5433/ottermint \
+// To run it: apply migrations 0000-0008, then set app_user's password out-of-band
+// (the role is created without one), e.g.:
+//   docker exec ottermint-test-db psql -U postgres -d ottermint -c "ALTER ROLE app_user PASSWORD '<pw>'"
+//   RLS_TEST_DATABASE_URL=postgresql://app_user:<pw>@localhost:5433/ottermint \
 //   RLS_TEST_SUPERUSER_URL=postgresql://postgres:postgres@localhost:5433/ottermint \
 //   npm test -- rls-isolation
 //

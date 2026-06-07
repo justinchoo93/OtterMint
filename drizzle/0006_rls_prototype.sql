@@ -14,13 +14,15 @@
 -- already set; each policy is dropped before it is created.
 
 -- 1. Role + grants ----------------------------------------------------------
--- NOTE: 'app_user_local_pw' is a LOCAL DEVELOPMENT password ONLY. The
--- production credential is deploy-gated, provisioned/rotated at deploy time,
--- and must NOT be committed for prod.
+-- NOTE: the role is created WITHOUT a password — no password literal is committed.
+-- Set the password per-environment, out-of-band: locally (e.g. to run the RLS
+-- isolation tests) run `ALTER ROLE app_user PASSWORD '<your-local-pw>'`; in
+-- production the deploy plan provisions/rotates a strong secret. A LOGIN role with
+-- no password cannot authenticate over TCP until one is set.
 DO $$
 BEGIN
   IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'app_user') THEN
-    CREATE ROLE app_user LOGIN NOSUPERUSER NOBYPASSRLS PASSWORD 'app_user_local_pw';
+    CREATE ROLE app_user LOGIN NOSUPERUSER NOBYPASSRLS;
   END IF;
 END $$;
 --> statement-breakpoint
