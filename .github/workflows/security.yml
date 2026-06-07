@@ -62,3 +62,9 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run build
+        env:
+          # `next build` evaluates resolvePlaidEnv() at module load; CI has no .env,
+          # so the production fail-loud would throw. PLAID_ENV is read from the real
+          # environment at runtime, so this build-time value only satisfies the build
+          # and does not pin runtime behavior.
+          PLAID_ENV: production
