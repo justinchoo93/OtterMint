@@ -17,6 +17,10 @@ FROM node:24-alpine AS run
 WORKDIR /app
 ENV NODE_ENV=production
 ENV PORT=3000
+# Next's standalone server binds to $HOSTNAME; Docker sets HOSTNAME to the container
+# id, so without this it listens on the container IP only and localhost healthchecks
+# are refused. Bind to all interfaces (per the official Next.js Docker example).
+ENV HOSTNAME="0.0.0.0"
 # next "standalone" output: a self-contained server + minimal node_modules.
 COPY --from=build /app/.next/standalone ./
 COPY --from=build /app/.next/static ./.next/static
