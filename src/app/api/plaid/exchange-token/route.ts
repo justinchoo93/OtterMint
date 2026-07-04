@@ -6,6 +6,10 @@ import { getUserId, isAuthError } from "@/lib/auth/get-user-id";
 import { withUser } from "@/lib/db/with-user";
 import { logServerError } from "@/lib/logging";
 import { FIELD_LIMITS, validateBoundedString } from "@/lib/validate-request";
+import { syncTransactions } from "@/lib/sync-transactions";
+import { syncHoldings } from "@/lib/sync-holdings";
+import { eq } from "drizzle-orm";
+import { AccountType } from "plaid";
 
 export async function POST(request: NextRequest) {
   try {
@@ -95,6 +99,39 @@ export async function POST(request: NextRequest) {
 
       return item;
     });
+
+    // Best-effort initial sync so transactions + holdings show up immediately
+    // instead of only after the accounts go stale (the refresh route skips items
+    // refreshed <2h ago, and the link above just stamped them fresh). Kept in a
+    // SEPARATE transaction and swallowed on failure: a slow or erroring Plaid sync
+    // right after linking must never roll back a successful link — anything missed
+    // backfills on the next refresh.
+    try {
+      await withUser(userId, async (tx) => {
+        const { nextCursor } = await syncTransactions(
+          access_token,
+          null,
+          userId,
+          tx
+        );
+        await tx
+          .update(plaidItems)
+          .set({ transactionsCursor: nextCursor, updatedAt: new Date() })
+          .where(eq(plaidItems.id, plaidItem.id));
+
+        const investmentAccountIds = accountsResponse.data.accounts
+          .filter((acct) => acct.type === AccountType.Investment)
+          .map((acct) => acct.account_id);
+        if (investmentAccountIds.length > 0) {
+          await syncHoldings(access_token, investmentAccountIds, userId, tx);
+        }
+      });
+    } catch (err) {
+      logServerError(
+        "Initial sync after link failed (will backfill on refresh)",
+        err
+      );
+    }
 
     return NextResponse.json({ success: true, itemId: plaidItem.id });
   } catch (error) {

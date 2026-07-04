@@ -7,6 +7,9 @@ const {
   mockGetUserId,
   mockInsert,
   mockSelect,
+  mockUpdate,
+  mockSyncTransactions,
+  mockSyncHoldings,
 } = vi.hoisted(() => ({
   mockItemPublicTokenExchange: vi.fn(),
   mockAccountsGet: vi.fn(),
@@ -14,6 +17,9 @@ const {
   mockGetUserId: vi.fn(),
   mockInsert: vi.fn(),
   mockSelect: vi.fn(),
+  mockUpdate: vi.fn(),
+  mockSyncTransactions: vi.fn(),
+  mockSyncHoldings: vi.fn(),
 }));
 
 vi.mock("@/lib/plaid", () => ({
@@ -42,12 +48,17 @@ vi.mock("@/lib/db", () => ({
 }));
 
 // Both routes now run their DB work inside withUser(userId, tx => ...). The
-// fake tx exposes the same insert/select mocks the tests control.
+// fake tx exposes the same insert/select/update mocks the tests control.
 vi.mock("@/lib/db/with-user", () => ({
   withUser: vi.fn(async (_userId: string, fn: (tx: unknown) => unknown) =>
-    fn({ insert: mockInsert, select: mockSelect })
+    fn({ insert: mockInsert, select: mockSelect, update: mockUpdate })
   ),
 }));
+
+vi.mock("@/lib/sync-transactions", () => ({
+  syncTransactions: mockSyncTransactions,
+}));
+vi.mock("@/lib/sync-holdings", () => ({ syncHoldings: mockSyncHoldings }));
 
 import { NextRequest } from "next/server";
 import { POST as exchangePost } from "@/app/api/plaid/exchange-token/route";
@@ -76,6 +87,17 @@ beforeEach(() => {
   mockInsert.mockReturnValue({
     values: vi.fn(() => ({ returning: vi.fn(() => [{ id: 1 }]) })),
   });
+  // exchange updates the item's transactions cursor after the initial sync
+  mockUpdate.mockReturnValue({
+    set: vi.fn(() => ({ where: vi.fn().mockResolvedValue([]) })),
+  });
+  mockSyncTransactions.mockResolvedValue({
+    added: 0,
+    modified: 0,
+    removed: 0,
+    nextCursor: "cursor-1",
+  });
+  mockSyncHoldings.mockResolvedValue({ count: 0 });
 });
 
 describe("exchange-token validation (M3)", () => {
@@ -125,6 +147,58 @@ describe("exchange-token validation (M3)", () => {
     );
     expect(res.status).toBe(200);
     expect(mockItemPublicTokenExchange).toHaveBeenCalled();
+  });
+
+  it("kicks off an initial transactions sync on a successful link", async () => {
+    const res = await exchangePost(
+      makePost(EXCHANGE_URL, {
+        public_token: "tok",
+        institution: { institution_id: "ins_1", name: "Bank" },
+      })
+    );
+    expect(res.status).toBe(200);
+    expect(mockSyncTransactions).toHaveBeenCalled();
+  });
+
+  it("still returns 200 when the initial sync fails (best-effort)", async () => {
+    // A Plaid sync that errors right after link (e.g. PRODUCT_NOT_READY) must
+    // never undo the link — the item is already saved and backfills on refresh.
+    mockSyncTransactions.mockRejectedValueOnce(new Error("PRODUCT_NOT_READY"));
+    const res = await exchangePost(
+      makePost(EXCHANGE_URL, {
+        public_token: "tok",
+        institution: { institution_id: "ins_1", name: "Bank" },
+      })
+    );
+    expect(res.status).toBe(200);
+  });
+
+  it("syncs holdings when an investment account is linked", async () => {
+    mockAccountsGet.mockResolvedValueOnce({
+      data: {
+        accounts: [
+          {
+            account_id: "inv1",
+            name: "Brokerage",
+            type: "investment",
+            balances: {
+              current: 100,
+              available: 0,
+              limit: null,
+              iso_currency_code: "USD",
+            },
+          },
+        ],
+      },
+    });
+    const res = await exchangePost(
+      makePost(EXCHANGE_URL, {
+        public_token: "tok",
+        institution: { institution_id: "ins_1", name: "Bank" },
+      })
+    );
+    expect(res.status).toBe(200);
+    expect(mockSyncHoldings).toHaveBeenCalled();
   });
 });
 
