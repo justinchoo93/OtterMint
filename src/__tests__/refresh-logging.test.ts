@@ -18,7 +18,7 @@ const {
   mockDbSelect,
   mockDbUpdate,
   mockDecrypt,
-  mockBalanceGet,
+  mockAccountsGet,
   mockComputeSnapshot,
   mockSaveUserSnapshot,
   mockSaveGroupSnapshot,
@@ -29,7 +29,7 @@ const {
   mockDbSelect: vi.fn(),
   mockDbUpdate: vi.fn(),
   mockDecrypt: vi.fn(),
-  mockBalanceGet: vi.fn(),
+  mockAccountsGet: vi.fn(),
   mockComputeSnapshot: vi.fn(),
   mockSaveUserSnapshot: vi.fn(),
   mockSaveGroupSnapshot: vi.fn(),
@@ -60,7 +60,7 @@ vi.mock("@/lib/db/schema", () => ({
   groupMembers: { groupId: "group_id", userId: "user_id" },
 }));
 vi.mock("@/lib/plaid", () => ({
-  plaidClient: { accountsBalanceGet: mockBalanceGet },
+  plaidClient: { accountsGet: mockAccountsGet },
 }));
 vi.mock("@/lib/crypto", () => ({ decrypt: mockDecrypt }));
 vi.mock("@/lib/sync-transactions", () => ({ syncTransactions: vi.fn() }));
@@ -119,7 +119,7 @@ describe("POST /api/accounts/refresh logging hygiene", () => {
 
     // Simulate a Plaid-shaped failure carrying a sensitive human-readable
     // message that must not reach the logs.
-    mockBalanceGet.mockRejectedValue({
+    mockAccountsGet.mockRejectedValue({
       response: {
         data: {
           error_code: PLAID_ERROR_CODE,

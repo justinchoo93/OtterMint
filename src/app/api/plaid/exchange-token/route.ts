@@ -50,10 +50,14 @@ export async function POST(request: NextRequest) {
     });
     const { access_token, item_id } = exchangeResponse.data;
 
-    // Encrypt the access token. Fetch initial balances BEFORE opening the
-    // per-user transaction so the external Plaid call does not hold the tx open.
+    // Encrypt the access token. Fetch the accounts (with balances) BEFORE opening
+    // the per-user transaction so the external Plaid call does not hold the tx
+    // open. Use /accounts/get, NOT /accounts/balance/get: the latter forces a
+    // real-time refresh that requires the separate `balance` product entitlement
+    // (which our production access does not include — it 400s INVALID_PRODUCT).
+    // /accounts/get returns the same accounts+balances shape with no extra product.
     const encryptedToken = encrypt(access_token);
-    const balanceResponse = await plaidClient.accountsBalanceGet({
+    const accountsResponse = await plaidClient.accountsGet({
       access_token,
     });
 
@@ -71,7 +75,7 @@ export async function POST(request: NextRequest) {
         })
         .returning();
 
-      for (const acct of balanceResponse.data.accounts) {
+      for (const acct of accountsResponse.data.accounts) {
         await tx.insert(accounts).values({
           userId,
           plaidItemId: item.id,

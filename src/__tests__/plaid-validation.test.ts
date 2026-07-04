@@ -2,14 +2,14 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 
 const {
   mockItemPublicTokenExchange,
-  mockAccountsBalanceGet,
+  mockAccountsGet,
   mockLinkTokenCreate,
   mockGetUserId,
   mockInsert,
   mockSelect,
 } = vi.hoisted(() => ({
   mockItemPublicTokenExchange: vi.fn(),
-  mockAccountsBalanceGet: vi.fn(),
+  mockAccountsGet: vi.fn(),
   mockLinkTokenCreate: vi.fn(),
   mockGetUserId: vi.fn(),
   mockInsert: vi.fn(),
@@ -19,7 +19,7 @@ const {
 vi.mock("@/lib/plaid", () => ({
   plaidClient: {
     itemPublicTokenExchange: mockItemPublicTokenExchange,
-    accountsBalanceGet: mockAccountsBalanceGet,
+    accountsGet: mockAccountsGet,
     linkTokenCreate: mockLinkTokenCreate,
   },
 }));
@@ -70,7 +70,7 @@ beforeEach(() => {
   mockItemPublicTokenExchange.mockResolvedValue({
     data: { access_token: "at", item_id: "item-1" },
   });
-  mockAccountsBalanceGet.mockResolvedValue({ data: { accounts: [] } });
+  mockAccountsGet.mockResolvedValue({ data: { accounts: [] } });
   mockLinkTokenCreate.mockResolvedValue({ data: { link_token: "lt" } });
   // exchange insert returning a plaid item
   mockInsert.mockReturnValue({

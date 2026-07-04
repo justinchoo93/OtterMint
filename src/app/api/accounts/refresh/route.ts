@@ -71,12 +71,16 @@ export async function POST() {
 
       const accessToken = decrypt(item.accessTokenEncrypted);
 
-      // Refresh balances
-      const balanceResponse = await plaidClient.accountsBalanceGet({
+      // Fetch accounts + balances. Use /accounts/get, NOT /accounts/balance/get:
+      // the latter forces a real-time refresh that needs the `balance` product
+      // entitlement our production access lacks (400 INVALID_PRODUCT). /accounts/get
+      // returns the same shape (balances as of Plaid's last update) with no extra
+      // product; syncTransactions below prompts Plaid to keep the item current.
+      const accountsResponse = await plaidClient.accountsGet({
         access_token: accessToken,
       });
 
-      for (const plaidAcct of balanceResponse.data.accounts) {
+      for (const plaidAcct of accountsResponse.data.accounts) {
         await tx
           .update(accounts)
           .set({
