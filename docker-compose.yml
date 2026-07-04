@@ -6,10 +6,12 @@ services:
     environment:
       POSTGRES_DB: ottermint
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: ${POSTGRES_SUPERUSER_PASSWORD}
+      POSTGRES_PASSWORD: ${POSTGRES_SUPERUSER_PASSWORD:?set POSTGRES_SUPERUSER_PASSWORD in .env}
       TZ: America/Los_Angeles
     volumes:
-      - /mnt/cache/appdata/ottermint/pgdata:/var/lib/postgresql/data
+      # Portable named volume by default. Environment-specific deployments (e.g. a
+      # NAS) override this with a bind mount to their own storage in a local compose.
+      - ottermint-pgdata:/var/lib/postgresql/data
     networks:
       - default
     healthcheck:
@@ -29,6 +31,9 @@ services:
     environment:
       NODE_ENV: production
       PORT: "3000"
+      # Next's standalone server binds to $HOSTNAME; Docker sets it to the container
+      # id, so bind all interfaces or the localhost healthcheck below is refused.
+      HOSTNAME: "0.0.0.0"
       TZ: America/Los_Angeles
     depends_on:
       db:
@@ -37,13 +42,19 @@ services:
       - default
       - proxy_net
     healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://localhost:3000/api/health || exit 1"]
+      # 127.0.0.1, not localhost: inside the container localhost resolves to ::1
+      # (IPv6) but the app listens on 0.0.0.0 (IPv4), so localhost is refused.
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:3000/api/health >/dev/null 2>&1 || exit 1"]
       interval: 30s
       timeout: 5s
       retries: 5
+      start_period: 20s
     # NO ports: section — Caddy reaches it via proxy_net Docker DNS (ottermint:3000).
 
 networks:
   default: {}
   proxy_net:
     external: true
+
+volumes:
+  ottermint-pgdata: {}
