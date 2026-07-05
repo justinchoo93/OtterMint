@@ -69,6 +69,13 @@ curl -i http://localhost:3000/api/health
 It returns `503` with `{"status":"degraded","db":"error"}` if the database
 probe (`select 1`) fails.
 
+## Deployment
+
+Production runs on the OtterHolt NAS. See [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)
+for the runbook (deploy with `scripts/deploy.sh`). The authoritative host stack
+description and operating rules live in `OtterHolt.md` in the Obsidian "life"
+vault under `interests/`, not in this repo.
+
 ## Architecture & specs
 
 - Feature spec: [SPEC.md](SPEC.md)
