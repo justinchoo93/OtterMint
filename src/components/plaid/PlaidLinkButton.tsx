@@ -31,12 +31,16 @@ export function PlaidLinkButton({ onSuccess }: PlaidLinkButtonProps) {
   const { open, ready } = usePlaidLink({
     token: linkToken,
     onSuccess: async (publicToken, metadata) => {
+      setLinkToken(null);
       try {
         await exchangeNewLink(publicToken, metadata.institution);
         onSuccess?.();
       } catch (err) {
         console.error("Failed to exchange token:", err);
       }
+    },
+    onExit: () => {
+      setLinkToken(null);
     },
   });
 

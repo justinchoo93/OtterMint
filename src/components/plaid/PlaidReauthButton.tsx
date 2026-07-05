@@ -41,6 +41,10 @@ export function PlaidReauthButton({
       clearLinkRestore();
       onSuccess?.();
     },
+    onExit: () => {
+      setLinkToken(null);
+      clearLinkRestore();
+    },
   });
 
   const handleClick = async () => {
