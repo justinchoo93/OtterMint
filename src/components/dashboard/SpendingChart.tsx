@@ -136,6 +136,8 @@ export function SpendingChart({ refreshKey }: SpendingChartProps) {
                 fontSize: "12px",
                 color: "var(--text-primary)",
               }}
+              itemStyle={{ color: "var(--text-primary)" }}
+              labelStyle={{ color: "var(--text-primary)" }}
               // eslint-disable-next-line @typescript-eslint/no-explicit-any
               formatter={(value: any) => [formatCurrency(value ?? 0), "Spent"]}
               cursor={{ fill: "var(--bg-hover)" }}
