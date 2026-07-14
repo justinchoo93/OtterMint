@@ -213,6 +213,7 @@ export default function Dashboard() {
           <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(320px,0.8fr)]">
             <AccountsPanel
               accounts={visibleAccounts}
+              manualAccounts={visibleManualAccounts}
               itemStatuses={isHousehold ? [] : itemStatuses}
               onReauthSuccess={handleRefresh}
             />

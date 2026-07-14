@@ -5,10 +5,12 @@ import type {
   AccountWithInstitution,
   PlaidItemStatus,
 } from "@/app/api/accounts/route";
+import type { ManualAccountRow } from "@/app/api/manual-accounts/route";
 import { PlaidReauthButton } from "@/components/plaid/PlaidReauthButton";
 
 interface AccountsPanelProps {
   accounts: AccountWithInstitution[];
+  manualAccounts?: ManualAccountRow[];
   itemStatuses?: PlaidItemStatus[];
   onReauthSuccess?: () => void;
 }
@@ -56,15 +58,32 @@ function groupByType(accounts: AccountWithInstitution[]) {
 
 export function AccountsPanel({
   accounts,
+  manualAccounts = [],
   itemStatuses = [],
   onReauthSuccess,
 }: AccountsPanelProps) {
   const grouped = groupByType(accounts);
   const typeOrder = ["depository", "credit", "investment", "loan", "other"];
+  const manualGroups = [
+    {
+      type: "asset",
+      label: "Manual Assets",
+      color: "var(--accent-green)",
+      accounts: manualAccounts.filter((account) => account.type === "asset"),
+    },
+    {
+      type: "liability",
+      label: "Manual Liabilities",
+      color: "var(--accent-red)",
+      accounts: manualAccounts.filter(
+        (account) => account.type === "liability"
+      ),
+    },
+  ];
 
   const errorItems = itemStatuses.filter((s) => s.errorCode);
 
-  if (accounts.length === 0) {
+  if (accounts.length === 0 && manualAccounts.length === 0) {
     return (
       <div className="rounded-xl border border-dashed border-[var(--border)] bg-[var(--bg-secondary)] p-8 text-center">
         <div className="text-[var(--text-muted)] text-sm">
@@ -183,6 +202,65 @@ export function AccountsPanel({
                           {formatCurrency(acct.availableBalance)} avail
                         </div>
                       )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        );
+      })}
+
+      {manualGroups.map((group) => {
+        if (group.accounts.length === 0) return null;
+
+        const groupTotal = group.accounts.reduce(
+          (sum, account) => sum + parseFloat(account.balance),
+          0
+        );
+
+        return (
+          <div
+            key={group.type}
+            className="rounded-xl border border-[var(--border)] bg-[var(--bg-secondary)] overflow-hidden"
+          >
+            <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--border-subtle)]">
+              <div className="flex items-center gap-2">
+                <div
+                  className="h-2 w-2 rounded-full"
+                  style={{ background: group.color }}
+                />
+                <span className="text-xs font-medium uppercase tracking-wider text-[var(--text-muted)]">
+                  {group.label}
+                </span>
+              </div>
+              <span
+                className="font-mono text-sm font-medium tabular-nums"
+                style={{ color: group.color }}
+              >
+                {formatCurrency(groupTotal)}
+              </span>
+            </div>
+            <div className="divide-y divide-[var(--border-subtle)]">
+              {group.accounts.map((account) => (
+                <div
+                  key={account.id}
+                  className="flex items-center justify-between px-4 py-3 transition-colors hover:bg-[var(--bg-hover)]"
+                >
+                  <div className="min-w-0 flex-1">
+                    <div className="text-sm text-[var(--text-primary)] truncate">
+                      {account.name}
+                    </div>
+                    <div className="text-xs text-[var(--text-muted)]">
+                      Manual
+                      {account.subtype && (
+                        <span className="ml-1 capitalize">
+                          · {account.subtype}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  <div className="font-mono text-sm tabular-nums text-[var(--text-primary)] pl-4">
+                    {formatCurrency(account.balance)}
                   </div>
                 </div>
               ))}
