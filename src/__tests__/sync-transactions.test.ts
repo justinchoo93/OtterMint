@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import type { RemovedTransaction, Transaction } from "plaid";
 
 // vi.mock factories are hoisted - can't reference external variables
@@ -196,5 +196,78 @@ describe("syncTransactions", () => {
     expect(result.modified).toBe(1);
     expect(result.removed).toBe(1);
     expect(result.nextCursor).toBe("cursor_done");
+  });
+
+  describe("EXCLUDED_MERCHANT_KEYWORDS filtering", () => {
+    afterEach(() => {
+      delete process.env.EXCLUDED_MERCHANT_KEYWORDS;
+    });
+
+    it("does not insert added transactions matching an exclusion keyword", async () => {
+      process.env.EXCLUDED_MERCHANT_KEYWORDS = "acme clinic";
+      mockTransactionsSync.mockResolvedValueOnce({
+        data: {
+          added: [
+            makePlaidTransaction({
+              transaction_id: "txn_secret",
+              name: "ACME CLINIC LLC",
+              merchant_name: null,
+            }),
+            makePlaidTransaction({ transaction_id: "txn_ok" }),
+          ],
+          modified: [],
+          removed: [],
+          has_more: false,
+          next_cursor: "cursor_done",
+        },
+      });
+
+      const result = await syncTransactions("token", null, USER_ID, exec);
+
+      // Only the non-matching transaction is inserted and counted.
+      expect(mockDbInsert).toHaveBeenCalledTimes(1);
+      expect(result.added).toBe(1);
+    });
+
+    it("matches against merchant_name as well as name", async () => {
+      process.env.EXCLUDED_MERCHANT_KEYWORDS = "starbucks";
+      mockTransactionsSync.mockResolvedValueOnce({
+        data: {
+          added: [makePlaidTransaction()], // name "Coffee Shop", merchant "Starbucks"
+          modified: [],
+          removed: [],
+          has_more: false,
+          next_cursor: "cursor_done",
+        },
+      });
+
+      const result = await syncTransactions("token", null, USER_ID, exec);
+
+      expect(mockDbInsert).not.toHaveBeenCalled();
+      expect(result.added).toBe(0);
+    });
+
+    it("deletes a modified transaction that now matches a keyword", async () => {
+      process.env.EXCLUDED_MERCHANT_KEYWORDS = "acme clinic";
+      mockTransactionsSync.mockResolvedValueOnce({
+        data: {
+          added: [],
+          modified: [
+            makePlaidTransaction({
+              transaction_id: "txn_now_secret",
+              merchant_name: "Acme Clinic",
+            }),
+          ],
+          removed: [],
+          has_more: false,
+          next_cursor: "cursor_done",
+        },
+      });
+
+      const result = await syncTransactions("token", null, USER_ID, exec);
+
+      expect(mockDbDelete).toHaveBeenCalled();
+      expect(result.modified).toBe(0);
+    });
   });
 });

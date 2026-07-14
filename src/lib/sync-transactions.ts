@@ -1,5 +1,6 @@
 import { plaidClient } from "@/lib/plaid";
 import { transactions } from "@/lib/db/schema";
+import { isExcludedTransaction } from "@/lib/transaction-filter";
 import { eq } from "drizzle-orm";
 import type { DbExecutor } from "@/lib/db/with-user";
 
@@ -33,6 +34,9 @@ export async function syncTransactions(
 
     // Insert new transactions
     for (const txn of added) {
+      // Never persist transactions matching an exclusion keyword.
+      if (isExcludedTransaction(txn)) continue;
+      totalAdded += 1;
       await db
         .insert(transactions)
         .values({
@@ -59,10 +63,18 @@ export async function syncTransactions(
           },
         });
     }
-    totalAdded += added.length;
 
     // Update modified transactions
     for (const txn of modified) {
+      // A previously-synced transaction that now matches an exclusion keyword
+      // (e.g. merchant_name arrived on posting) is deleted rather than updated.
+      if (isExcludedTransaction(txn)) {
+        await db
+          .delete(transactions)
+          .where(eq(transactions.transactionId, txn.transaction_id));
+        continue;
+      }
+      totalModified += 1;
       await db
         .insert(transactions)
         .values({
@@ -89,7 +101,6 @@ export async function syncTransactions(
           },
         });
     }
-    totalModified += modified.length;
 
     // Remove deleted transactions
     for (const txn of removed) {
