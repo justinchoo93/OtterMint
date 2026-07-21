@@ -5,6 +5,12 @@ import { eq, and } from "drizzle-orm";
 import { validateManualAccount } from "@/lib/validate-manual-account";
 import { getUserId, isAuthError } from "@/lib/auth/get-user-id";
 import { withUser } from "@/lib/db/with-user";
+import { deleteCoverageEvent, saveCoverageEvent } from "@/lib/coverage-events";
+import { manualCoverageContribution } from "@/lib/net-worth-history";
+import {
+  recomputeGroupNetWorthSnapshotsForUser,
+  recomputeUserNetWorthSnapshot,
+} from "@/lib/recompute-net-worth";
 
 export type ManualAccountRow = {
   id: number;
@@ -17,6 +23,16 @@ export type ManualAccountRow = {
   createdAt: string;
   updatedAt: string;
 };
+
+async function recomputeGroupsBestEffort(userId: string): Promise<void> {
+  try {
+    await withUser(userId, (tx) =>
+      recomputeGroupNetWorthSnapshotsForUser(userId, tx)
+    );
+  } catch (error) {
+    logServerError("Failed to recompute group snapshots after manual account change", error);
+  }
+}
 
 export async function GET() {
   try {
@@ -62,8 +78,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: validation.error }, { status: 400 });
     }
 
-    const [row] = await withUser(userId, (tx) =>
-      tx
+    const row = await withUser(userId, async (tx) => {
+      const [created] = await tx
         .insert(manualAccounts)
         .values({
           userId,
@@ -73,8 +89,21 @@ export async function POST(request: NextRequest) {
           balance: body.balance,
           notes: body.notes?.trim() || null,
         })
-        .returning()
-    );
+        .returning();
+
+      await saveCoverageEvent(
+        userId,
+        {
+          effectiveDate: new Date().toISOString().split("T")[0],
+          ...manualCoverageContribution(created),
+        },
+        tx
+      );
+      await recomputeUserNetWorthSnapshot(userId, tx);
+      return created;
+    });
+
+    await recomputeGroupsBestEffort(userId);
 
     return NextResponse.json({ manualAccount: row }, { status: 201 });
   } catch (error) {
@@ -104,8 +133,8 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error: validation.error }, { status: 400 });
     }
 
-    const [row] = await withUser(userId, (tx) =>
-      tx
+    const row = await withUser(userId, async (tx) => {
+      const [updated] = await tx
         .update(manualAccounts)
         .set({
           name: fields.name.trim(),
@@ -116,12 +145,17 @@ export async function PUT(request: NextRequest) {
           updatedAt: new Date(),
         })
         .where(and(eq(manualAccounts.id, id), eq(manualAccounts.userId, userId)))
-        .returning()
-    );
+        .returning();
+
+      if (updated) await recomputeUserNetWorthSnapshot(userId, tx);
+      return updated;
+    });
 
     if (!row) {
       return NextResponse.json({ error: "Account not found" }, { status: 404 });
     }
+
+    await recomputeGroupsBestEffort(userId);
 
     return NextResponse.json({ manualAccount: row });
   } catch (error) {
@@ -146,11 +180,20 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: "id is required" }, { status: 400 });
     }
 
-    await withUser(userId, (tx) =>
-      tx
+    await withUser(userId, async (tx) => {
+      await deleteCoverageEvent(
+        userId,
+        "manual_account",
+        String(id),
+        tx
+      );
+      await tx
         .delete(manualAccounts)
-        .where(and(eq(manualAccounts.id, id), eq(manualAccounts.userId, userId)))
-    );
+        .where(and(eq(manualAccounts.id, id), eq(manualAccounts.userId, userId)));
+      await recomputeUserNetWorthSnapshot(userId, tx);
+    });
+
+    await recomputeGroupsBestEffort(userId);
 
     return NextResponse.json({ success: true });
   } catch (error) {

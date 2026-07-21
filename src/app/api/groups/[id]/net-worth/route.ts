@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { logServerError } from "@/lib/logging";
-import { groupNetWorthSnapshots, groupMembers } from "@/lib/db/schema";
-import { asc, and, gte, eq } from "drizzle-orm";
+import { groupMembers } from "@/lib/db/schema";
+import { and, eq } from "drizzle-orm";
 import { getUserId, isAuthError } from "@/lib/auth/get-user-id";
 import { withUser } from "@/lib/db/with-user";
+import { buildGroupNetWorthHistory } from "@/lib/net-worth-history-server";
 
 export async function GET(
   request: NextRequest,
@@ -37,18 +38,13 @@ export async function GET(
         return { forbidden: true as const };
       }
 
-      const rows = await tx
-        .select()
-        .from(groupNetWorthSnapshots)
-        .where(
-          and(
-            eq(groupNetWorthSnapshots.groupId, groupId),
-            gte(groupNetWorthSnapshots.date, sinceDateStr)
-          )
-        )
-        .orderBy(asc(groupNetWorthSnapshots.date));
+      const history = await buildGroupNetWorthHistory(
+        groupId,
+        sinceDateStr,
+        tx
+      );
 
-      return { forbidden: false as const, rows };
+      return { forbidden: false as const, history };
     });
 
     if (outcome.forbidden) {
@@ -58,20 +54,7 @@ export async function GET(
       );
     }
 
-    const result = outcome.rows.map((row) => ({
-      date: row.date,
-      totalAssets: row.totalAssets,
-      totalLiabilities: row.totalLiabilities,
-      netWorth: row.netWorth,
-      depositoryTotal: row.depositoryTotal,
-      creditTotal: row.creditTotal,
-      investmentTotal: row.investmentTotal,
-      loanTotal: row.loanTotal,
-      manualAssetsTotal: row.manualAssetsTotal,
-      manualLiabilitiesTotal: row.manualLiabilitiesTotal,
-    }));
-
-    return NextResponse.json({ snapshots: result });
+    return NextResponse.json(outcome.history);
   } catch (error) {
     if (isAuthError(error)) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

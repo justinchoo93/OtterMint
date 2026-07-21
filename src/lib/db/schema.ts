@@ -310,6 +310,7 @@ export const userNetWorthSnapshots = pgTable(
       precision: 14,
       scale: 2,
     }),
+    coverageFingerprint: text("coverage_fingerprint"),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),
@@ -346,6 +347,7 @@ export const groupNetWorthSnapshots = pgTable(
       precision: 14,
       scale: 2,
     }),
+    coverageFingerprint: text("coverage_fingerprint"),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),
@@ -353,5 +355,41 @@ export const groupNetWorthSnapshots = pgTable(
   (t) => [
     unique("group_snapshots_group_date_unique").on(t.groupId, t.date),
     index("idx_group_snapshots_group_date").on(t.groupId, t.date),
+  ]
+);
+
+export const userNetWorthCoverageEvents = pgTable(
+  "user_net_worth_coverage_events",
+  {
+    id: serial("id").primaryKey(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    effectiveDate: date("effective_date").notNull(),
+    sourceType: text("source_type").notNull(),
+    sourceId: text("source_id").notNull(),
+    assetAdjustment: numeric("asset_adjustment", {
+      precision: 14,
+      scale: 2,
+    })
+      .notNull()
+      .default("0"),
+    liabilityAdjustment: numeric("liability_adjustment", {
+      precision: 14,
+      scale: 2,
+    })
+      .notNull()
+      .default("0"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [
+    unique("user_coverage_events_source_unique").on(
+      t.userId,
+      t.sourceType,
+      t.sourceId
+    ),
+    index("idx_user_coverage_events_user_date").on(t.userId, t.effectiveDate),
   ]
 );

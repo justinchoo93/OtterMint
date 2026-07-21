@@ -157,13 +157,21 @@ Returns all Plaid-linked accounts with institution context and item error states
 ---
 
 #### `POST /api/accounts/refresh`
-Refreshes all stale Plaid items (>2h since last refresh). Syncs balances, transactions, and holdings. Computes and saves a net worth snapshot.
+Refreshes all stale Plaid items (>2h since last refresh). Syncs balances, transactions, and holdings. Computes and saves a net worth snapshot together with a deterministic fingerprint of the active account set. A fingerprint change tells history consumers that adjacent totals do not cover the same sources.
 
 **Staleness check:** Per-item — stale if any account's `last_refreshed_at` is older than 2 hours, or if the item has no accounts.
 
 **Bug (Bug 7):** Does not insert newly discovered Plaid accounts or delete closed ones. Only updates existing rows.
 
 **Bug (Bug 6):** `computeSnapshot` calls `Math.abs` on all account balances, including depository and investment. Negative depository balances (overdrafts) are counted as positive assets.
+
+#### Coverage-aware net-worth history
+
+`user_net_worth_coverage_events` privately records the first known signed asset/liability contribution for Plaid and manual accounts connected after migration 0009. Account creation, its coverage event, the source-set fingerprint, and the same-day personal aggregate snapshot commit in one user-scoped database transaction. The event is removed if the source is deleted.
+
+`GET /api/net-worth` preserves canonical reported totals and adds a personal normalized comparison. Normalization carries a captured first-known balance backward; it is a flat comparison baseline, not reconstructed account history. Legacy or deleted sources without a retained adjustment create disconnected `unknown_coverage` segments instead of a zero-to-balance slope.
+
+Household history is reported-only and segments whenever the group fingerprint changes. Public share-link history remains raw-only so a viewer cannot subtract reported values from adjusted values to infer a connected balance.
 
 ---
 
@@ -524,6 +532,7 @@ export const userNetWorthSnapshots = pgTable("user_net_worth_snapshots", {
   loanTotal: numeric("loan_total", { precision: 14, scale: 2 }),
   manualAssetsTotal: numeric("manual_assets_total", { precision: 14, scale: 2 }),
   manualLiabilitiesTotal: numeric("manual_liabilities_total", { precision: 14, scale: 2 }),
+  coverageFingerprint: text("coverage_fingerprint"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 }, (t) => ({
   uniqUserDate: unique().on(t.userId, t.date),
@@ -545,6 +554,7 @@ export const groupNetWorthSnapshots = pgTable("group_net_worth_snapshots", {
   loanTotal: numeric("loan_total", { precision: 14, scale: 2 }),
   manualAssetsTotal: numeric("manual_assets_total", { precision: 14, scale: 2 }),
   manualLiabilitiesTotal: numeric("manual_liabilities_total", { precision: 14, scale: 2 }),
+  coverageFingerprint: text("coverage_fingerprint"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 }, (t) => ({
   uniqGroupDate: unique().on(t.groupId, t.date),

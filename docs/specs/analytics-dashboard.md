@@ -117,6 +117,11 @@ The function-calling layer is provider-agnostic and the result-passing behavior 
   UNIQUE(accountId, date)
   ```
 - Populated via nightly cron or triggered after each Plaid sync
+- This remains a future analytics data source. Coverage-aware net-worth history
+  does not synthesize pre-connection account balances from transactions. It uses
+  source-set fingerprints plus private first-known addition events, and labels
+  its flat pre-connection comparison as normalization rather than reconstructed
+  valuation.
 
 ---
 

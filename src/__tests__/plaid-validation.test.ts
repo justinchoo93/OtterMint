@@ -10,6 +10,9 @@ const {
   mockUpdate,
   mockSyncTransactions,
   mockSyncHoldings,
+  mockSaveCoverageEvent,
+  mockRecomputeUserNetWorthSnapshot,
+  mockRecomputeGroupNetWorthSnapshotsForUser,
 } = vi.hoisted(() => ({
   mockItemPublicTokenExchange: vi.fn(),
   mockAccountsGet: vi.fn(),
@@ -20,6 +23,9 @@ const {
   mockUpdate: vi.fn(),
   mockSyncTransactions: vi.fn(),
   mockSyncHoldings: vi.fn(),
+  mockSaveCoverageEvent: vi.fn(),
+  mockRecomputeUserNetWorthSnapshot: vi.fn(),
+  mockRecomputeGroupNetWorthSnapshotsForUser: vi.fn(),
 }));
 
 vi.mock("@/lib/plaid", () => ({
@@ -59,6 +65,14 @@ vi.mock("@/lib/sync-transactions", () => ({
   syncTransactions: mockSyncTransactions,
 }));
 vi.mock("@/lib/sync-holdings", () => ({ syncHoldings: mockSyncHoldings }));
+vi.mock("@/lib/coverage-events", () => ({
+  saveCoverageEvent: mockSaveCoverageEvent,
+}));
+vi.mock("@/lib/recompute-net-worth", () => ({
+  recomputeUserNetWorthSnapshot: mockRecomputeUserNetWorthSnapshot,
+  recomputeGroupNetWorthSnapshotsForUser:
+    mockRecomputeGroupNetWorthSnapshotsForUser,
+}));
 
 import { NextRequest } from "next/server";
 import { POST as exchangePost } from "@/app/api/plaid/exchange-token/route";
@@ -98,6 +112,9 @@ beforeEach(() => {
     nextCursor: "cursor-1",
   });
   mockSyncHoldings.mockResolvedValue({ count: 0 });
+  mockSaveCoverageEvent.mockResolvedValue(undefined);
+  mockRecomputeUserNetWorthSnapshot.mockResolvedValue(undefined);
+  mockRecomputeGroupNetWorthSnapshotsForUser.mockResolvedValue(undefined);
 });
 
 describe("exchange-token validation (M3)", () => {
@@ -158,6 +175,49 @@ describe("exchange-token validation (M3)", () => {
     );
     expect(res.status).toBe(200);
     expect(mockSyncTransactions).toHaveBeenCalled();
+  });
+
+  it("captures a first-known coverage event and personal snapshot locally", async () => {
+    mockAccountsGet.mockResolvedValueOnce({
+      data: {
+        accounts: [
+          {
+            account_id: "checking-1",
+            name: "Checking",
+            type: "depository",
+            balances: {
+              current: 2500,
+              available: 2400,
+              limit: null,
+              iso_currency_code: "USD",
+            },
+          },
+        ],
+      },
+    });
+
+    const res = await exchangePost(
+      makePost(EXCHANGE_URL, {
+        public_token: "tok",
+        institution: { institution_id: "ins_1", name: "Bank" },
+      })
+    );
+
+    expect(res.status).toBe(200);
+    expect(mockSaveCoverageEvent).toHaveBeenCalledWith(
+      "user-123",
+      expect.objectContaining({
+        sourceType: "plaid_account",
+        sourceId: "checking-1",
+        assetAdjustment: "2500.00",
+        liabilityAdjustment: "0.00",
+      }),
+      expect.anything()
+    );
+    expect(mockRecomputeUserNetWorthSnapshot).toHaveBeenCalledWith(
+      "user-123",
+      expect.anything()
+    );
   });
 
   it("still returns 200 when the initial sync fails (best-effort)", async () => {

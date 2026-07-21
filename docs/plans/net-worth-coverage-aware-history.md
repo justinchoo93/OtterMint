@@ -18,11 +18,11 @@ A human can demonstrate the result with raw snapshots of $0 before a connection 
 - [x] (2026-07-21 01:35Z) Wrote the first complete ExecPlan draft.
 - [x] (2026-07-21 04:21Z) Ran the requested load-bearing workflow with a finder, a validation strategist, and three independent read-only validators.
 - [x] (2026-07-21 04:21Z) Revised the plan after validation: removed transaction reconstruction and per-account balance history; removed adjusted values from public shares; replaced generic household events with fingerprint-based segmentation; added safe legacy and deletion fallbacks; narrowed the atomicity guarantee to local financial state.
-- [ ] Milestone 1: add snapshot coverage fingerprints and user addition events with a journaled RLS migration.
-- [ ] Milestone 2: capture addition events and fingerprints at the account lifecycle boundaries and centralize snapshot recomputation.
-- [ ] Milestone 3: build and test normalized personal history plus segmented personal and household reported history.
-- [ ] Milestone 4: render solid, dashed, and disconnected segments with coverage annotations and accessible explanations.
-- [ ] Milestone 5: run unit, component, route, RLS, lint, build, and human-visible validation; update architecture documentation and this living plan.
+- [x] (2026-07-21 05:00Z) Milestone 1: added nullable snapshot fingerprints, the private user coverage-event table, journaled migration 0009 with explicit RLS, and isolation-test coverage.
+- [x] (2026-07-21 05:00Z) Milestone 2: captured Plaid/manual addition events and personal snapshots atomically, centralized fingerprinted recomputation, removed manual events on deletion, and added best-effort household recomputation at source/member lifecycle boundaries.
+- [x] (2026-07-21 05:00Z) Milestone 3: added pure normalization/segmentation, personal and household history builders, backward-compatible routes, and focused unit/route tests.
+- [x] (2026-07-21 05:00Z) Milestone 4: rendered Normalized/Reported modes, solid/dashed/disconnected series, privacy-safe annotations, and accessible explanatory text with component tests.
+- [ ] Milestone 5 (completed: full unit suite, lint, configured production build, architecture/spec updates; remaining: disposable-database RLS test and final visual/runtime verification).
 
 ## Surprises & Discoveries
 
@@ -49,6 +49,12 @@ A human can demonstrate the result with raw snapshots of $0 before a connection 
 
 - Observation: The existing group snapshot table already provides a safe aggregate ownership pattern, but current lifecycle paths do not prove that a new group event table could be maintained atomically through join, self-leave, owner removal, user deletion, and source deletion.
   Evidence: static RLS inspection shows group-owned rows are feasible; invitation acceptance and membership removal occur through separate security-definer functions and do not recompute group history.
+
+- Observation: Reported and normalized charts need independent segment identifiers. A captured addition splits Reported history but must remain continuous in Normalized history; an unknown boundary must split both.
+  Evidence: `normalizeNetWorthHistory` now returns `coverageSegment` for raw totals and `comparisonSegment` for the normalized series, with tests covering both cases.
+
+- Observation: The default production build intentionally fails without `PLAID_ENV`, even after compilation and TypeScript succeed.
+  Evidence: the first `npm run build` stopped during page-data collection with `PLAID_ENV must be set`; rerunning with sandbox/build-only placeholders completed all 34 routes.
 
 ## Decision Log
 
@@ -94,7 +100,7 @@ A human can demonstrate the result with raw snapshots of $0 before a connection 
 
 ## Outcomes & Retrospective
 
-Planning and validation are complete; implementation has not begun. Load-bearing analysis removed the most complex part of the initial proposal—transaction reconstruction—and produced a smaller, more honest design. It also narrowed household behavior to safe segmentation and prevented an unintended public-share balance disclosure. Update this section after every implementation milestone with demonstrated behavior and remaining gaps.
+The feature is implemented through the UI and has passed the complete unit/component/route suite, TypeScript, lint, and a configured production build. The implementation retains raw snapshots, captures exact future addition baselines, normalizes only personal captured additions, segments every unknown comparison, keeps household history aggregate/raw-only, and leaves public shares unchanged. Final completion still requires the disposable-database RLS run and a runtime visual smoke test.
 
 ## Load-Bearing Validation Results
 
@@ -332,6 +338,13 @@ The motivating personal response should resemble this abbreviated shape:
 For an unknown legacy boundary, adjusted fields are null across the incomparable edge and no amount appears in its annotation.
 
 Record the actual migration name, test counts, RLS output, build output, and concise visual observations here while implementing.
+
+Implementation evidence as of 2026-07-21 05:00Z:
+
+    Migration: drizzle/0009_loving_wong.sql
+    npm test: 34 files passed, 1 RLS file skipped; 233 tests passed, 35 skipped
+    npm run lint: 0 errors; 1 pre-existing warning in src/lib/sync-holdings.ts
+    configured npm run build: compiled, type-checked, generated 34/34 static pages
 
 ## Interfaces and Dependencies
 

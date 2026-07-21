@@ -1,22 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { logServerError } from "@/lib/logging";
-import { userNetWorthSnapshots } from "@/lib/db/schema";
-import { asc, and, gte, eq } from "drizzle-orm";
 import { getUserId, isAuthError } from "@/lib/auth/get-user-id";
 import { withUser } from "@/lib/db/with-user";
+import { buildUserNetWorthHistory } from "@/lib/net-worth-history-server";
 
-export type NetWorthSnapshotRow = {
-  date: string;
-  totalAssets: string;
-  totalLiabilities: string;
-  netWorth: string;
-  depositoryTotal: string | null;
-  creditTotal: string | null;
-  investmentTotal: string | null;
-  loanTotal: string | null;
-  manualAssetsTotal: string | null;
-  manualLiabilitiesTotal: string | null;
-};
+export type { NetWorthSnapshotRow } from "@/lib/net-worth-history";
 
 export async function GET(request: NextRequest) {
   try {
@@ -29,33 +17,11 @@ export async function GET(request: NextRequest) {
     sinceDate.setDate(sinceDate.getDate() - days);
     const sinceDateStr = sinceDate.toISOString().split("T")[0];
 
-    const rows = await withUser(userId, (tx) =>
-      tx
-        .select()
-        .from(userNetWorthSnapshots)
-        .where(
-          and(
-            eq(userNetWorthSnapshots.userId, userId),
-            gte(userNetWorthSnapshots.date, sinceDateStr)
-          )
-        )
-        .orderBy(asc(userNetWorthSnapshots.date))
+    const history = await withUser(userId, (tx) =>
+      buildUserNetWorthHistory(userId, sinceDateStr, tx)
     );
 
-    const result: NetWorthSnapshotRow[] = rows.map((row) => ({
-      date: row.date,
-      totalAssets: row.totalAssets,
-      totalLiabilities: row.totalLiabilities,
-      netWorth: row.netWorth,
-      depositoryTotal: row.depositoryTotal,
-      creditTotal: row.creditTotal,
-      investmentTotal: row.investmentTotal,
-      loanTotal: row.loanTotal,
-      manualAssetsTotal: row.manualAssetsTotal,
-      manualLiabilitiesTotal: row.manualLiabilitiesTotal,
-    }));
-
-    return NextResponse.json({ snapshots: result });
+    return NextResponse.json(history);
   } catch (error) {
     if (isAuthError(error)) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

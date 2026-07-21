@@ -7,7 +7,7 @@
 // run. It is gated behind RLS_TEST_DATABASE_URL: when that env var is unset the
 // whole suite is SKIPPED, so the default `npm test` (no database) stays green.
 //
-// To run it: apply migrations 0000-0008, then set app_user's password out-of-band
+// To run it: apply migrations 0000-0009, then set app_user's password out-of-band
 // (the role is created without one), e.g.:
 //   docker exec ottermint-test-db psql -U postgres -d ottermint -c "ALTER ROLE app_user PASSWORD '<pw>'"
 //   RLS_TEST_DATABASE_URL=postgresql://app_user:<pw>@localhost:5433/ottermint \
@@ -136,6 +136,16 @@ describe.skipIf(!APP_URL)("RLS full isolation", () => {
         total_assets, total_liabilities, net_worth)
       values (${userB}, '2026-01-01', '200', '0', '200')`;
 
+    // private net-worth coverage events
+    await adminSql`insert into user_net_worth_coverage_events
+        (user_id, effective_date, source_type, source_id,
+         asset_adjustment, liability_adjustment)
+      values (${userA}, '2026-01-02', 'plaid_account', ${"coverage-a-" + SUFFIX}, '100', '0')`;
+    await adminSql`insert into user_net_worth_coverage_events
+        (user_id, effective_date, source_type, source_id,
+         asset_adjustment, liability_adjustment)
+      values (${userB}, '2026-01-02', 'plaid_account', ${"coverage-b-" + SUFFIX}, '200', '0')`;
+
     // sessions
     await adminSql`insert into sessions (user_id, expires_at)
       values (${userA}, now() + interval '1 day')`;
@@ -178,6 +188,7 @@ describe.skipIf(!APP_URL)("RLS full isolation", () => {
     "holdings",
     "share_links",
     "user_net_worth_snapshots",
+    "user_net_worth_coverage_events",
     "sessions",
   ] as const;
 
@@ -187,6 +198,7 @@ describe.skipIf(!APP_URL)("RLS full isolation", () => {
     "holdings",
     "share_links",
     "user_net_worth_snapshots",
+    "user_net_worth_coverage_events",
     "sessions",
   ] as const;
 
@@ -212,6 +224,18 @@ describe.skipIf(!APP_URL)("RLS full isolation", () => {
       asUser(userA, (tx) =>
         tx`insert into manual_accounts (user_id, name, type, balance)
            values (${userB}, 'sneaky', 'asset', '1')`
+      )
+    ).rejects.toThrow(/row-level security/);
+  });
+
+  it("user_net_worth_coverage_events: WITH CHECK rejects another user's row", async () => {
+    await expect(
+      asUser(userA, (tx) =>
+        tx`insert into user_net_worth_coverage_events
+             (user_id, effective_date, source_type, source_id,
+              asset_adjustment, liability_adjustment)
+           values (${userB}, '2026-01-03', 'manual_account',
+                   ${"sneaky-coverage-" + SUFFIX}, '1', '0')`
       )
     ).rejects.toThrow(/row-level security/);
   });

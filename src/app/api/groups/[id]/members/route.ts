@@ -4,6 +4,7 @@ import { groupMembers, users } from "@/lib/db/schema";
 import { eq, and, sql } from "drizzle-orm";
 import { getUserId, isAuthError } from "@/lib/auth/get-user-id";
 import { withUser } from "@/lib/db/with-user";
+import { recomputeGroupNetWorthSnapshot } from "@/lib/recompute-net-worth";
 
 export async function GET(
   _request: NextRequest,
@@ -127,6 +128,22 @@ export async function DELETE(
         { error: result.error },
         { status: result.status }
       );
+    }
+
+    // A remaining owner can immediately capture the new member/source set.
+    // A self-leaving member no longer has RLS access, so the next remaining
+    // member refresh will create the new household coverage segment.
+    if (targetUserId !== userId) {
+      try {
+        await withUser(userId, (tx) =>
+          recomputeGroupNetWorthSnapshot(groupId, tx)
+        );
+      } catch (snapshotError) {
+        logServerError(
+          `Failed to recompute group snapshot after removing a member from ${groupId}`,
+          snapshotError
+        );
+      }
     }
 
     return NextResponse.json({ success: true });

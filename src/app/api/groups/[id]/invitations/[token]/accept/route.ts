@@ -3,6 +3,8 @@ import { logServerError } from "@/lib/logging";
 import { db } from "@/lib/db";
 import { sql } from "drizzle-orm";
 import { getUserId, isAuthError } from "@/lib/auth/get-user-id";
+import { withUser } from "@/lib/db/with-user";
+import { recomputeGroupNetWorthSnapshot } from "@/lib/recompute-net-worth";
 
 export async function POST(
   _request: NextRequest,
@@ -10,7 +12,7 @@ export async function POST(
 ) {
   try {
     const userId = await getUserId();
-    const { token } = await params;
+    const { id: groupId, token } = await params;
 
     // The accepting user is not yet a group member, so the group_members /
     // group_invitations RLS policies cannot permit this bootstrap. The
@@ -66,6 +68,17 @@ export async function POST(
         );
       }
       throw txError;
+    }
+
+    try {
+      await withUser(userId, (tx) =>
+        recomputeGroupNetWorthSnapshot(groupId, tx)
+      );
+    } catch (snapshotError) {
+      logServerError(
+        `Failed to recompute group snapshot after accepting invitation for ${groupId}`,
+        snapshotError
+      );
     }
 
     return NextResponse.json({ success: true });

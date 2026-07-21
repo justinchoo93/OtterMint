@@ -10,6 +10,12 @@ import { syncTransactions } from "@/lib/sync-transactions";
 import { syncHoldings } from "@/lib/sync-holdings";
 import { eq } from "drizzle-orm";
 import { AccountType } from "plaid";
+import { saveCoverageEvent } from "@/lib/coverage-events";
+import { plaidCoverageContribution } from "@/lib/net-worth-history";
+import {
+  recomputeGroupNetWorthSnapshotsForUser,
+  recomputeUserNetWorthSnapshot,
+} from "@/lib/recompute-net-worth";
 
 export async function POST(request: NextRequest) {
   try {
@@ -95,7 +101,25 @@ export async function POST(request: NextRequest) {
           isoCurrencyCode: acct.balances.iso_currency_code ?? "USD",
           lastRefreshedAt: new Date(),
         });
+
+        await saveCoverageEvent(
+          userId,
+          {
+            effectiveDate: new Date().toISOString().split("T")[0],
+            ...plaidCoverageContribution({
+              accountId: acct.account_id,
+              type: acct.type,
+              currentBalance: acct.balances.current?.toString() ?? null,
+            }),
+          },
+          tx
+        );
       }
+
+      // The accounts, first-known coverage adjustments, fingerprint, and
+      // canonical personal snapshot are one local transaction. Plaid history
+      // sync remains best-effort below and cannot create a partial baseline.
+      await recomputeUserNetWorthSnapshot(userId, tx);
 
       return item;
     });
@@ -131,6 +155,14 @@ export async function POST(request: NextRequest) {
         "Initial sync after link failed (will backfill on refresh)",
         err
       );
+    }
+
+    try {
+      await withUser(userId, (tx) =>
+        recomputeGroupNetWorthSnapshotsForUser(userId, tx)
+      );
+    } catch (err) {
+      logServerError("Group snapshot after link failed (will retry on refresh)", err);
     }
 
     return NextResponse.json({ success: true, itemId: plaidItem.id });

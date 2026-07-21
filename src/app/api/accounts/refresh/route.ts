@@ -2,20 +2,21 @@ import { NextResponse } from "next/server";
 import {
   accounts,
   plaidItems,
-  manualAccounts,
-  groupMembers,
 } from "@/lib/db/schema";
 import { plaidClient } from "@/lib/plaid";
 import { decrypt } from "@/lib/crypto";
 import { syncTransactions } from "@/lib/sync-transactions";
 import { syncHoldings } from "@/lib/sync-holdings";
-import { computeSnapshot, saveUserSnapshot, saveGroupSnapshot } from "@/lib/compute-snapshot";
-import { eq, inArray } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { PlaidError } from "plaid";
 import { getUserId, isAuthError } from "@/lib/auth/get-user-id";
 import { withUser } from "@/lib/db/with-user";
 import { enforceRateLimit } from "@/lib/rate-limit";
 import { logServerError } from "@/lib/logging";
+import {
+  recomputeGroupNetWorthSnapshotsForUser,
+  recomputeUserNetWorthSnapshot,
+} from "@/lib/recompute-net-worth";
 
 const STALE_THRESHOLD_MS = 2 * 60 * 60 * 1000; // 2 hours
 
@@ -154,78 +155,19 @@ export async function POST() {
     }
   }
 
-  // Compute and save user snapshot
+  // Persist the refreshed totals and source-set fingerprint. Group snapshots
+  // remain best-effort so one household issue cannot discard a successful
+  // personal refresh.
   try {
-    const userPlaidItems = await tx
-      .select()
-      .from(plaidItems)
-      .where(eq(plaidItems.userId, userId));
-    const userItemIds = userPlaidItems.map((i) => i.id);
-
-    const userAccounts =
-      userItemIds.length > 0
-        ? await tx
-            .select()
-            .from(accounts)
-            .where(inArray(accounts.plaidItemId, userItemIds))
-        : [];
-
-    const userManual = await tx
-      .select()
-      .from(manualAccounts)
-      .where(eq(manualAccounts.userId, userId));
-
-    const snapshotData = computeSnapshot(userAccounts, userManual);
-    await saveUserSnapshot(userId, snapshotData, tx);
-
-    // Also recompute group snapshots for any groups this user is in
-    const userGroups = await tx
-      .select({ groupId: groupMembers.groupId })
-      .from(groupMembers)
-      .where(eq(groupMembers.userId, userId));
-
-    for (const { groupId } of userGroups) {
-      try {
-        // Get all member user IDs in this group
-        const members = await tx
-          .select({ userId: groupMembers.userId })
-          .from(groupMembers)
-          .where(eq(groupMembers.groupId, groupId));
-
-        const memberIds = members.map((m) => m.userId);
-
-        // Get all plaid items for group members (group-aware read policies
-        // permit a member to read fellow members' financial rows).
-        const memberPlaidItems = await tx
-          .select()
-          .from(plaidItems)
-          .where(inArray(plaidItems.userId, memberIds));
-        const memberItemIds = memberPlaidItems.map((i) => i.id);
-
-        const groupPlaidAccounts =
-          memberItemIds.length > 0
-            ? await tx
-                .select()
-                .from(accounts)
-                .where(inArray(accounts.plaidItemId, memberItemIds))
-            : [];
-
-        const groupManualAccounts = await tx
-          .select()
-          .from(manualAccounts)
-          .where(inArray(manualAccounts.userId, memberIds));
-
-        const groupSnapshot = computeSnapshot(
-          groupPlaidAccounts,
-          groupManualAccounts
-        );
-        await saveGroupSnapshot(groupId, groupSnapshot, tx);
-      } catch (err) {
-        logServerError(`Failed to save group snapshot for ${groupId}`, err);
-      }
-    }
+    await recomputeUserNetWorthSnapshot(userId, tx);
   } catch (err) {
-    logServerError("Failed to save snapshot", err);
+    logServerError("Failed to save user snapshot", err);
+  }
+
+  try {
+    await recomputeGroupNetWorthSnapshotsForUser(userId, tx);
+  } catch (err) {
+    logServerError("Failed to save group snapshots", err);
   }
   });
 

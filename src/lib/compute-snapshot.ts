@@ -66,7 +66,7 @@ export function computeSnapshot(
   };
 }
 
-function snapshotValues(data: SnapshotData) {
+function snapshotValues(data: SnapshotData, coverageFingerprint: string) {
   return {
     totalAssets: data.totalAssets,
     totalLiabilities: data.totalLiabilities,
@@ -77,12 +77,14 @@ function snapshotValues(data: SnapshotData) {
     loanTotal: data.loanTotal,
     manualAssetsTotal: data.manualAssetsTotal,
     manualLiabilitiesTotal: data.manualLiabilitiesTotal,
+    coverageFingerprint,
   };
 }
 
 export async function saveUserSnapshot(
   userId: string,
   data: SnapshotData,
+  coverageFingerprint: string,
   executor: DbExecutor
 ): Promise<void> {
   const today = new Date().toISOString().split("T")[0];
@@ -92,17 +94,18 @@ export async function saveUserSnapshot(
     .values({
       userId,
       date: today,
-      ...snapshotValues(data),
+      ...snapshotValues(data, coverageFingerprint),
     })
     .onConflictDoUpdate({
       target: [userNetWorthSnapshots.userId, userNetWorthSnapshots.date],
-      set: snapshotValues(data),
+      set: snapshotValues(data, coverageFingerprint),
     });
 }
 
 export async function saveGroupSnapshot(
   groupId: string,
   data: SnapshotData,
+  coverageFingerprint: string,
   executor: DbExecutor
 ): Promise<void> {
   const today = new Date().toISOString().split("T")[0];
@@ -112,10 +115,10 @@ export async function saveGroupSnapshot(
     .values({
       groupId,
       date: today,
-      ...snapshotValues(data),
+      ...snapshotValues(data, coverageFingerprint),
     })
     .onConflictDoUpdate({
       target: [groupNetWorthSnapshots.groupId, groupNetWorthSnapshots.date],
-      set: snapshotValues(data),
+      set: snapshotValues(data, coverageFingerprint),
     });
 }
