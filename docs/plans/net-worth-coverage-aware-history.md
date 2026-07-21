@@ -22,7 +22,7 @@ A human can demonstrate the result with raw snapshots of $0 before a connection 
 - [x] (2026-07-21 05:00Z) Milestone 2: captured Plaid/manual addition events and personal snapshots atomically, centralized fingerprinted recomputation, removed manual events on deletion, and added best-effort household recomputation at source/member lifecycle boundaries.
 - [x] (2026-07-21 05:00Z) Milestone 3: added pure normalization/segmentation, personal and household history builders, backward-compatible routes, and focused unit/route tests.
 - [x] (2026-07-21 05:00Z) Milestone 4: rendered Normalized/Reported modes, solid/dashed/disconnected series, privacy-safe annotations, and accessible explanatory text with component tests.
-- [ ] Milestone 5 (completed: full unit suite, lint, configured production build, architecture/spec updates; remaining: disposable-database RLS test and final visual/runtime verification).
+- [x] (2026-07-21 05:09Z) Milestone 5: completed the full unit/component/route suite, TypeScript, lint, configured production build, documentation updates, a 35-case RLS run against migrated PostgreSQL 17, and an authenticated API/browser smoke test of the motivating $0-to-$600,000 scenario.
 
 ## Surprises & Discoveries
 
@@ -100,7 +100,9 @@ A human can demonstrate the result with raw snapshots of $0 before a connection 
 
 ## Outcomes & Retrospective
 
-The feature is implemented through the UI and has passed the complete unit/component/route suite, TypeScript, lint, and a configured production build. The implementation retains raw snapshots, captures exact future addition baselines, normalizes only personal captured additions, segments every unknown comparison, keeps household history aggregate/raw-only, and leaves public shares unchanged. Final completion still requires the disposable-database RLS run and a runtime visual smoke test.
+The feature is complete and verified through the UI. It retains raw snapshots, captures exact future addition baselines, normalizes only personal captured additions, segments every unknown comparison, keeps household history aggregate/raw-only, and leaves public shares unchanged. The complete unit/component/route suite, TypeScript, lint, configured production build, real PostgreSQL RLS suite, runtime API response, and authenticated browser behavior all passed. The motivating runtime fixture preserved the reported $0-to-$600,000 change while Normalized mode showed a flat $600,000 comparison and a $0.00 coverage-adjusted period change with an explicit first-known-balance disclosure.
+
+The principal tradeoff remains deliberate: flat normalization removes the connection artifact but is not reconstructed valuation. Legacy additions, deletions, and household coverage changes without a retained defensible amount are disconnected instead of estimated. This is less visually continuous, but it does not manufacture wealth performance.
 
 ## Load-Bearing Validation Results
 
@@ -339,12 +341,18 @@ For an unknown legacy boundary, adjusted fields are null across the incomparable
 
 Record the actual migration name, test counts, RLS output, build output, and concise visual observations here while implementing.
 
-Implementation evidence as of 2026-07-21 05:00Z:
+Final implementation evidence as of 2026-07-21 05:09Z:
 
     Migration: drizzle/0009_loving_wong.sql
     npm test: 34 files passed, 1 RLS file skipped; 233 tests passed, 35 skipped
+    configured RLS test: 1 file passed; 35 tests passed, 0 skipped, against all migrations on disposable PostgreSQL 17
+    npx tsc --noEmit: passed
     npm run lint: 0 errors; 1 pre-existing warning in src/lib/sync-holdings.ts
     configured npm run build: compiled, type-checked, generated 34/34 static pages
+    runtime API: raw 0.00 -> 600000.00; adjusted 600000.00 -> 600000.00; reported change 600000.00; normalized change 0.00
+    authenticated browser: Normalized default was pressed, displayed "Change excluding coverage: $0.00," rendered the first-known-balance disclosure and connection annotation, and switched to Reported without browser errors
+
+The configured build used `PLAID_ENV=sandbox`, build-only Plaid placeholders, a 64-hex-character build encryption key, and a non-routable local build database URL. A bare build first reached page-data collection and then failed the repository's intentional `PLAID_ENV must be set` guard; the configured production build exited successfully. The browser emitted the existing Recharts initial-measurement warning twice in development mode but rendered the chart and all expected accessible content; it emitted zero errors.
 
 ## Interfaces and Dependencies
 
@@ -412,3 +420,5 @@ Server-side builders must accept the RLS-scoped executor explicitly:
 Keep route modules out of shared calculation code. The component, personal route, and household route import response types from `src/lib/net-worth-history.ts`.
 
 Plan revision note (2026-07-21 04:21Z): Replaced the initial transaction-reconstruction and per-account-history design after the requested load-bearing analysis falsified its core completeness assumptions. The revision now uses private forward-captured addition events, source-set fingerprints, flat normalized comparison, conservative legacy/deletion breaks, raw-only household segmentation, and unchanged public share responses.
+
+Plan revision note (2026-07-21 05:09Z): Recorded the completed implementation and final verification evidence, including the migrated PostgreSQL RLS run and authenticated runtime smoke test.
