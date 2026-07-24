@@ -48,7 +48,13 @@ interface LineSeries {
   color: string;
   width: number;
   estimated: boolean;
-  points: Array<{ label: string; value: number }>;
+  points: Array<{ date: string; value: number }>;
+}
+
+interface ChartDatum {
+  date: string;
+  timestamp: number;
+  [key: string]: string | number | null;
 }
 
 const METRICS: MetricConfig[] = [
@@ -75,9 +81,25 @@ const METRICS: MetricConfig[] = [
   },
 ];
 
+function dateTimestamp(dateStr: string): number {
+  return Date.parse(`${dateStr}T00:00:00Z`);
+}
+
+function formatTimestampLabel(timestamp: number): string {
+  const date = new Date(timestamp);
+  return date.toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    timeZone: "UTC",
+  });
+}
+
 function formatDateLabel(dateStr: string): string {
-  const date = new Date(`${dateStr}T00:00:00`);
-  return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+  return formatTimestampLabel(dateTimestamp(dateStr));
+}
+
+function metricKey(metric: MetricConfig): string {
+  return metric.name.toLowerCase().replaceAll(" ", "_");
 }
 
 function groupBySegment(
@@ -103,13 +125,13 @@ function buildLineSeries(
     if (mode === "reported") {
       groupBySegment(snapshots, "coverageSegment").forEach((segment, index) => {
         series.push({
-          id: `${metric.name}-reported-${index}`,
+          id: `${metricKey(metric)}_reported_${index}`,
           name: metric.name,
           color: metric.color,
           width: metric.width,
           estimated: false,
           points: segment.map((point) => ({
-            label: formatDateLabel(point.date),
+            date: point.date,
             value: Number.parseFloat(metric.raw(point)),
           })),
         });
@@ -129,7 +151,7 @@ function buildLineSeries(
           }
           const estimated = point.quality === "flat_normalized";
           const linePoint = {
-            label: formatDateLabel(point.date),
+            date: point.date,
             value: Number.parseFloat(value),
           };
 
@@ -139,7 +161,7 @@ function buildLineSeries(
               current.points.push(linePoint);
             }
             current = {
-              id: `${metric.name}-normalized-${segmentIndex}-${series.length}`,
+              id: `${metricKey(metric)}_normalized_${segmentIndex}_${series.length}`,
               name: metric.name,
               color: metric.color,
               width: metric.width,
@@ -156,6 +178,27 @@ function buildLineSeries(
   }
 
   return series;
+}
+
+function buildChartModel(
+  snapshots: NetWorthSnapshotRow[],
+  mode: ChartMode
+): { data: ChartDatum[]; series: LineSeries[] } {
+  const data = snapshots.map<ChartDatum>((point) => ({
+    date: point.date,
+    timestamp: dateTimestamp(point.date),
+  }));
+  const byDate = new Map(data.map((point) => [point.date, point]));
+  const series = buildLineSeries(snapshots, mode);
+
+  for (const line of series) {
+    for (const point of line.points) {
+      const row = byDate.get(point.date);
+      if (row) row[line.id] = point.value;
+    }
+  }
+
+  return { data, series };
 }
 
 function qualityLabel(point: NetWorthSnapshotRow, mode: ChartMode): string {
@@ -209,11 +252,8 @@ export function NetWorthChart({ refreshKey, groupId }: NetWorthChartProps) {
         point.quality === "flat_normalized" && point.adjustedNetWorth !== null
     );
   const activeMode: ChartMode = normalizedAvailable ? mode : "reported";
-  const chartData = history.snapshots.map((point) => ({
-    label: formatDateLabel(point.date),
-  }));
-  const lineSeries = useMemo(
-    () => buildLineSeries(history.snapshots, activeMode),
+  const chartModel = useMemo(
+    () => buildChartModel(history.snapshots, activeMode),
     [activeMode, history.snapshots]
   );
   const hasUnknownCoverage = history.coverageEvents.some(
@@ -269,19 +309,27 @@ export function NetWorthChart({ refreshKey, groupId }: NetWorthChartProps) {
       </div>
 
       <div className="mt-4 h-56">
-        <ResponsiveContainer width="100%" height="100%">
-          <LineChart data={chartData}>
+        <ResponsiveContainer
+          width="100%"
+          height="100%"
+          initialDimension={{ width: 400, height: 224 }}
+        >
+          <LineChart data={chartModel.data}>
             <CartesianGrid
               strokeDasharray="3 3"
               stroke="var(--border-subtle)"
               vertical={false}
             />
             <XAxis
-              dataKey="label"
+              dataKey="timestamp"
+              type="number"
+              scale="time"
+              domain={["dataMin", "dataMax"]}
               tick={{ fontSize: 10, fill: "var(--text-muted)" }}
               tickLine={false}
               axisLine={{ stroke: "var(--border-subtle)" }}
               interval="preserveStartEnd"
+              tickFormatter={formatTimestampLabel}
             />
             <YAxis
               tick={{ fontSize: 10, fill: "var(--text-muted)" }}
@@ -297,14 +345,17 @@ export function NetWorthChart({ refreshKey, groupId }: NetWorthChartProps) {
             <Tooltip
               content={({ active, label }) => {
                 if (!active || !label) return null;
+                const chartPoint = chartModel.data.find(
+                  (candidate) => candidate.timestamp === Number(label)
+                );
                 const point = history.snapshots.find(
-                  (snapshot) => formatDateLabel(snapshot.date) === String(label)
+                  (snapshot) => snapshot.date === chartPoint?.date
                 );
                 if (!point) return null;
                 const useAdjusted = activeMode === "normalized";
                 return (
                   <div className="rounded-lg border border-[var(--border)] bg-[var(--bg-tertiary)] p-3 text-xs text-[var(--text-primary)] shadow-lg">
-                    <div className="font-medium">{String(label)}</div>
+                    <div className="font-medium">{formatDateLabel(point.date)}</div>
                     <div className="mt-1 text-[var(--text-muted)]">
                       {qualityLabel(point, activeMode)}
                     </div>
@@ -334,18 +385,17 @@ export function NetWorthChart({ refreshKey, groupId }: NetWorthChartProps) {
             {history.coverageEvents.map((event, index) => (
               <ReferenceLine
                 key={`${event.kind}-${event.date}-${index}`}
-                x={formatDateLabel(event.date)}
+                x={dateTimestamp(event.date)}
                 stroke="var(--accent-amber)"
                 strokeDasharray="3 3"
                 strokeOpacity={0.65}
               />
             ))}
-            {lineSeries.map((series) => (
+            {chartModel.series.map((series) => (
               <Line
                 key={series.id}
-                data={series.points}
                 type="monotone"
-                dataKey="value"
+                dataKey={series.id}
                 name={series.name}
                 stroke={series.color}
                 strokeWidth={series.width}
@@ -356,7 +406,11 @@ export function NetWorthChart({ refreshKey, groupId }: NetWorthChartProps) {
                       ? undefined
                       : "4 4"
                 }
-                dot={false}
+                dot={
+                  series.points.length === 1
+                    ? { r: series.name === "Net Worth" ? 3 : 2 }
+                    : false
+                }
                 activeDot={{ r: series.name === "Net Worth" ? 4 : 3 }}
                 connectNulls={false}
                 isAnimationActive={false}

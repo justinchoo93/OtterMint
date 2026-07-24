@@ -202,9 +202,34 @@ describe("normalizeNetWorthHistory", () => {
     expect(history.snapshots.map((point) => point.comparisonSegment)).toEqual([
       0, 1, 2,
     ]);
+    expect(history.coverageEvents).toHaveLength(1);
+    expect(history.coverageEvents[0]).toMatchObject({
+      date: "2026-07-05",
+      kind: "legacy_unknown",
+    });
     expect(history.coverageEvents.every((item) => item.kind === "legacy_unknown")).toBe(
       true
     );
+  });
+
+  it("describes the first known fingerprint as tracking startup, not a change", () => {
+    const history = normalizeNetWorthHistory({
+      snapshots: [
+        snapshot("2026-07-20", "600000.00"),
+        snapshot("2026-07-23", "600000.00", "0.00", "known"),
+      ],
+      events: [],
+    });
+
+    expect(history.snapshots.map((point) => point.coverageSegment)).toEqual([
+      0, 1,
+    ]);
+    expect(history.coverageEvents).toHaveLength(1);
+    expect(history.coverageEvents[0]).toMatchObject({
+      date: "2026-07-23",
+      kind: "coverage_unknown",
+      label: "Coverage tracking started",
+    });
   });
 
   it("returns no period change for fewer than two points", () => {

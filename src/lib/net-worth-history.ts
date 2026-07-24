@@ -200,7 +200,9 @@ export function normalizeNetWorthHistory<T extends CanonicalSnapshot>(input: {
   const events = [...input.events].sort((a, b) =>
     a.effectiveDate.localeCompare(b.effectiveDate)
   );
-  const legacyBoundaries = [...(input.possibleLegacyBoundaries ?? [])].sort();
+  const legacyBoundaries = [
+    ...new Set(input.possibleLegacyBoundaries ?? []),
+  ].sort();
   const capturedAnnotations = aggregateAnnotations(events);
   const unknownAnnotations: CoverageAnnotation[] = [];
 
@@ -211,10 +213,13 @@ export function normalizeNetWorthHistory<T extends CanonicalSnapshot>(input: {
     let startsUnknownSegment = false;
     if (index > 0) {
       const previous = snapshots[index - 1];
-      const fingerprintChanged =
-        previous.coverageFingerprint !== snapshot.coverageFingerprint;
+      const previousFingerprint = previous.coverageFingerprint ?? null;
+      const currentFingerprint = snapshot.coverageFingerprint ?? null;
+      const fingerprintChanged = previousFingerprint !== currentFingerprint;
       const fingerprintUnknown =
-        previous.coverageFingerprint == null || snapshot.coverageFingerprint == null;
+        previousFingerprint === null || currentFingerprint === null;
+      const fingerprintBecameKnown =
+        previousFingerprint === null && currentFingerprint !== null;
       const touchesLegacy = edgeTouchesBoundary(
         previous.date,
         snapshot.date,
@@ -243,7 +248,9 @@ export function normalizeNetWorthHistory<T extends CanonicalSnapshot>(input: {
           sourceCount: null,
           label: touchesLegacy
             ? "Coverage may have changed around this date"
-            : "Coverage changed",
+            : fingerprintBecameKnown
+              ? "Coverage tracking started"
+              : "Coverage changed",
         });
       }
     }
@@ -296,7 +303,15 @@ export function normalizeNetWorthHistory<T extends CanonicalSnapshot>(input: {
               : null,
         };
 
-  const annotations = [...capturedAnnotations, ...unknownAnnotations].sort(
+  const uniqueUnknownAnnotations = [
+    ...new Map(
+      unknownAnnotations.map((annotation) => [
+        `${annotation.kind}:${annotation.date}`,
+        annotation,
+      ])
+    ).values(),
+  ];
+  const annotations = [...capturedAnnotations, ...uniqueUnknownAnnotations].sort(
     (a, b) => a.date.localeCompare(b.date)
   );
 

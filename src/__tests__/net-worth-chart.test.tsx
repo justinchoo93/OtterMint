@@ -4,16 +4,61 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("recharts", () => ({
-  ResponsiveContainer: ({ children }: { children: React.ReactNode }) => (
-    <div>{children}</div>
+  ResponsiveContainer: ({
+    children,
+    initialDimension,
+  }: {
+    children: React.ReactNode;
+    initialDimension?: { width: number; height: number };
+  }) => (
+    <div
+      data-testid="responsive-chart"
+      data-initial-dimension={JSON.stringify(initialDimension ?? null)}
+    >
+      {children}
+    </div>
   ),
-  LineChart: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+  LineChart: ({
+    children,
+    data,
+  }: {
+    children: React.ReactNode;
+    data?: Array<Record<string, unknown>>;
+  }) => (
+    <div data-testid="line-chart" data-chart-data={JSON.stringify(data ?? [])}>
+      {children}
+    </div>
+  ),
   CartesianGrid: () => null,
-  XAxis: () => null,
+  XAxis: ({
+    dataKey,
+    type,
+  }: {
+    dataKey?: string;
+    type?: string;
+  }) => (
+    <div
+      data-testid="chart-x-axis"
+      data-key={dataKey}
+      data-axis-type={type}
+    />
+  ),
   YAxis: () => null,
   Tooltip: () => null,
   ReferenceLine: () => null,
-  Line: () => null,
+  Line: ({
+    data,
+    dataKey,
+  }: {
+    data?: unknown;
+    dataKey?: string;
+  }) => (
+    <div
+      data-testid="chart-line"
+      data-has-private-data={String(data !== undefined)}
+      data-key={dataKey}
+    />
+  ),
 }));
 
 import { NetWorthChart } from "@/components/dashboard/NetWorthChart";
@@ -162,6 +207,91 @@ describe("NetWorthChart", () => {
       screen.getByText(/The line is split where OtterMint cannot compare/)
     ).toBeInTheDocument();
     expect(screen.getByText(/Coverage may have changed around this date/)).toBeInTheDocument();
+  });
+
+  it("keeps every segmented metric on one unique chronological x-axis", async () => {
+    const base = response().snapshots[0];
+    const dates = [
+      "2026-07-04",
+      "2026-07-05",
+      "2026-07-06",
+      "2026-07-20",
+      "2026-07-23",
+    ];
+    vi.mocked(fetch).mockResolvedValueOnce({
+      ok: true,
+      json: async () =>
+        response({
+          snapshots: dates.map((date, index) => ({
+            ...base,
+            date,
+            totalAssets: `${580000 + index * 1000}.00`,
+            netWorth: `${580000 + index * 1000}.00`,
+            adjustedTotalAssets: null,
+            adjustedTotalLiabilities: null,
+            adjustedNetWorth: null,
+            quality: index === 0 ? "observed" : "unknown_coverage",
+            coverageSegment: index,
+            comparisonSegment: index,
+          })),
+          coverageEvents: dates.slice(1).map((date) => ({
+            date,
+            kind: "legacy_unknown" as const,
+            assetAdjustment: null,
+            liabilityAdjustment: null,
+            netWorthAdjustment: null,
+            sourceCount: null,
+            label: "Coverage may have changed around this date",
+          })),
+          periodChange: { reported: "4000.00", normalized: null },
+        }),
+    } as Response);
+
+    render(<NetWorthChart />);
+
+    const chart = await screen.findByTestId("line-chart");
+    const chartData = JSON.parse(
+      chart.getAttribute("data-chart-data") ?? "[]"
+    ) as Array<{ date: string; timestamp: number }>;
+
+    expect(chartData).toHaveLength(dates.length);
+    expect(chartData.map((point) => point.date)).toEqual(dates);
+    expect(new Set(chartData.map((point) => point.timestamp)).size).toBe(
+      dates.length
+    );
+    expect(screen.getByTestId("chart-x-axis")).toHaveAttribute(
+      "data-key",
+      "timestamp"
+    );
+    expect(screen.getByTestId("chart-x-axis")).toHaveAttribute(
+      "data-axis-type",
+      "number"
+    );
+    const initialDimension = JSON.parse(
+      screen
+        .getByTestId("responsive-chart")
+        .getAttribute("data-initial-dimension") ?? "null"
+    ) as { width: number; height: number } | null;
+    expect(initialDimension?.width).toBeGreaterThan(0);
+    expect(initialDimension?.height).toBeGreaterThan(0);
+    const lines = screen.getAllByTestId("chart-line");
+    expect(
+      lines.every(
+        (line) => line.getAttribute("data-has-private-data") === "false"
+      )
+    ).toBe(true);
+    expect(
+      lines.every((line) => {
+        const dataKey = line.getAttribute("data-key");
+        return (
+          dataKey !== null &&
+          chartData.some(
+            (point) =>
+              typeof (point as Record<string, unknown>)[dataKey] === "number"
+          )
+        );
+      })
+    ).toBe(true);
   });
 
   it("keeps household annotations generic and refetches when groupId changes", async () => {
