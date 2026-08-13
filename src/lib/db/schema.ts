@@ -217,6 +217,7 @@ export const transactions = pgTable(
     merchantName: text("merchant_name"),
     name: text("name").notNull(),
     category: text("category"),
+    categoryDetailed: text("category_detailed"),
     pending: boolean("pending").notNull().default(false),
     isoCurrencyCode: text("iso_currency_code").default("USD"),
     createdAt: timestamp("created_at", { withTimezone: true })

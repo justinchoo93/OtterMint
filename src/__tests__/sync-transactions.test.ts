@@ -129,6 +129,54 @@ describe("syncTransactions", () => {
     );
   });
 
+  it("stores both the primary and detailed personal finance category", async () => {
+    const txn = makePlaidTransaction();
+    mockTransactionsSync.mockResolvedValueOnce({
+      data: {
+        added: [txn],
+        modified: [],
+        removed: [],
+        has_more: false,
+        next_cursor: "cursor_new",
+      },
+    });
+
+    await syncTransactions("token", null, USER_ID, exec);
+
+    const insertValues = mockDbInsert.mock.results[0].value.values;
+    expect(insertValues).toHaveBeenCalledWith(
+      expect.objectContaining({
+        category: "FOOD_AND_DRINK",
+        categoryDetailed: "FOOD_AND_DRINK_COFFEE",
+      })
+    );
+  });
+
+  it("stores null categories when personal_finance_category is missing", async () => {
+    const txn = makePlaidTransaction({
+      personal_finance_category: undefined,
+    });
+    mockTransactionsSync.mockResolvedValueOnce({
+      data: {
+        added: [txn],
+        modified: [],
+        removed: [],
+        has_more: false,
+        next_cursor: "cursor_new",
+      },
+    });
+
+    await syncTransactions("token", null, USER_ID, exec);
+
+    const insertValues = mockDbInsert.mock.results[0].value.values;
+    expect(insertValues).toHaveBeenCalledWith(
+      expect.objectContaining({
+        category: null,
+        categoryDetailed: null,
+      })
+    );
+  });
+
   it("deletes removed transactions from the database", async () => {
     const removed: RemovedTransaction = {
       transaction_id: "txn_removed",

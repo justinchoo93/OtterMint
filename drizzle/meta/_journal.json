@@ -71,6 +71,13 @@
       "when": 1784609394848,
       "tag": "0009_loving_wong",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1786663746495,
+      "tag": "0010_equal_zeigeist",
+      "breakpoints": true
     }
   ]
 }

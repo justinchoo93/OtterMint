@@ -48,6 +48,7 @@ export async function syncTransactions(
           name: txn.name,
           merchantName: txn.merchant_name ?? null,
           category: txn.personal_finance_category?.primary ?? null,
+          categoryDetailed: txn.personal_finance_category?.detailed ?? null,
           pending: txn.pending,
           isoCurrencyCode: txn.iso_currency_code ?? "USD",
         })
@@ -59,6 +60,7 @@ export async function syncTransactions(
             name: txn.name,
             merchantName: txn.merchant_name ?? null,
             category: txn.personal_finance_category?.primary ?? null,
+            categoryDetailed: txn.personal_finance_category?.detailed ?? null,
             pending: txn.pending,
           },
         });
@@ -86,6 +88,7 @@ export async function syncTransactions(
           name: txn.name,
           merchantName: txn.merchant_name ?? null,
           category: txn.personal_finance_category?.primary ?? null,
+          categoryDetailed: txn.personal_finance_category?.detailed ?? null,
           pending: txn.pending,
           isoCurrencyCode: txn.iso_currency_code ?? "USD",
         })
@@ -97,6 +100,7 @@ export async function syncTransactions(
             name: txn.name,
             merchantName: txn.merchant_name ?? null,
             category: txn.personal_finance_category?.primary ?? null,
+            categoryDetailed: txn.personal_finance_category?.detailed ?? null,
             pending: txn.pending,
           },
         });
