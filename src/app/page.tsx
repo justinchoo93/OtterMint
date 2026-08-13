@@ -16,7 +16,7 @@ import { TransactionsFeed } from "@/components/dashboard/TransactionsFeed";
 import { HoldingsPanel } from "@/components/dashboard/HoldingsPanel";
 import { ManualAccountsPanel } from "@/components/manual/ManualAccountsPanel";
 import { NetWorthChart } from "@/components/dashboard/NetWorthChart";
-import { SpendingChart } from "@/components/dashboard/SpendingChart";
+import { CashflowPanel } from "@/components/dashboard/CashflowPanel";
 import { RefreshButton } from "@/components/dashboard/RefreshButton";
 import { PlaidLinkButton } from "@/components/plaid/PlaidLinkButton";
 import { AvatarMenu } from "@/components/auth/AvatarMenu";
@@ -281,16 +281,19 @@ export default function Dashboard() {
           manualAccounts={visibleManualAccounts}
           label={isHousehold ? "Household Net Worth" : undefined}
         />
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-          <NetWorthChart refreshKey={refreshKey} groupId={isHousehold ? group?.id : undefined} />
-          {!isHousehold ? (
-            <SpendingChart refreshKey={refreshKey} />
-          ) : (
+        {isHousehold ? (
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+            <NetWorthChart refreshKey={refreshKey} groupId={group?.id} />
             <div className="rounded-xl border border-dashed border-[var(--border)] bg-[var(--bg-secondary)] p-8 text-center text-sm text-[var(--text-muted)]">
               Household spending analytics are not available yet.
             </div>
-          )}
-        </div>
+          </div>
+        ) : (
+          <>
+            <NetWorthChart refreshKey={refreshKey} />
+            <CashflowPanel refreshKey={refreshKey} />
+          </>
+        )}
       </div>
     );
   };
