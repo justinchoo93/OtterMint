@@ -125,6 +125,55 @@ Notes:
 
 ---
 
+## 5.5 Database migrations in production
+
+The runtime image is a Next.js **standalone** build: it contains no `drizzle-kit`,
+no `drizzle/` SQL files, and no `psql`. The NAS `repo/` checkout has no
+`node_modules`. So `npm run db:migrate` cannot run in production — migrations are
+applied by hand, replicating exactly what drizzle's migrator does: run the
+migration SQL and insert its journal row, in one transaction, via `psql` inside
+`ottermint-db-1`.
+
+**Order matters when a deploy includes a migration: migrate first, then deploy.**
+New columns are harmless to the old app, but new app code that references a
+missing column breaks at runtime (500s on read, failed INSERTs on sync).
+
+For migration `NNNN_<name>.sql` (from the laptop, in the repo root):
+
+```bash
+# 1. The journal values drizzle would record:
+shasum -a 256 drizzle/NNNN_<name>.sql          # -> <hash>
+grep -A3 '"tag": "NNNN_<name>"' drizzle/meta/_journal.json   # -> "when": <millis>
+
+# 2. Apply atomically (paste the migration's statements before the INSERT):
+ssh otterholt 'docker exec -i ottermint-db-1 psql -U postgres -d ottermint -v ON_ERROR_STOP=1' <<'SQL'
+BEGIN;
+-- statements from drizzle/NNNN_<name>.sql go here
+INSERT INTO drizzle.__drizzle_migrations (hash, created_at) VALUES ('<hash>', <millis>);
+COMMIT;
+SQL
+
+# 3. Verify: latest journal row should show <hash>/<millis>.
+ssh otterholt 'docker exec ottermint-db-1 psql -U postgres -d ottermint \
+  -c "SELECT id, left(hash,12), created_at FROM drizzle.__drizzle_migrations ORDER BY id DESC LIMIT 2;"'
+```
+
+Why this is safe: drizzle's migrator hashes the raw file (`sha256`), stamps the
+journal's `when` value as `created_at`, and applies anything newer than the last
+recorded row — so a hand-applied migration is indistinguishable from a
+`db:migrate` run (verified 2026-08-13: the hand-computed hash of
+`0009_loving_wong.sql` matched the journal row a real `db:migrate` had written).
+Multi-statement migrations: drizzle splits on `--> statement-breakpoint`
+comments; inside one `psql` transaction the breakpoints are irrelevant — leave
+them in or strip them.
+
+Local caveat: the dev machine has **no local database** (`.env` points at
+`localhost:5432` where nothing listens), and `npm run db:migrate` fails silently
+behind its spinner there. Don't mistake a local run for an applied migration —
+always verify the journal.
+
+---
+
 ## 6. Verify
 
 ```bash
