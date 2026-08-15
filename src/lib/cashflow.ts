@@ -22,6 +22,23 @@ export interface CashflowRow extends ClassifiableTransaction {
   /** Transaction date, "YYYY-MM-DD". */
   date: string;
   pending: boolean;
+  name: string;
+  merchantName: string | null;
+  /** accounts.name, for line-item display. */
+  accountName: string;
+}
+
+export interface CashflowLineItem {
+  date: string;
+  /** Display-signed: income received is positive; savings contributions
+      positive, withdrawals negative. */
+  amount: string;
+  name: string;
+  merchantName: string | null;
+  /** categoryDetailed ?? category ?? "UNCATEGORIZED" — feed to
+      labelForCategoryKey for display. */
+  categoryKey: string;
+  accountName: string;
 }
 
 export interface CashflowCategoryTotal {
@@ -42,6 +59,10 @@ export interface CashflowMonth {
   savings: string;
   netCashFlow: string;
   spendingByCategory: CashflowCategoryTotal[];
+  /** The line items behind the income total, date-ascending. */
+  incomeItems: CashflowLineItem[];
+  /** The line items behind the savings total, date-ascending. */
+  savingsItems: CashflowLineItem[];
 }
 
 // Plaid's primary personal-finance categories. Used to derive the primary
@@ -194,6 +215,8 @@ export function aggregateCashflow(
       spending: number;
       savings: number;
       byCategory: Map<string, { primary: string; cents: number }>;
+      incomeItems: CashflowLineItem[];
+      savingsItems: CashflowLineItem[];
     }
   >();
   for (const month of window) {
@@ -202,8 +225,21 @@ export function aggregateCashflow(
       spending: 0,
       savings: 0,
       byCategory: new Map(),
+      incomeItems: [],
+      savingsItems: [],
     });
   }
+
+  // Line item for the drilldown; displayCents carries the display sign
+  // (income received positive, savings withdrawals negative).
+  const lineItem = (row: CashflowRow, displayCents: number): CashflowLineItem => ({
+    date: row.date,
+    amount: fromCents(displayCents),
+    name: row.name,
+    merchantName: row.merchantName,
+    categoryKey: row.categoryDetailed ?? row.category ?? "UNCATEGORIZED",
+    accountName: row.accountName,
+  });
 
   for (const row of rows) {
     if (row.pending) continue;
@@ -216,9 +252,11 @@ export function aggregateCashflow(
     if (flow === "income") {
       // Inflows are negative in Plaid's convention; flip the sign.
       bucket.income += -cents;
+      bucket.incomeItems.push(lineItem(row, -cents));
     } else if (flow === "savings") {
       // Signed sum: contributions (outflows) add, withdrawals subtract.
       bucket.savings += cents;
+      bucket.savingsItems.push(lineItem(row, cents));
     } else if (flow === "spending") {
       bucket.spending += cents;
       const key = row.categoryDetailed ?? row.category ?? "UNCATEGORIZED";
@@ -230,6 +268,9 @@ export function aggregateCashflow(
     // internal: excluded from every total.
   }
 
+  const byDateThenName = (a: CashflowLineItem, b: CashflowLineItem) =>
+    a.date.localeCompare(b.date) || a.name.localeCompare(b.name);
+
   return window.map((month) => {
     const bucket = buckets.get(month)!;
     return {
@@ -239,6 +280,8 @@ export function aggregateCashflow(
       spending: fromCents(bucket.spending),
       savings: fromCents(bucket.savings),
       netCashFlow: fromCents(bucket.income - bucket.spending),
+      incomeItems: bucket.incomeItems.sort(byDateThenName),
+      savingsItems: bucket.savingsItems.sort(byDateThenName),
       spendingByCategory: [...bucket.byCategory.entries()]
         .map(([key, { primary, cents }]) => ({
           key,

@@ -21,7 +21,7 @@ A human can demonstrate the result: open the dashboard's Analytics view, select 
 - [x] (2026-08-15) Acceptance-criteria numbers validated: a fresh production export (435 non-pending rows) run through the proposed rule and the existing `aggregateCashflow`/`extractInvestmentFlows` reproduces every number in the Validation section exactly — April 16,064.86/6,905.28, May 14,278.03/7,710.49, June–July unchanged, three new withdrawal flows, zero INCOME rows left matching a rule pattern.
 - [x] (2026-08-15 22:12Z) Milestone 1: `src/lib/category-rules.ts` with the seeded CR-Bkrg rule; 6 unit tests including the two-consumer end-to-end assertions (classifies as savings, extracts as withdrawal).
 - [x] (2026-08-15 22:15Z) Milestone 2: `selectClassifiedTransactionRows` helper; both analytics routes rewired (mock chains survived as designed); `/api/transactions` and `/api/shared/[token]` map through `applyCategoryRules` with response shapes unchanged; new route tests prove a CR-Bkrg fixture lands in savings (cashflow) and withdrawals (investments). Full suite 330 passed / 41 skipped.
-- [ ] Milestone 3: `aggregateCashflow` emits per-month income and savings line items; unit tests.
+- [x] (2026-08-15 22:20Z) Milestone 3: `CashflowRow` widened, `CashflowLineItem` added, `aggregateCashflow` emits date-sorted `incomeItems`/`savingsItems`; 3 new unit tests (display signs, sorting, pending/internal exclusion). Suite 333 passed.
 - [ ] Milestone 4: Income/Saved tile drilldown in `CashflowPanel`; component tests.
 - [ ] Milestone 5: full gate (tests, tsc, lint, build), deploy, production verification of the corrected April/May numbers.
 

@@ -24,7 +24,15 @@ function row(
   date: string,
   overrides: Partial<CashflowRow> = {}
 ): CashflowRow {
-  return { ...txn(overrides), date, pending: false, ...overrides };
+  return {
+    ...txn(overrides),
+    date,
+    pending: false,
+    name: "Fixture Txn",
+    merchantName: null,
+    accountName: "TOTAL CHECKING",
+    ...overrides,
+  };
 }
 
 describe("classifyTransaction", () => {
@@ -358,6 +366,90 @@ describe("aggregateCashflow", () => {
     ];
     const months = aggregateCashflow(rows, { months: 2, today: TODAY });
     expect(months.map((m) => m.spending)).toEqual(["0.00", "100.00"]);
+  });
+
+  it("emits income line items display-signed positive, date-sorted", () => {
+    const rows: CashflowRow[] = [
+      row("2026-08-09", {
+        amount: "-2600.00",
+        name: "KING COUNTY PAYROLL",
+        category: "INCOME",
+        categoryDetailed: "INCOME_SALARY",
+      }),
+      row("2026-08-01", {
+        amount: "-0.04",
+        name: "INTEREST PAYMENT",
+        category: "INCOME",
+        categoryDetailed: "INCOME_INTEREST_EARNED",
+        accountName: "PREMIER PLUS CKG",
+      }),
+    ];
+    const [august] = aggregateCashflow(rows, { months: 1, today: TODAY });
+    expect(august.incomeItems).toEqual([
+      {
+        date: "2026-08-01",
+        amount: "0.04",
+        name: "INTEREST PAYMENT",
+        merchantName: null,
+        categoryKey: "INCOME_INTEREST_EARNED",
+        accountName: "PREMIER PLUS CKG",
+      },
+      {
+        date: "2026-08-09",
+        amount: "2600.00",
+        name: "KING COUNTY PAYROLL",
+        merchantName: null,
+        categoryKey: "INCOME_SALARY",
+        accountName: "TOTAL CHECKING",
+      },
+    ]);
+    expect(august.savingsItems).toEqual([]);
+  });
+
+  it("emits savings line items signed: contributions positive, withdrawals negative", () => {
+    const rows: CashflowRow[] = [
+      row("2026-08-02", {
+        amount: "1000.00",
+        name: "Manual DB-Bkrg 08/02",
+        category: "TRANSFER_OUT",
+        categoryDetailed: "TRANSFER_OUT_INVESTMENT_AND_RETIREMENT_FUNDS",
+      }),
+      row("2026-08-10", {
+        amount: "-400.00",
+        name: "Acorns Invest Transfer",
+        merchantName: "Acorns",
+        category: "TRANSFER_IN",
+        categoryDetailed: "TRANSFER_IN_INVESTMENT_AND_RETIREMENT_FUNDS",
+      }),
+    ];
+    const [august] = aggregateCashflow(rows, { months: 1, today: TODAY });
+    expect(august.savings).toBe("600.00");
+    expect(august.savingsItems.map((i) => i.amount)).toEqual([
+      "1000.00",
+      "-400.00",
+    ]);
+    expect(august.savingsItems[1].merchantName).toBe("Acorns");
+    expect(august.incomeItems).toEqual([]);
+  });
+
+  it("emits no line items for pending, internal, or spending rows", () => {
+    const rows: CashflowRow[] = [
+      row("2026-08-02", {
+        amount: "-900.00",
+        category: "INCOME",
+        categoryDetailed: "INCOME_SALARY",
+        pending: true,
+      }),
+      row("2026-08-03", {
+        amount: "1850.00",
+        category: "LOAN_PAYMENTS",
+        categoryDetailed: "LOAN_PAYMENTS_CREDIT_CARD_PAYMENT",
+      }),
+      row("2026-08-04", { amount: "55.00" }),
+    ];
+    const [august] = aggregateCashflow(rows, { months: 1, today: TODAY });
+    expect(august.incomeItems).toEqual([]);
+    expect(august.savingsItems).toEqual([]);
   });
 
   it("labels uncategorized inflows as income and outflows as spending", () => {
