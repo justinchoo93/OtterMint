@@ -120,7 +120,12 @@ export async function POST(request: NextRequest) {
       // The accounts, first-known coverage adjustments, fingerprint, and
       // canonical personal snapshot are one local transaction. Plaid history
       // sync remains best-effort below and cannot create a partial baseline.
-      await captureAccountSnapshots(userId, tx);
+      // Per-account history capture is best-effort: it must never fail a link.
+      try {
+        await captureAccountSnapshots(userId, tx);
+      } catch (err) {
+        logServerError("Failed to capture account snapshots on link", err);
+      }
       await recomputeUserNetWorthSnapshot(userId, tx);
 
       return item;

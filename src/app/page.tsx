@@ -17,6 +17,7 @@ import { HoldingsPanel } from "@/components/dashboard/HoldingsPanel";
 import { ManualAccountsPanel } from "@/components/manual/ManualAccountsPanel";
 import { NetWorthChart } from "@/components/dashboard/NetWorthChart";
 import { CashflowPanel } from "@/components/dashboard/CashflowPanel";
+import { InvestmentPerformancePanel } from "@/components/dashboard/InvestmentPerformancePanel";
 import { RefreshButton } from "@/components/dashboard/RefreshButton";
 import { PlaidLinkButton } from "@/components/plaid/PlaidLinkButton";
 import { AvatarMenu } from "@/components/auth/AvatarMenu";
@@ -262,13 +263,16 @@ export default function Dashboard() {
 
     if (activeDestination === "investments") {
       return (
-        <div className="animate-fade-in">
+        <div className="space-y-6 animate-fade-in">
           {isHousehold ? (
             <div className="rounded-xl border border-dashed border-[var(--border)] bg-[var(--bg-secondary)] p-8 text-center text-sm text-[var(--text-muted)]">
               Household investment holdings are not available yet.
             </div>
           ) : (
-            <HoldingsPanel refreshKey={refreshKey} />
+            <>
+              <InvestmentPerformancePanel refreshKey={refreshKey} />
+              <HoldingsPanel refreshKey={refreshKey} />
+            </>
           )}
         </div>
       );
