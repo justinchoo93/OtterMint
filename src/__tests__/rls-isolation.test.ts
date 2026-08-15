@@ -7,7 +7,7 @@
 // run. It is gated behind RLS_TEST_DATABASE_URL: when that env var is unset the
 // whole suite is SKIPPED, so the default `npm test` (no database) stays green.
 //
-// To run it: apply migrations 0000-0011, then set app_user's password out-of-band
+// To run it: apply migrations 0000-0012, then set app_user's password out-of-band
 // (the role is created without one), e.g.:
 //   docker exec ottermint-test-db psql -U postgres -d ottermint -c "ALTER ROLE app_user PASSWORD '<pw>'"
 //   RLS_TEST_DATABASE_URL=postgresql://app_user:<pw>@localhost:5433/ottermint \
@@ -136,6 +136,14 @@ describe.skipIf(!APP_URL)("RLS full isolation", () => {
         security_id, quantity, price, value, date)
       values (${userB}, ${"acc-b-" + SUFFIX}, 'sec-b', '1', '1', '1', '2026-01-01')`;
 
+    // in-account investment transactions
+    await adminSql`insert into investment_transactions (user_id, account_id,
+        investment_transaction_id, date, name, amount, type)
+      values (${userA}, ${"acc-a-" + SUFFIX}, ${"itx-a-" + SUFFIX}, '2026-01-01', 'A div', '-10', 'cash')`;
+    await adminSql`insert into investment_transactions (user_id, account_id,
+        investment_transaction_id, date, name, amount, type)
+      values (${userB}, ${"acc-b-" + SUFFIX}, ${"itx-b-" + SUFFIX}, '2026-01-01', 'B div', '-20', 'cash')`;
+
     // share links
     await adminSql`insert into share_links (user_id, token, include_net_worth)
       values (${userA}, ${"share-a-" + SUFFIX}, true)`;
@@ -205,6 +213,7 @@ describe.skipIf(!APP_URL)("RLS full isolation", () => {
     "user_net_worth_coverage_events",
     "account_balance_snapshots",
     "holding_snapshots",
+    "investment_transactions",
     "sessions",
   ] as const;
 
@@ -217,6 +226,7 @@ describe.skipIf(!APP_URL)("RLS full isolation", () => {
     "user_net_worth_coverage_events",
     "account_balance_snapshots",
     "holding_snapshots",
+    "investment_transactions",
     "sessions",
   ] as const;
 

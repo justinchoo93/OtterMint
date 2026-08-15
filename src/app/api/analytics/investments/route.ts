@@ -4,6 +4,7 @@ import {
   accounts,
   accountBalanceSnapshots,
   holdings,
+  investmentTransactions,
   plaidItems,
   transactions,
   userNetWorthCoverageEvents,
@@ -15,10 +16,12 @@ import { withUser } from "@/lib/db/with-user";
 import {
   buildPortfolioSeries,
   computeAttribution,
+  computeDividends,
   computeUnrealized,
   computeXirr,
   extractInvestmentFlows,
   type Attribution,
+  type Dividends,
   type PortfolioSeries,
   type Unrealized,
 } from "@/lib/investment-performance";
@@ -31,6 +34,8 @@ export type InvestmentsResponse = {
   unrealized: Unrealized;
   /** Individual contribution/withdrawal events for chart markers. */
   flows: Array<{ date: string; kind: "contribution" | "withdrawal"; amount: string }>;
+  /** Dividend income over the trailing twelve months. */
+  dividends: Dividends;
 };
 
 export async function GET(request: NextRequest) {
@@ -111,6 +116,27 @@ export async function GET(request: NextRequest) {
           and(eq(plaidItems.userId, userId), gte(transactions.date, since))
         );
 
+      // Dividends use their own trailing-12-month window, independent of the
+      // chart's days parameter.
+      const dividendSinceDate = new Date();
+      dividendSinceDate.setUTCFullYear(dividendSinceDate.getUTCFullYear() - 1);
+      const dividendRows = await tx
+        .select({
+          date: investmentTransactions.date,
+          amount: investmentTransactions.amount,
+          subtype: investmentTransactions.subtype,
+        })
+        .from(investmentTransactions)
+        .where(
+          and(
+            eq(investmentTransactions.userId, userId),
+            gte(
+              investmentTransactions.date,
+              dividendSinceDate.toISOString().split("T")[0]
+            )
+          )
+        );
+
       const holdingRows = await tx
         .select({
           accountId: holdings.accountId,
@@ -154,6 +180,10 @@ export async function GET(request: NextRequest) {
           kind: flow.kind,
           amount: (flow.cents / 100).toFixed(2),
         })),
+        dividends: computeDividends(
+          dividendRows,
+          new Date().toISOString().split("T")[0]
+        ),
       };
     });
 

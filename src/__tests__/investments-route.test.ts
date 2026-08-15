@@ -64,6 +64,10 @@ const FLOWS = [
   },
 ];
 
+const DIVIDEND_ROWS = [
+  { date: "2026-08-01", amount: "-46.80", subtype: "dividend" },
+];
+
 const HOLDINGS = [
   {
     accountId: "acc_roth",
@@ -88,7 +92,7 @@ function request(query = ""): NextRequest {
 beforeEach(() => {
   vi.clearAllMocks();
   mockGetUserId.mockResolvedValue("user-123");
-  queue(AGGREGATE, ACCOUNT_SNAPSHOTS, EVENTS, FLOWS, HOLDINGS);
+  queue(AGGREGATE, ACCOUNT_SNAPSHOTS, EVENTS, FLOWS, DIVIDEND_ROWS, HOLDINGS);
 });
 
 describe("GET /api/analytics/investments", () => {
@@ -136,6 +140,12 @@ describe("GET /api/analytics/investments", () => {
     ]);
   });
 
+  it("returns trailing-twelve-month dividends", async () => {
+    const body = await (await GET(request())).json();
+    expect(body.dividends.trailingTwelveMonths).toBe("46.80");
+    expect(body.dividends.monthly).toHaveLength(12);
+  });
+
   it("reports xirr as null for a sub-30-day trusted window and unrealized always", async () => {
     const body = await (await GET(request())).json();
     // Trusted window Jul 23 → Aug 14 is 22 days: too short to annualize.
@@ -154,13 +164,13 @@ describe("GET /api/analytics/investments", () => {
       { date: "2026-01-01", investmentTotal: "100000.00", coverageFingerprint: FP_A },
       { date: "2027-01-01", investmentTotal: "110000.00", coverageFingerprint: FP_A },
     ];
-    queue(longWindow, [], [], [], HOLDINGS);
+    queue(longWindow, [], [], [], [], HOLDINGS);
     const body = await (await GET(request())).json();
     expect(body.xirr).toBe("0.1000");
   });
 
   it("handles a user with no investment data without erroring", async () => {
-    queue([], [], [], [], []);
+    queue([], [], [], [], [], []);
     const body = await (await GET(request())).json();
     expect(body.series.points).toEqual([]);
     expect(body.attribution).toBeNull();

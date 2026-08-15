@@ -7,6 +7,7 @@ import { plaidClient } from "@/lib/plaid";
 import { decrypt } from "@/lib/crypto";
 import { syncTransactions } from "@/lib/sync-transactions";
 import { syncHoldings } from "@/lib/sync-holdings";
+import { syncInvestmentTransactions } from "@/lib/sync-investment-transactions";
 import { eq } from "drizzle-orm";
 import { PlaidError } from "plaid";
 import { getUserId, isAuthError } from "@/lib/auth/get-user-id";
@@ -120,6 +121,22 @@ export async function POST() {
 
       if (investmentAccountIds.length > 0) {
         await syncHoldings(accessToken, investmentAccountIds, userId, tx);
+
+        // In-account activity (dividends, buys/sells). Best-effort: a feed
+        // failure must not fail the whole item refresh.
+        try {
+          await syncInvestmentTransactions(
+            accessToken,
+            investmentAccountIds,
+            userId,
+            tx
+          );
+        } catch (err) {
+          logServerError(
+            `Investment transactions sync failed for ${item.institutionName}`,
+            err
+          );
+        }
       }
 
       refreshedCount++;

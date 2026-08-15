@@ -304,6 +304,63 @@ export function computeXirr(
   return (lo + hi) / 2;
 }
 
+export interface DividendRowInput {
+  date: string;
+  /** Plaid sign convention: dividends credit cash, so amounts are negative. */
+  amount: string;
+  subtype: string | null;
+}
+
+export interface Dividends {
+  trailingTwelveMonths: string;
+  monthly: Array<{ month: string; total: string }>;
+}
+
+// Cash dividend subtypes. "dividend reinvestment" is deliberately absent: it
+// is the purchase side of a reinvested dividend and would net the income
+// back toward zero.
+const DIVIDEND_SUBTYPES = new Set([
+  "dividend",
+  "qualified dividend",
+  "non-qualified dividend",
+]);
+
+/**
+ * Dividend income by month over the trailing twelve calendar months up to
+ * `today`, zero-filled. Income is the credited cash (sign flipped).
+ */
+export function computeDividends(
+  rows: DividendRowInput[],
+  today: string
+): Dividends {
+  const year = Number.parseInt(today.slice(0, 4), 10);
+  const month = Number.parseInt(today.slice(5, 7), 10);
+  const window: string[] = [];
+  for (let i = 11; i >= 0; i--) {
+    const total = year * 12 + (month - 1) - i;
+    window.push(
+      `${Math.floor(total / 12)}-${String((total % 12) + 1).padStart(2, "0")}`
+    );
+  }
+
+  const byMonth = new Map<string, number>(window.map((m) => [m, 0]));
+  for (const row of rows) {
+    if (row.subtype === null || !DIVIDEND_SUBTYPES.has(row.subtype)) continue;
+    const bucket = row.date.slice(0, 7);
+    if (!byMonth.has(bucket)) continue;
+    byMonth.set(bucket, (byMonth.get(bucket) ?? 0) + -toCents(row.amount));
+  }
+
+  let trailing = 0;
+  const monthly = window.map((m) => {
+    const cents = byMonth.get(m) ?? 0;
+    trailing += cents;
+    return { month: m, total: fromCents(cents) };
+  });
+
+  return { trailingTwelveMonths: fromCents(trailing), monthly };
+}
+
 export interface HoldingRowInput {
   accountId: string;
   accountName: string;

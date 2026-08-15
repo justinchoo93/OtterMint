@@ -35,6 +35,7 @@ const EMPTY: InvestmentsResponse = {
     positions: [],
   },
   flows: [],
+  dividends: { trailingTwelveMonths: "0.00", monthly: [] },
 };
 
 function dateTimestamp(date: string): number {
@@ -229,7 +230,7 @@ export function InvestmentPerformancePanel({
         )}
       </div>
 
-      <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
+      <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
         <KpiTile
           label="Portfolio value"
           value={latest ? formatCurrency(latest.value) : "—"}
@@ -264,6 +265,12 @@ export function InvestmentPerformancePanel({
                 ? "not computable across an unexplained account change"
                 : "return annualizes after 30 days of trusted history"
           }
+        />
+        <KpiTile
+          label="Dividends"
+          value={formatCurrency(data.dividends.trailingTwelveMonths)}
+          color="var(--accent-amber)"
+          subLabel="trailing 12 months"
         />
       </div>
 

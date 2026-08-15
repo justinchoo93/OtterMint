@@ -323,6 +323,42 @@ export const holdingSnapshots = pgTable(
   ]
 );
 
+// In-account brokerage activity from Plaid's investments-transactions feed:
+// buys, sells, dividends, in-account cash moves. Plaid sign convention:
+// positive amount = cash debited from the account (a purchase), negative =
+// cash credited (a sale or dividend).
+export const investmentTransactions = pgTable(
+  "investment_transactions",
+  {
+    id: serial("id").primaryKey(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    accountId: text("account_id")
+      .notNull()
+      .references(() => accounts.accountId, { onDelete: "cascade" }),
+    investmentTransactionId: text("investment_transaction_id")
+      .notNull()
+      .unique(),
+    securityId: text("security_id"),
+    date: date("date").notNull(),
+    name: text("name").notNull(),
+    amount: numeric("amount", { precision: 14, scale: 2 }).notNull(),
+    type: text("type").notNull(),
+    subtype: text("subtype"),
+    quantity: numeric("quantity", { precision: 18, scale: 8 }),
+    price: numeric("price", { precision: 12, scale: 4 }),
+    isoCurrencyCode: text("iso_currency_code").default("USD"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [
+    index("idx_investment_transactions_user_date").on(t.userId, t.date),
+    index("idx_investment_transactions_account_date").on(t.accountId, t.date),
+  ]
+);
+
 export const manualAccounts = pgTable(
   "manual_accounts",
   {

@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import {
   buildPortfolioSeries,
   computeAttribution,
+  computeDividends,
   computeUnrealized,
   computeXirr,
   extractInvestmentFlows,
@@ -200,6 +201,40 @@ describe("extractInvestmentFlows", () => {
       flowRow({ categoryDetailed: "TRANSFER_OUT_SAVINGS" }),
     ]);
     expect(flows).toEqual([]);
+  });
+});
+
+describe("computeDividends", () => {
+  const TODAY = "2026-08-15";
+
+  it("sums credited dividends by month with sign flipped, zero-filled", () => {
+    const dividends = computeDividends(
+      [
+        { date: "2026-08-01", amount: "-46.80", subtype: "dividend" },
+        { date: "2026-08-20", amount: "-12.20", subtype: "qualified dividend" },
+        { date: "2026-05-10", amount: "-30.00", subtype: "dividend" },
+        // reinvestment purchases and buys must not offset income:
+        { date: "2026-08-01", amount: "46.80", subtype: "dividend reinvestment" },
+        { date: "2026-08-02", amount: "500.00", subtype: "buy" },
+        // outside the trailing window:
+        { date: "2025-07-01", amount: "-99.00", subtype: "dividend" },
+      ],
+      TODAY
+    );
+
+    expect(dividends.trailingTwelveMonths).toBe("89.00");
+    expect(dividends.monthly).toHaveLength(12);
+    expect(dividends.monthly[0].month).toBe("2025-09");
+    const august = dividends.monthly.find((m) => m.month === "2026-08")!;
+    expect(august.total).toBe("59.00");
+    const may = dividends.monthly.find((m) => m.month === "2026-05")!;
+    expect(may.total).toBe("30.00");
+  });
+
+  it("returns a zero-filled year for no dividend rows", () => {
+    const dividends = computeDividends([], TODAY);
+    expect(dividends.trailingTwelveMonths).toBe("0.00");
+    expect(dividends.monthly.every((m) => m.total === "0.00")).toBe(true);
   });
 });
 

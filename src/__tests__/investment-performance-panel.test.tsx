@@ -81,6 +81,10 @@ function payload(overrides: Partial<InvestmentsResponse> = {}): InvestmentsRespo
       ],
     },
     flows: [{ date: "2026-07-31", kind: "contribution", amount: "2500.00" }],
+    dividends: {
+      trailingTwelveMonths: "512.40",
+      monthly: [{ month: "2026-08", total: "46.80" }],
+    },
     ...overrides,
   };
 }
@@ -198,6 +202,7 @@ describe("InvestmentPerformancePanel", () => {
         positions: [],
       },
       flows: [],
+      dividends: { trailingTwelveMonths: "0.00", monthly: [] },
     });
     render(<InvestmentPerformancePanel />);
     await waitFor(() => {
@@ -205,6 +210,15 @@ describe("InvestmentPerformancePanel", () => {
         screen.getByText("Connect an investment account to see performance.")
       ).toBeInTheDocument();
     });
+  });
+
+  it("shows the trailing dividend income tile", async () => {
+    render(<InvestmentPerformancePanel />);
+    await waitFor(() => {
+      expect(screen.getByText("Dividends")).toBeInTheDocument();
+    });
+    expect(screen.getByText("$512.40")).toBeInTheDocument();
+    expect(screen.getByText("trailing 12 months")).toBeInTheDocument();
   });
 
   it("notes that per-account lines are still accruing", async () => {
