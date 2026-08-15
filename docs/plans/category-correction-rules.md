@@ -23,7 +23,7 @@ A human can demonstrate the result: open the dashboard's Analytics view, select 
 - [x] (2026-08-15 22:15Z) Milestone 2: `selectClassifiedTransactionRows` helper; both analytics routes rewired (mock chains survived as designed); `/api/transactions` and `/api/shared/[token]` map through `applyCategoryRules` with response shapes unchanged; new route tests prove a CR-Bkrg fixture lands in savings (cashflow) and withdrawals (investments). Full suite 330 passed / 41 skipped.
 - [x] (2026-08-15 22:20Z) Milestone 3: `CashflowRow` widened, `CashflowLineItem` added, `aggregateCashflow` emits date-sorted `incomeItems`/`savingsItems`; 3 new unit tests (display signs, sorting, pending/internal exclusion). Suite 333 passed.
 - [x] (2026-08-15 22:25Z) Milestone 4: Income/Saved tiles are toggle buttons (`aria-pressed`), `LineItemList` renders date/name/category·account/amount with withdrawals in red, drilldown resets on month change; 5 new component tests. Suite 338 passed.
-- [ ] Milestone 5: gate + deploy. (Completed so far 2026-08-15 22:30Z: full gate green — 338 passed / 41 skipped, tsc clean, lint clean except the known pre-existing `sync-holdings.ts` warning, build compiles; fresh production export through the real shipped modules reproduces the acceptance table exactly, April income drilldown = 9 salary/interest items with no CR-Bkrg, tripwire 0. Remaining: push, `scripts/deploy.sh`, and Justin's eyeball of the deployed dashboard.)
+- [ ] Milestone 5: gate + deploy. (Completed 2026-08-15 22:32Z: full gate green — 338 passed / 41 skipped, tsc clean, lint clean except the known pre-existing `sync-holdings.ts` warning, build compiles; fresh production export through the real shipped modules reproduces the acceptance table exactly, April income drilldown = 9 salary/interest items with no CR-Bkrg, tripwire 0; pushed as e4dff10 and deployed via `scripts/deploy.sh`, health check `{"status":"ok","db":"ok"}`. Remaining: Justin eyeballs the deployed dashboard — April Income $16,064.86 / Saved $6,905.28, drilldowns, and the feed showing CR-Bkrg as "transfer in".)
 
 
 ## Surprises & Discoveries
@@ -76,7 +76,9 @@ Pre-seeded from research; add implementation discoveries below.
 
 ## Outcomes & Retrospective
 
-To be written at completion.
+(2026-08-15, shipped) The purpose is met: OtterMint can now disagree with Plaid. The correction layer is one pure module + one query choke point + two thin display-route maps, zero schema changes, zero data operations — the entire fix deployed as application code and was retroactive on arrival. Measured impact: April 2026 income −$3,000.00 and savings −$3,000.00, May income −$595.00 and savings −$595.00, and $3,595.00 of previously invisible brokerage withdrawals now reach the investment-flow extraction. The drilldown turns the next miscategorization from a NAS SQL session into a glance.
+
+Process notes worth keeping: (a) the load-bearing pass earned its cost — it caught that two non-analytics surfaces would have contradicted the corrected numbers on the same screen, which widened the design from "analytics choke point" to "choke point + pure-function maps at the remaining readers"; (b) validating the acceptance table by running the production export through the real modules before deploy meant the deploy step carried no numerical uncertainty at all; (c) main moved underneath this work mid-implementation (the allocation/dividends feature landed between research and Milestone 2) — the order-based investments-route mock survived because the helper preserved the flows select's queue position, exactly the compatibility the plan had specified as a constraint. Remaining: Justin's eyeball of the deployed dashboard, and the two accepted residual risks (pattern false-positives, vendor name drift) stand with their documented mitigations.
 
 
 ## Context and Orientation
