@@ -56,13 +56,31 @@ const FLOWS = [
   {
     amount: "2500.00",
     date: "2026-07-31",
+    name: "Manual DB-Bkrg 07/31",
+    merchantName: null,
     category: "TRANSFER_OUT",
     categoryDetailed: "TRANSFER_OUT_INVESTMENT_AND_RETIREMENT_FUNDS",
     pending: false,
     accountType: "depository",
     accountSubtype: "checking",
+    accountName: "TOTAL CHECKING",
   },
 ];
+
+// A brokerage credit Plaid mislabels as income; the category-correction rule
+// (src/lib/category-rules.ts) must reroute it into the withdrawal flows.
+const CR_BKRG_FLOW = {
+  amount: "-1000.00",
+  date: "2026-08-01",
+  name: "Manual CR-Bkrg",
+  merchantName: null,
+  category: "INCOME",
+  categoryDetailed: "INCOME_CONTRACTOR",
+  pending: false,
+  accountType: "depository",
+  accountSubtype: "checking",
+  accountName: "TOTAL CHECKING",
+};
 
 const DIVIDEND_ROWS = [
   { date: "2026-08-01", amount: "-46.80", subtype: "dividend" },
@@ -140,6 +158,23 @@ describe("GET /api/analytics/investments", () => {
     expect(body.flows).toEqual([
       { date: "2026-07-31", kind: "contribution", amount: "2500.00" },
     ]);
+  });
+
+  it("corrects Plaid-miscategorized brokerage credits into withdrawal flows", async () => {
+    queue(
+      AGGREGATE,
+      ACCOUNT_SNAPSHOTS,
+      EVENTS,
+      [...FLOWS, CR_BKRG_FLOW],
+      DIVIDEND_ROWS,
+      HOLDINGS
+    );
+    const body = await (await GET(request())).json();
+    expect(body.flows).toContainEqual({
+      date: "2026-08-01",
+      kind: "withdrawal",
+      amount: "1000.00",
+    });
   });
 
   it("returns the allocation breakdown", async () => {

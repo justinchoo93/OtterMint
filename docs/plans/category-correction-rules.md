@@ -9,7 +9,7 @@ This document must be maintained in accordance with `docs/PLANS.md` from the rep
 
 OtterMint's cash-flow analytics classify every Plaid transaction into exactly one of income, spending, savings, or internal plumbing, and the dashboard charts those totals per month. The classification trusts Plaid's category labels, and Plaid is sometimes wrong: in production, three Chase transactions named "Manual CR-Bkrg" — money moved *from* a brokerage *into* checking — arrive tagged `INCOME_CONTRACTOR`. The dashboard therefore overstates April 2026 income by $3,000.00 and May 2026 income by $595.00, overstates savings for those months by the same amounts (a brokerage withdrawal should *subtract* from net savings), and silently omits $3,595.00 of withdrawals from the investment-performance flow extraction. There is currently no mechanism anywhere in the codebase to disagree with Plaid, and no way to even see the line items behind the Income and Saved numbers without querying the production database by hand.
 
-After this work, two things exist that do not today. First, a correction-rules layer: a small, tested list of pattern-to-category rules that is applied to every transaction row read for analytics, at a single shared query helper both analytics endpoints use, so a Plaid mistake is fixed once, retroactively, and for every future transaction matching the pattern — without touching the raw data Plaid wrote and without any database migration or backfill. The seeded first rule corrects "Manual CR-Bkrg" to an investment-funds withdrawal. Second, a drilldown: clicking the Income or Saved tile on the dashboard's Cash Flow panel lists the dated line items that make up that month's number, so the next miscategorization is visible to a human eyeball instead of requiring SQL.
+After this work, two things exist that do not today. First, a correction-rules layer: a small, tested list of pattern-to-category rules that is applied to every transaction row the application reads — the two analytics endpoints via a single shared query helper, and the two display surfaces (the Recent Transactions feed's API and the shared-link API) via the same pure function — so a Plaid mistake is fixed once, retroactively, and for every future transaction matching the pattern — without touching the raw data Plaid wrote and without any database migration or backfill. The seeded first rule corrects "Manual CR-Bkrg" to an investment-funds withdrawal. Second, a drilldown: clicking the Income or Saved tile on the dashboard's Cash Flow panel lists the dated line items that make up that month's number, so the next miscategorization is visible to a human eyeball instead of requiring SQL.
 
 A human can demonstrate the result: open the dashboard's Analytics view, select April 2026 in the Cash Flow panel, and see Income $16,064.86 (previously $19,064.86) and Saved $6,905.28 (previously $9,905.28); click the Income tile and see eleven dated line items — salary deposits, interest, and no "Manual CR-Bkrg" — and click the Saved tile and see the month's brokerage contributions listed with the corrected withdrawal subtracting.
 
@@ -17,10 +17,10 @@ A human can demonstrate the result: open the dashboard's Analytics view, select 
 ## Progress
 
 - [x] (2026-08-15) Researched the classifier, both analytics routes, the sync overwrite behavior, the panel, the test idioms, and the production data on the NAS. Wrote this plan.
-- [ ] Load-bearing assumption validation (see Decision Log for outcomes).
-- [ ] Acceptance-criteria numbers re-validated against a fresh production export through the proposed rule.
-- [ ] Milestone 1: `src/lib/category-rules.ts` with the seeded CR-Bkrg rule and unit tests.
-- [ ] Milestone 2: shared query helper `src/lib/db/classified-transactions.ts`; both analytics routes rewired; route tests prove the correction end to end.
+- [x] (2026-08-15) Load-bearing assumption validation: four assumptions surfaced; two resolved by the user (scope widened to the display surfaces; CR-Bkrg semantics confirmed by the account owner), two accepted as residual risks with mitigations (see Decision Log).
+- [x] (2026-08-15) Acceptance-criteria numbers validated: a fresh production export (435 non-pending rows) run through the proposed rule and the existing `aggregateCashflow`/`extractInvestmentFlows` reproduces every number in the Validation section exactly — April 16,064.86/6,905.28, May 14,278.03/7,710.49, June–July unchanged, three new withdrawal flows, zero INCOME rows left matching a rule pattern.
+- [x] (2026-08-15 22:12Z) Milestone 1: `src/lib/category-rules.ts` with the seeded CR-Bkrg rule; 6 unit tests including the two-consumer end-to-end assertions (classifies as savings, extracts as withdrawal).
+- [x] (2026-08-15 22:15Z) Milestone 2: `selectClassifiedTransactionRows` helper; both analytics routes rewired (mock chains survived as designed); `/api/transactions` and `/api/shared/[token]` map through `applyCategoryRules` with response shapes unchanged; new route tests prove a CR-Bkrg fixture lands in savings (cashflow) and withdrawals (investments). Full suite 330 passed / 41 skipped.
 - [ ] Milestone 3: `aggregateCashflow` emits per-month income and savings line items; unit tests.
 - [ ] Milestone 4: Income/Saved tile drilldown in `CashflowPanel`; component tests.
 - [ ] Milestone 5: full gate (tests, tsc, lint, build), deploy, production verification of the corrected April/May numbers.
@@ -40,6 +40,8 @@ Pre-seeded from research; add implementation discoveries below.
   Evidence: lines 96–110 of `src/lib/investment-performance.ts`.
 - Observation: Both analytics routes hand-roll the identical three-table join (`transactions ⋈ accounts ⋈ plaid_items`) selecting the same classifiable fields. Factoring it into one helper is both the deduplication and the guarantee that every consumer gets corrected rows — forgetting to apply the rules becomes impossible rather than merely discouraged.
   Evidence: `src/app/api/analytics/cashflow/route.ts` lines 29–50 and `src/app/api/analytics/investments/route.ts` lines 97–112.
+- Observation: Two user-visible surfaces outside analytics read raw transaction categories and would have contradicted the corrected analytics on the same screen: `src/app/api/transactions/route.ts` (feeds `TransactionsFeed.tsx`, which renders `formatCategory(txn.category)`) and the shared-link payload in `src/app/api/shared/[token]/route.ts` (selects `transactions.category` at line 160). Surfaced by the load-bearing analysis; the user chose to correct everywhere.
+  Evidence: `grep -rn "from(transactions)" src/app` returns exactly four route files — the two analytics routes and these two.
 - Observation: The corrected rows barely move the investments view in practice: attribution and XIRR only trust flows inside the snapshot window, which begins 2026-07-04, and the default 90-day fetch window reaches back only to mid-May — all three CR-Bkrg rows (April 21/29, May 5) predate both. They appear in the `flows` array only when the user selects a range long enough to include them. The fix is still required for correctness whenever the range covers them.
   Evidence: `user_net_worth_snapshots` earliest row 2026-07-04 (production, 2026-08-14); `days` defaults to 90 in `src/app/api/analytics/investments/route.ts`.
 
@@ -61,6 +63,12 @@ Pre-seeded from research; add implementation discoveries below.
 - Decision: Drilldown covers Income and Saved only, not Spending.
   Rationale: Spending already has a per-category breakdown chart in the panel; Income and Saved are the opaque single numbers that hid this bug.
   Date/Author: 2026-08-15 / Justin (scope agreed in conversation).
+- Decision: The correction applies to every category-reading surface, not just analytics: `/api/transactions` and `/api/shared/[token]` also map their rows through `applyCategoryRules`.
+  Rationale: load-bearing analysis found that otherwise a CR-Bkrg row would display as "Income" in the Recent Transactions feed on the same dashboard whose Cash Flow panel counts it as savings. The user chose "correct everywhere". The two display routes get a thin `.map(applyCategoryRules)` over the unit-tested pure function; no new route-test files for them (they have none today, and the mapping carries no logic of its own — the type-checker proves the wiring, the unit tests prove the behavior).
+  Date/Author: 2026-08-15 / Justin (load-bearing outcome).
+- Decision: The CR-Bkrg premise is confirmed, and the two unverifiable-future assumptions are accepted as residual risks with mitigations.
+  Rationale: the account owner confirmed the three "Manual CR-Bkrg" credits are brokerage→checking withdrawals, mirrors of the "Manual DB-Bkrg" contributions. Residual risk 1 — the pattern could someday match a non-withdrawal: accepted without guard fields because the signed-sum design self-corrects the plausible case (a positive-amount CR-Bkrg clawback would count as a contribution exactly offsetting the erroneous withdrawal, netting to the true answer). Residual risk 2 — Chase/Plaid could rename the memo, silently reverting the fix on a future re-sync: accepted because the Income drilldown built in Milestone 4 is the detection mechanism (a reappearing CR-Bkrg income line is visible on sight), and the pre-deploy production check asserts no `INCOME_*` row matches a rule pattern at ship time.
+  Date/Author: 2026-08-15 / Justin + Claude (load-bearing outcome).
 - Decision: `CashflowRow` gains three required fields (`name`, `merchantName`, `accountName`) rather than optional ones.
   Rationale: the route always supplies them; optional fields would force fallback rendering for a state that cannot occur. Test fixtures get a mechanical three-field addition.
   Date/Author: 2026-08-15 / Claude.
@@ -167,9 +175,11 @@ The function runs the canonical join — `transactions` inner-joined to `account
 
 Rewire `src/app/api/analytics/cashflow/route.ts`: replace the inline select with `selectClassifiedTransactionRows(tx, userId, windowStart)` (the SQL pending filter is intentionally dropped — see Decision Log). Rewire `src/app/api/analytics/investments/route.ts`: replace the `flowRows` select with `selectClassifiedTransactionRows(tx, userId, since)`. The other four selects in that route are not transaction reads and are untouched.
 
+Correct the two display surfaces with the pure function directly (their query shapes — `orderBy`/`limit`, `inArray` scoping — don't fit the helper, and per the Decision Log they get no new route-test files). In `src/app/api/transactions/route.ts`, map each row through `applyCategoryRules` before building the `TransactionRow` result — the `getTableColumns(transactions)` select already includes `name` and `categoryDetailed`, so rows satisfy the function's constraint as-is. In `src/app/api/shared/[token]/route.ts`, add `categoryDetailed: transactions.categoryDetailed` to the transactions select (around line 160), map the rows through `applyCategoryRules`, and then project back to the original five response fields so the shared payload's shape is unchanged — the corrected `category` is what ships. After this, a CR-Bkrg row renders in the Recent Transactions feed as "transfer in" (via `formatCategory`'s lowercase fallback) instead of "Income".
+
 Update `src/__tests__/cashflow-route.test.ts`: add `name`, `merchantName`, `accountName` to the fixture rows, and add one CR-Bkrg fixture row (name "Manual CR-Bkrg", category "INCOME", detailed "INCOME_CONTRACTOR", amount "-500.00", checking) plus assertions that income does **not** include the $500 and savings *decreases* by $500 relative to the fixture's contribution — proving the correction through the real route code path. Update `src/__tests__/investments-route.test.ts` (or the equivalent investments route test file) the same way if its flow fixtures need the new fields, and add an assertion that a CR-Bkrg fixture row surfaces in `flows` as a withdrawal.
 
-Acceptance: both route test files pass; the full suite passes; `grep -rn "innerJoin(plaidItems" src/app` shows no analytics route hand-rolling the transactions join anymore.
+Acceptance: both analytics route test files pass; the full suite passes; the two analytics routes no longer hand-roll the transactions join (`grep -rn "from(transactions)" src/app/api/analytics` returns nothing); `grep -rln "applyCategoryRules" src/app` lists exactly the two display routes.
 
 
 ### Milestone 3 — line items in the aggregation
@@ -261,7 +271,7 @@ The data-level acceptance, computed from the production export of 2026-08-15 (43
 
 `netCashFlow` for April and May drops by exactly the corrected amounts ($3,000.00 and $595.00) since spending is untouched. For investment performance, requesting `/api/analytics/investments?days=730` yields three new withdrawal entries in `flows`: $1,000.00 on 2026-04-21, $2,000.00 on 2026-04-29, $595.00 on 2026-05-05; the default 90-day view is unchanged because those dates fall outside it, and attribution/XIRR are unchanged because the trusted snapshot window begins 2026-07-04.
 
-The UI-level acceptance is behavioral: on the deployed dashboard, the April Income drilldown lists exactly the salary and interest deposits (no CR-Bkrg), the Saved drilldown lists the brokerage transfers, amounts and dates match the tables above, toggling works as described in Milestone 4, and a month with no line items shows the empty state.
+The UI-level acceptance is behavioral: on the deployed dashboard, the April Income drilldown lists exactly the salary and interest deposits (no CR-Bkrg), the Saved drilldown lists the brokerage transfers, amounts and dates match the tables above, toggling works as described in Milestone 4, and a month with no line items shows the empty state. The Recent Transactions feed, scrolled or limited to reach the April/May rows, shows "Manual CR-Bkrg" categorized "transfer in", not "Income", and a shared link with transactions included carries `category: "TRANSFER_IN"` for those rows.
 
 
 ## Idempotence and Recovery
@@ -294,4 +304,11 @@ In `src/lib/investment-performance.ts`: unchanged.
 
 In `src/app/api/analytics/cashflow/route.ts` and `src/app/api/analytics/investments/route.ts` (modified): transaction reads go through `selectClassifiedTransactionRows`.
 
+In `src/app/api/transactions/route.ts` and `src/app/api/shared/[token]/route.ts` (modified): rows map through `applyCategoryRules` before the response is built; response shapes unchanged.
+
 In `src/components/dashboard/CashflowPanel.tsx` (modified): drilldown state and line-item section per Milestone 4.
+
+
+---
+
+Revision note (2026-08-15): After the load-bearing analysis, the correction scope widened from analytics-only to every category-reading surface (`/api/transactions` and `/api/shared/[token]` added to Milestone 2), because the user judged a same-screen contradiction between the feed and the Cash Flow panel unacceptable. The CR-Bkrg semantics were confirmed by the account owner, and two future-vendor-behavior assumptions were accepted as residual risks with mitigations. All sections updated accordingly.

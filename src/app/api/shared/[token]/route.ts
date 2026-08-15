@@ -12,6 +12,7 @@ import {
 import { eq, and, gte, asc, desc, inArray, sql } from "drizzle-orm";
 import { enforceRateLimit, getClientIp } from "@/lib/rate-limit";
 import { withUser } from "@/lib/db/with-user";
+import { applyCategoryRules } from "@/lib/category-rules";
 
 interface ShareLinkRow {
   user_id: string;
@@ -158,6 +159,8 @@ export async function GET(
                     merchantName: transactions.merchantName,
                     amount: transactions.amount,
                     category: transactions.category,
+                    // Selected only for applyCategoryRules; stripped below.
+                    categoryDetailed: transactions.categoryDetailed,
                   })
                   .from(transactions)
                   .where(inArray(transactions.accountId, accountIds))
@@ -165,7 +168,17 @@ export async function GET(
                   .limit(200)
               : [];
 
-          result.transactions = txns;
+          // Corrected categories, same as the owner's own views; the shared
+          // payload keeps its original five fields.
+          result.transactions = txns
+            .map(applyCategoryRules)
+            .map(({ date, name, merchantName, amount, category }) => ({
+              date,
+              name,
+              merchantName,
+              amount,
+              category,
+            }));
         } else {
           result.transactions = [];
         }

@@ -35,79 +35,78 @@ import { GET } from "@/app/api/analytics/cashflow/route";
 // The reconciliation fixture from docs/plans/cash-flow-analytics.md, as rows
 // the route's select would return. Hand-computed expectations:
 //   income 4200.00, spending 2682.33, savings 1000.00, netCashFlow 1517.67.
-const FIXTURE_ROWS = [
-  {
-    amount: "-4200.00",
-    date: "2026-08-01",
-    category: "INCOME",
-    categoryDetailed: "INCOME_WAGES",
+function fixtureRow(overrides: Record<string, unknown>) {
+  return {
+    name: "Fixture Txn",
+    merchantName: null,
     pending: false,
     accountType: "depository",
     accountSubtype: "checking",
-  },
-  {
+    accountName: "TOTAL CHECKING",
+    ...overrides,
+  };
+}
+
+const FIXTURE_ROWS = [
+  fixtureRow({
+    amount: "-4200.00",
+    date: "2026-08-01",
+    name: "ACME PAYROLL",
+    category: "INCOME",
+    categoryDetailed: "INCOME_WAGES",
+  }),
+  fixtureRow({
     amount: "350.00",
     date: "2026-08-03",
     category: "FOOD_AND_DRINK",
     categoryDetailed: "FOOD_AND_DRINK_GROCERIES",
-    pending: false,
     accountType: "credit",
     accountSubtype: "credit card",
-  },
-  {
+    accountName: "CREDIT CARD",
+  }),
+  fixtureRow({
     amount: "412.33",
     date: "2026-08-05",
     category: "FOOD_AND_DRINK",
     categoryDetailed: "FOOD_AND_DRINK_RESTAURANTS",
-    pending: false,
     accountType: "credit",
     accountSubtype: "credit card",
-  },
-  {
+    accountName: "CREDIT CARD",
+  }),
+  fixtureRow({
     amount: "1800.00",
     date: "2026-08-01",
     category: "RENT_AND_UTILITIES",
     categoryDetailed: "RENT_AND_UTILITIES_RENT",
-    pending: false,
-    accountType: "depository",
-    accountSubtype: "checking",
-  },
-  {
+  }),
+  fixtureRow({
     amount: "1850.00",
     date: "2026-08-10",
     category: "LOAN_PAYMENTS",
     categoryDetailed: "LOAN_PAYMENTS_CREDIT_CARD_PAYMENT",
-    pending: false,
-    accountType: "depository",
-    accountSubtype: "checking",
-  },
-  {
+  }),
+  fixtureRow({
     amount: "-1850.00",
     date: "2026-08-10",
     category: "LOAN_PAYMENTS",
     categoryDetailed: "LOAN_PAYMENTS_CREDIT_CARD_PAYMENT",
-    pending: false,
     accountType: "credit",
     accountSubtype: "credit card",
-  },
-  {
+    accountName: "CREDIT CARD",
+  }),
+  fixtureRow({
     amount: "1000.00",
     date: "2026-08-11",
+    name: "Manual DB-Bkrg 08/11",
     category: "TRANSFER_OUT",
     categoryDetailed: "TRANSFER_OUT_INVESTMENT_AND_RETIREMENT_FUNDS",
-    pending: false,
-    accountType: "depository",
-    accountSubtype: "checking",
-  },
-  {
+  }),
+  fixtureRow({
     amount: "120.00",
     date: "2026-08-12",
     category: "TRANSFER_OUT",
     categoryDetailed: "TRANSFER_OUT_OTHER_TRANSFER_OUT",
-    pending: false,
-    accountType: "depository",
-    accountSubtype: "checking",
-  },
+  }),
 ];
 
 beforeEach(() => {
@@ -166,6 +165,28 @@ describe("GET /api/analytics/cashflow", () => {
 
     const invalid = await (await GET(request("?months=abc"))).json();
     expect(invalid.months).toHaveLength(6);
+  });
+
+  it("corrects Plaid-miscategorized brokerage credits out of income into savings", async () => {
+    // A CR-Bkrg credit arrives tagged INCOME_CONTRACTOR; the category rule
+    // (src/lib/category-rules.ts) reroutes it, so income is unchanged and its
+    // negative amount subtracts from savings as a withdrawal.
+    mockWhere.mockResolvedValueOnce([
+      ...FIXTURE_ROWS,
+      fixtureRow({
+        amount: "-500.00",
+        date: "2026-08-12",
+        name: "Manual CR-Bkrg",
+        category: "INCOME",
+        categoryDetailed: "INCOME_CONTRACTOR",
+      }),
+    ]);
+    const body = await (await GET(request("?months=1"))).json();
+
+    expect(body.months[0]).toMatchObject({
+      income: "4200.00",
+      savings: "500.00",
+    });
   });
 
   it("returns a zero-filled window for a user with no transactions", async () => {

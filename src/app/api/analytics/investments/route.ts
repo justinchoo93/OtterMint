@@ -5,14 +5,13 @@ import {
   accountBalanceSnapshots,
   holdings,
   investmentTransactions,
-  plaidItems,
-  transactions,
   userNetWorthCoverageEvents,
   userNetWorthSnapshots,
 } from "@/lib/db/schema";
 import { and, eq, gte } from "drizzle-orm";
 import { getUserId, isAuthError } from "@/lib/auth/get-user-id";
 import { withUser } from "@/lib/db/with-user";
+import { selectClassifiedTransactionRows } from "@/lib/db/classified-transactions";
 import {
   buildPortfolioSeries,
   computeAllocation,
@@ -103,22 +102,9 @@ export async function GET(request: NextRequest) {
           )
         );
 
-      const flowRows = await tx
-        .select({
-          amount: transactions.amount,
-          date: transactions.date,
-          category: transactions.category,
-          categoryDetailed: transactions.categoryDetailed,
-          pending: transactions.pending,
-          accountType: accounts.type,
-          accountSubtype: accounts.subtype,
-        })
-        .from(transactions)
-        .innerJoin(accounts, eq(transactions.accountId, accounts.accountId))
-        .innerJoin(plaidItems, eq(accounts.plaidItemId, plaidItems.id))
-        .where(
-          and(eq(plaidItems.userId, userId), gte(transactions.date, since))
-        );
+      // Shared helper: user-scoped join with category-correction rules
+      // applied, so corrected transfers reach extractInvestmentFlows.
+      const flowRows = await selectClassifiedTransactionRows(tx, userId, since);
 
       // Dividends use their own trailing-12-month window, independent of the
       // chart's days parameter.

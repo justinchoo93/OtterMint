@@ -4,6 +4,7 @@ import { transactions, accounts, plaidItems } from "@/lib/db/schema";
 import { desc, eq, getTableColumns } from "drizzle-orm";
 import { getUserId, isAuthError } from "@/lib/auth/get-user-id";
 import { withUser } from "@/lib/db/with-user";
+import { applyCategoryRules } from "@/lib/category-rules";
 
 export type TransactionRow = {
   id: number;
@@ -38,7 +39,9 @@ export async function GET(request: NextRequest) {
         .limit(limit)
     );
 
-    const result: TransactionRow[] = rows.map((row) => ({
+    // Corrected categories everywhere the user sees them, consistent with
+    // the analytics (see src/lib/category-rules.ts).
+    const result: TransactionRow[] = rows.map(applyCategoryRules).map((row) => ({
       id: row.id,
       accountId: row.accountId,
       transactionId: row.transactionId,

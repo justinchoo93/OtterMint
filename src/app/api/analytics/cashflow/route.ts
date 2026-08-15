@@ -1,9 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { logServerError } from "@/lib/logging";
-import { transactions, accounts, plaidItems } from "@/lib/db/schema";
-import { and, eq, gte } from "drizzle-orm";
 import { getUserId, isAuthError } from "@/lib/auth/get-user-id";
 import { withUser } from "@/lib/db/with-user";
+import { selectClassifiedTransactionRows } from "@/lib/db/classified-transactions";
 import { aggregateCashflow, type CashflowMonth } from "@/lib/cashflow";
 
 export type CashflowResponse = { months: CashflowMonth[] };
@@ -24,29 +23,10 @@ export async function GET(request: NextRequest) {
       .split("T")[0];
     const today = now.toISOString().split("T")[0];
 
-    // Scope to the authenticated user via the join (RLS also enforces the
-    // boundary on every joined table), matching /api/transactions.
+    // The shared helper scopes to the user, joins accounts for the
+    // classifiable fields, and applies category-correction rules.
     const rows = await withUser(userId, (tx) =>
-      tx
-        .select({
-          amount: transactions.amount,
-          date: transactions.date,
-          category: transactions.category,
-          categoryDetailed: transactions.categoryDetailed,
-          pending: transactions.pending,
-          accountType: accounts.type,
-          accountSubtype: accounts.subtype,
-        })
-        .from(transactions)
-        .innerJoin(accounts, eq(transactions.accountId, accounts.accountId))
-        .innerJoin(plaidItems, eq(accounts.plaidItemId, plaidItems.id))
-        .where(
-          and(
-            eq(plaidItems.userId, userId),
-            eq(transactions.pending, false),
-            gte(transactions.date, windowStart)
-          )
-        )
+      selectClassifiedTransactionRows(tx, userId, windowStart)
     );
 
     const result: CashflowResponse = {
