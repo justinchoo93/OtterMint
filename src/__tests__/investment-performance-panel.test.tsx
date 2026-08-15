@@ -20,6 +20,15 @@ vi.mock("recharts", () => ({
   Line: ({ dataKey, strokeDasharray }: { dataKey?: string; strokeDasharray?: string }) => (
     <div data-testid="chart-line" data-key={dataKey} data-dash={strokeDasharray ?? ""} />
   ),
+  PieChart: ({ children }: { children: React.ReactNode }) => (
+    <div data-testid="pie-chart">{children}</div>
+  ),
+  Pie: ({ children, data }: { children: React.ReactNode; data?: unknown[] }) => (
+    <div data-testid="pie" data-chart-data={JSON.stringify(data ?? [])}>
+      {children}
+    </div>
+  ),
+  Cell: () => null,
 }));
 
 import { InvestmentPerformancePanel } from "@/components/dashboard/InvestmentPerformancePanel";
@@ -86,6 +95,11 @@ function payload(overrides: Partial<InvestmentsResponse> = {}): InvestmentsRespo
       trailingTwelveMonths: "512.40",
       monthly: [{ month: "2026-08", total: "46.80" }],
     },
+    allocation: [
+      { type: "equity", value: "237524.57", share: "51.6", count: 16 },
+      { type: "derivative", value: "46384.00", share: "10.1", count: 4 },
+      { type: "cash", value: "16330.21", share: "3.5", count: 4 },
+    ],
     ...overrides,
   };
 }
@@ -205,6 +219,7 @@ describe("InvestmentPerformancePanel", () => {
       },
       flows: [],
       dividends: { trailingTwelveMonths: "0.00", monthly: [] },
+      allocation: [],
     });
     render(<InvestmentPerformancePanel />);
     await waitFor(() => {
@@ -212,6 +227,21 @@ describe("InvestmentPerformancePanel", () => {
         screen.getByText("Connect an investment account to see performance.")
       ).toBeInTheDocument();
     });
+  });
+
+  it("renders the allocation donut with typed labels and shares", async () => {
+    render(<InvestmentPerformancePanel />);
+    await waitFor(() => {
+      expect(screen.getByText("Allocation")).toBeInTheDocument();
+    });
+    expect(screen.getByText("Single stocks")).toBeInTheDocument();
+    expect(screen.getByText("Options")).toBeInTheDocument();
+    expect(screen.getByText("Cash")).toBeInTheDocument();
+    expect(screen.getByText("51.6%")).toBeInTheDocument();
+    const pie = screen.getByTestId("pie");
+    const chartData = JSON.parse(pie.getAttribute("data-chart-data") ?? "[]");
+    expect(chartData).toHaveLength(3);
+    expect(chartData[0]).toMatchObject({ name: "Single stocks", value: 237524.57 });
   });
 
   it("shows the trailing dividend income tile", async () => {

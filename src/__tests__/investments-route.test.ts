@@ -142,6 +142,13 @@ describe("GET /api/analytics/investments", () => {
     ]);
   });
 
+  it("returns the allocation breakdown", async () => {
+    const body = await (await GET(request())).json();
+    expect(body.allocation).toEqual([
+      { type: "etf", value: "12261.81", share: "100.0", count: 1 },
+    ]);
+  });
+
   it("returns trailing-twelve-month dividends", async () => {
     const body = await (await GET(request())).json();
     expect(body.dividends.trailingTwelveMonths).toBe("46.80");

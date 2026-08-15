@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import {
   buildPortfolioSeries,
+  computeAllocation,
   computeAttribution,
   computeDividends,
   computeUnrealized,
@@ -238,8 +239,43 @@ describe("computeDividends", () => {
   });
 });
 
-describe("computeUnrealized", () => {
-  const HOLDINGS = [
+describe("computeAllocation", () => {
+  it("groups all holdings by type with shares of total value", () => {
+    const allocation = computeAllocation(HOLDINGS_FIXTURE());
+    // Total = 77,472.90 + 41,948.91 + 13,579.98 + 2,750.23 + 1,000.00 = 136,752.02
+    expect(allocation.map((a) => a.type)).toEqual([
+      "etf",
+      "equity",
+      "cash",
+      "cash equivalent",
+    ]);
+    const etf = allocation[0];
+    expect(etf.value).toBe("77472.90");
+    expect(etf.share).toBe("56.7"); // 77,472.90 / 136,752.02
+    expect(etf.count).toBe(1);
+    const equity = allocation[1];
+    expect(equity.value).toBe("42948.91"); // MRVL + basis-less equity
+    expect(equity.count).toBe(2);
+    // Shares sum to ~100:
+    const total = allocation.reduce((s, a) => s + Number.parseFloat(a.share), 0);
+    expect(Math.abs(total - 100)).toBeLessThan(0.3);
+  });
+
+  it("buckets null types as other and handles empty input", () => {
+    expect(computeAllocation([])).toEqual([]);
+    const allocation = computeAllocation([
+      { accountId: "a", accountName: "A", securityId: "s", tickerSymbol: null,
+        name: "Mystery", value: "100.00", costBasis: null,
+        securityType: null, isCashEquivalent: null },
+    ]);
+    expect(allocation).toEqual([
+      { type: "other", value: "100.00", share: "100.0", count: 1 },
+    ]);
+  });
+});
+
+function HOLDINGS_FIXTURE() {
+  return [
     { accountId: "sd", accountName: "Self-Directed", securityId: "qqq",
       tickerSymbol: "QQQ", name: "Invesco QQQ", value: "77472.90", costBasis: "55985.88",
       securityType: "etf", isCashEquivalent: false },
@@ -256,6 +292,10 @@ describe("computeUnrealized", () => {
       tickerSymbol: "MYST", name: "No Basis Equity", value: "1000.00", costBasis: null,
       securityType: "equity", isCashEquivalent: false },
   ];
+}
+
+describe("computeUnrealized", () => {
+  const HOLDINGS = HOLDINGS_FIXTURE();
 
   it("splits cash from invested and excludes basis-less positions", () => {
     const u = computeUnrealized(HOLDINGS);

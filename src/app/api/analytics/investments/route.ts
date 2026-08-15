@@ -15,11 +15,13 @@ import { getUserId, isAuthError } from "@/lib/auth/get-user-id";
 import { withUser } from "@/lib/db/with-user";
 import {
   buildPortfolioSeries,
+  computeAllocation,
   computeAttribution,
   computeDividends,
   computeUnrealized,
   computeXirr,
   extractInvestmentFlows,
+  type AllocationSlice,
   type Attribution,
   type Dividends,
   type PortfolioSeries,
@@ -36,6 +38,8 @@ export type InvestmentsResponse = {
   flows: Array<{ date: string; kind: "contribution" | "withdrawal"; amount: string }>;
   /** Dividend income over the trailing twelve months. */
   dividends: Dividends;
+  /** Portfolio allocation by security type, all holdings included. */
+  allocation: AllocationSlice[];
 };
 
 export async function GET(request: NextRequest) {
@@ -177,6 +181,7 @@ export async function GET(request: NextRequest) {
         attribution,
         xirr,
         unrealized: computeUnrealized(holdingRows),
+        allocation: computeAllocation(holdingRows),
         flows: flows.map((flow) => ({
           date: flow.date,
           kind: flow.kind,

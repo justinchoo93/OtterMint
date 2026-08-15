@@ -10,6 +10,9 @@ import {
   ResponsiveContainer,
   CartesianGrid,
   ReferenceLine,
+  PieChart,
+  Pie,
+  Cell,
 } from "recharts";
 import { formatCurrency } from "@/lib/format";
 import type { InvestmentsResponse } from "@/app/api/analytics/investments/route";
@@ -24,6 +27,33 @@ const ACCOUNT_COLORS = [
   "var(--accent-purple)",
   "var(--accent-red)",
 ];
+
+// Color follows the security type (the entity), never its rank in the list.
+const ALLOCATION_COLORS: Record<string, string> = {
+  equity: "var(--accent-blue)",
+  etf: "var(--accent-green)",
+  "mutual fund": "var(--accent-purple)",
+  derivative: "var(--accent-amber)",
+  "fixed income": "var(--accent-red)",
+  cash: "var(--text-muted)",
+};
+
+const ALLOCATION_LABELS: Record<string, string> = {
+  equity: "Single stocks",
+  etf: "ETFs",
+  "mutual fund": "Mutual funds",
+  derivative: "Options",
+  "fixed income": "Bonds",
+  cash: "Cash",
+  other: "Other",
+};
+
+function allocationLabel(type: string): string {
+  return (
+    ALLOCATION_LABELS[type] ??
+    type.replace(/\b\w/g, (c) => c.toUpperCase())
+  );
+}
 
 const EMPTY: InvestmentsResponse = {
   series: { points: [], boundaries: [], accounts: [] },
@@ -43,6 +73,7 @@ const EMPTY: InvestmentsResponse = {
   },
   flows: [],
   dividends: { trailingTwelveMonths: "0.00", monthly: [] },
+  allocation: [],
 };
 
 function dateTimestamp(date: string): number {
@@ -441,6 +472,96 @@ export function InvestmentPerformancePanel({
                 </span>
               </div>
             ))}
+          </div>
+        </div>
+      )}
+
+      {data.allocation.length > 0 && (
+        <div className="mt-6">
+          <span className="text-xs font-medium uppercase tracking-wider text-[var(--text-muted)]">
+            Allocation
+          </span>
+          <div className="mt-3 flex flex-wrap items-center gap-x-8 gap-y-4">
+            <div className="relative h-44 w-44 shrink-0">
+              <ResponsiveContainer
+                width="100%"
+                height="100%"
+                initialDimension={{ width: 176, height: 176 }}
+              >
+                <PieChart>
+                  <Pie
+                    data={data.allocation.map((slice) => ({
+                      name: allocationLabel(slice.type),
+                      value: Number.parseFloat(slice.value),
+                      type: slice.type,
+                    }))}
+                    dataKey="value"
+                    innerRadius="62%"
+                    outerRadius="96%"
+                    stroke="var(--bg-secondary)"
+                    strokeWidth={2}
+                    isAnimationActive={false}
+                  >
+                    {data.allocation.map((slice) => (
+                      <Cell
+                        key={slice.type}
+                        fill={
+                          ALLOCATION_COLORS[slice.type] ?? "var(--accent-red)"
+                        }
+                      />
+                    ))}
+                  </Pie>
+                  <Tooltip
+                    contentStyle={{
+                      background: "var(--bg-tertiary)",
+                      border: "1px solid var(--border)",
+                      borderRadius: "8px",
+                      fontSize: "12px",
+                      color: "var(--text-primary)",
+                    }}
+                    itemStyle={{ color: "var(--text-primary)" }}
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                    formatter={(value: any) => formatCurrency(value ?? 0)}
+                  />
+                </PieChart>
+              </ResponsiveContainer>
+              <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
+                <span className="text-[10px] uppercase tracking-wider text-[var(--text-muted)]">
+                  Total
+                </span>
+                <span className="font-mono text-sm font-semibold tabular-nums">
+                  {latest ? formatCurrency(latest.value) : "—"}
+                </span>
+              </div>
+            </div>
+            <div className="min-w-[220px] flex-1 space-y-2">
+              {data.allocation.map((slice) => (
+                <div
+                  key={slice.type}
+                  className="flex items-baseline justify-between gap-3 text-sm"
+                >
+                  <span className="flex items-center gap-2">
+                    <span
+                      className="h-2.5 w-2.5 shrink-0 rounded-sm"
+                      style={{
+                        background:
+                          ALLOCATION_COLORS[slice.type] ?? "var(--accent-red)",
+                      }}
+                    />
+                    {allocationLabel(slice.type)}
+                    <span className="text-xs text-[var(--text-muted)]">
+                      ×{slice.count}
+                    </span>
+                  </span>
+                  <span className="font-mono text-xs tabular-nums text-[var(--text-secondary)]">
+                    {formatCurrency(slice.value)}
+                    <span className="ml-2 inline-block w-12 text-right text-[var(--text-primary)]">
+                      {slice.share}%
+                    </span>
+                  </span>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       )}

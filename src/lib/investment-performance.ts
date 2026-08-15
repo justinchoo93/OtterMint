@@ -413,6 +413,42 @@ export interface Unrealized {
   positions: UnrealizedPosition[];
 }
 
+export interface AllocationSlice {
+  /** Plaid security type ("equity", "etf", "cash", ...) or "other" when null. */
+  type: string;
+  value: string;
+  /** Percent of total portfolio value, e.g. "51.6". */
+  share: string;
+  count: number;
+}
+
+/**
+ * Portfolio allocation by Plaid security type over ALL holdings (cash and
+ * basis-less positions included — allocation is about where the money sits,
+ * not what it gained). Sorted by value descending.
+ */
+export function computeAllocation(rows: HoldingRowInput[]): AllocationSlice[] {
+  const byType = new Map<string, { cents: number; count: number }>();
+  let totalCents = 0;
+  for (const row of rows) {
+    const type = row.securityType ?? "other";
+    const cents = toCents(row.value);
+    totalCents += cents;
+    const entry = byType.get(type) ?? { cents: 0, count: 0 };
+    entry.cents += cents;
+    entry.count += 1;
+    byType.set(type, entry);
+  }
+  return [...byType.entries()]
+    .map(([type, { cents, count }]) => ({
+      type,
+      value: fromCents(cents),
+      share: totalCents > 0 ? ((cents / totalCents) * 100).toFixed(1) : "0.0",
+      count,
+    }))
+    .sort((a, b) => Number.parseFloat(b.value) - Number.parseFloat(a.value));
+}
+
 /**
  * Unrealized gains versus cost basis, over invested positions only. Cash and
  * cash equivalents have no gain to measure and would only dilute the
