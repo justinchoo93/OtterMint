@@ -260,6 +260,69 @@ export const holdings = pgTable(
   ]
 );
 
+// Daily per-account balance history, captured on refresh/link (last write of
+// the day wins). Accrues from first deploy; not reconstructible backward.
+export const accountBalanceSnapshots = pgTable(
+  "account_balance_snapshots",
+  {
+    id: serial("id").primaryKey(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    accountId: text("account_id")
+      .notNull()
+      .references(() => accounts.accountId, { onDelete: "cascade" }),
+    date: date("date").notNull(),
+    balance: numeric("balance", { precision: 14, scale: 2 }).notNull(),
+    // Copied from the account at capture time so history survives later edits.
+    type: text("type").notNull(),
+    subtype: text("subtype"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [
+    unique("account_balance_snapshots_account_date_unique").on(
+      t.accountId,
+      t.date
+    ),
+    index("idx_account_balance_snapshots_user_date").on(t.userId, t.date),
+  ]
+);
+
+// Daily per-holding value history for investment accounts, captured alongside
+// account balances.
+export const holdingSnapshots = pgTable(
+  "holding_snapshots",
+  {
+    id: serial("id").primaryKey(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    accountId: text("account_id")
+      .notNull()
+      .references(() => accounts.accountId, { onDelete: "cascade" }),
+    securityId: text("security_id").notNull(),
+    tickerSymbol: text("ticker_symbol"),
+    quantity: numeric("quantity", { precision: 18, scale: 8 }).notNull(),
+    price: numeric("price", { precision: 12, scale: 4 }).notNull(),
+    value: numeric("value", { precision: 14, scale: 2 }).notNull(),
+    costBasis: numeric("cost_basis", { precision: 14, scale: 2 }),
+    date: date("date").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [
+    unique("holding_snapshots_account_security_date_unique").on(
+      t.accountId,
+      t.securityId,
+      t.date
+    ),
+    index("idx_holding_snapshots_user_date").on(t.userId, t.date),
+  ]
+);
+
 export const manualAccounts = pgTable(
   "manual_accounts",
   {

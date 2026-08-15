@@ -10,6 +10,7 @@ import { syncHoldings } from "@/lib/sync-holdings";
 import { eq } from "drizzle-orm";
 import { PlaidError } from "plaid";
 import { getUserId, isAuthError } from "@/lib/auth/get-user-id";
+import { captureAccountSnapshots } from "@/lib/capture-snapshots";
 import { withUser } from "@/lib/db/with-user";
 import { enforceRateLimit } from "@/lib/rate-limit";
 import { logServerError } from "@/lib/logging";
@@ -155,9 +156,15 @@ export async function POST() {
     }
   }
 
-  // Persist the refreshed totals and source-set fingerprint. Group snapshots
-  // remain best-effort so one household issue cannot discard a successful
-  // personal refresh.
+  // Capture per-account and per-holding history, then persist the refreshed
+  // totals and source-set fingerprint. Both are best-effort so a snapshot
+  // issue cannot discard a successful refresh.
+  try {
+    await captureAccountSnapshots(userId, tx);
+  } catch (err) {
+    logServerError("Failed to capture account snapshots", err);
+  }
+
   try {
     await recomputeUserNetWorthSnapshot(userId, tx);
   } catch (err) {

@@ -78,6 +78,13 @@
       "when": 1786663746495,
       "tag": "0010_equal_zeigeist",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1786818512253,
+      "tag": "0011_sleepy_madame_masque",
+      "breakpoints": true
     }
   ]
 }

@@ -8,6 +8,7 @@ import { logServerError } from "@/lib/logging";
 import { FIELD_LIMITS, validateBoundedString } from "@/lib/validate-request";
 import { syncTransactions } from "@/lib/sync-transactions";
 import { syncHoldings } from "@/lib/sync-holdings";
+import { captureAccountSnapshots } from "@/lib/capture-snapshots";
 import { eq } from "drizzle-orm";
 import { AccountType } from "plaid";
 import { saveCoverageEvent } from "@/lib/coverage-events";
@@ -119,6 +120,7 @@ export async function POST(request: NextRequest) {
       // The accounts, first-known coverage adjustments, fingerprint, and
       // canonical personal snapshot are one local transaction. Plaid history
       // sync remains best-effort below and cannot create a partial baseline.
+      await captureAccountSnapshots(userId, tx);
       await recomputeUserNetWorthSnapshot(userId, tx);
 
       return item;
@@ -148,6 +150,10 @@ export async function POST(request: NextRequest) {
           .map((acct) => acct.account_id);
         if (investmentAccountIds.length > 0) {
           await syncHoldings(access_token, investmentAccountIds, userId, tx);
+          // Re-capture so day-one holding snapshots exist (the capture in the
+          // link transaction ran before holdings were synced). Daily upsert
+          // makes this idempotent.
+          await captureAccountSnapshots(userId, tx);
         }
       });
     } catch (err) {

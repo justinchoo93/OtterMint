@@ -7,7 +7,7 @@
 // run. It is gated behind RLS_TEST_DATABASE_URL: when that env var is unset the
 // whole suite is SKIPPED, so the default `npm test` (no database) stays green.
 //
-// To run it: apply migrations 0000-0009, then set app_user's password out-of-band
+// To run it: apply migrations 0000-0011, then set app_user's password out-of-band
 // (the role is created without one), e.g.:
 //   docker exec ottermint-test-db psql -U postgres -d ottermint -c "ALTER ROLE app_user PASSWORD '<pw>'"
 //   RLS_TEST_DATABASE_URL=postgresql://app_user:<pw>@localhost:5433/ottermint \
@@ -122,6 +122,20 @@ describe.skipIf(!APP_URL)("RLS full isolation", () => {
         quantity, price, value)
       values (${userB}, ${"acc-b-" + SUFFIX}, 'sec-b', 'B hold', '1', '1', '1')`;
 
+    // per-account balance + holding history snapshots
+    await adminSql`insert into account_balance_snapshots (user_id, account_id,
+        date, balance, type)
+      values (${userA}, ${"acc-a-" + SUFFIX}, '2026-01-01', '100', 'depository')`;
+    await adminSql`insert into account_balance_snapshots (user_id, account_id,
+        date, balance, type)
+      values (${userB}, ${"acc-b-" + SUFFIX}, '2026-01-01', '200', 'depository')`;
+    await adminSql`insert into holding_snapshots (user_id, account_id,
+        security_id, quantity, price, value, date)
+      values (${userA}, ${"acc-a-" + SUFFIX}, 'sec-a', '1', '1', '1', '2026-01-01')`;
+    await adminSql`insert into holding_snapshots (user_id, account_id,
+        security_id, quantity, price, value, date)
+      values (${userB}, ${"acc-b-" + SUFFIX}, 'sec-b', '1', '1', '1', '2026-01-01')`;
+
     // share links
     await adminSql`insert into share_links (user_id, token, include_net_worth)
       values (${userA}, ${"share-a-" + SUFFIX}, true)`;
@@ -189,6 +203,8 @@ describe.skipIf(!APP_URL)("RLS full isolation", () => {
     "share_links",
     "user_net_worth_snapshots",
     "user_net_worth_coverage_events",
+    "account_balance_snapshots",
+    "holding_snapshots",
     "sessions",
   ] as const;
 
@@ -199,6 +215,8 @@ describe.skipIf(!APP_URL)("RLS full isolation", () => {
     "share_links",
     "user_net_worth_snapshots",
     "user_net_worth_coverage_events",
+    "account_balance_snapshots",
+    "holding_snapshots",
     "sessions",
   ] as const;
 
