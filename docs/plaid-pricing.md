@@ -23,8 +23,11 @@ Link config: `src/app/api/plaid/create-link-token/route.ts`
 - **Transactions** — required. $0.30/account/month on every connected account.
 - **Investments (Holdings)** — `optional_products`, attached only when the institution supports it.
   $0.18/account/month on investment accounts.
+- **Investments (Transactions)** — active since 2026-08-15 (`src/lib/sync-investment-transactions.ts`,
+  called on refresh for investment accounts). $0.35/account/month on investment accounts —
+  approved for dividend/realized-gain analytics (docs/plans/investment-performance.md, Milestone 6).
 
-OtterMint does **not** use Investments Transactions ($0.35) or Liabilities ($0.20).
+OtterMint does **not** use Liabilities ($0.20).
 
 ## Cost hygiene
 
