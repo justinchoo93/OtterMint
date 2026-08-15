@@ -12,7 +12,11 @@ import {
   Legend,
 } from "recharts";
 import { formatCurrency } from "@/lib/format";
-import { labelForCategoryKey, type CashflowMonth } from "@/lib/cashflow";
+import {
+  labelForCategoryKey,
+  type CashflowLineItem,
+  type CashflowMonth,
+} from "@/lib/cashflow";
 
 interface CashflowPanelProps {
   refreshKey?: number;
@@ -44,9 +48,12 @@ interface KpiTileProps {
   value: string;
   tone: "green" | "red" | "blue" | "signed";
   subLabel?: string;
+  /** When set, the tile is a toggle button for its drilldown. */
+  onClick?: () => void;
+  active?: boolean;
 }
 
-function KpiTile({ label, value, tone, subLabel }: KpiTileProps) {
+function KpiTile({ label, value, tone, subLabel, onClick, active }: KpiTileProps) {
   const amount = parseFloat(value);
   const color =
     tone === "signed"
@@ -59,8 +66,13 @@ function KpiTile({ label, value, tone, subLabel }: KpiTileProps) {
           ? "var(--accent-red)"
           : "var(--accent-blue)";
 
-  return (
-    <div className="rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-tertiary)] p-3">
+  const className = `rounded-lg border p-3 ${
+    active
+      ? "border-[var(--border)] bg-[var(--bg-hover)]"
+      : "border-[var(--border-subtle)] bg-[var(--bg-tertiary)]"
+  }`;
+  const body = (
+    <>
       <span className="text-xs text-[var(--text-muted)]">{label}</span>
       <div
         className="mt-1 font-mono text-lg font-semibold tabular-nums"
@@ -71,13 +83,75 @@ function KpiTile({ label, value, tone, subLabel }: KpiTileProps) {
       {subLabel && (
         <div className="text-xs text-[var(--text-muted)]">{subLabel}</div>
       )}
-    </div>
+    </>
+  );
+
+  if (!onClick) return <div className={className}>{body}</div>;
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-pressed={active}
+      className={`${className} w-full cursor-pointer text-left`}
+    >
+      {body}
+    </button>
+  );
+}
+
+function itemDateLabel(date: string): string {
+  return new Date(`${date}T00:00:00`).toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+  });
+}
+
+function LineItemList({ items }: { items: CashflowLineItem[] }) {
+  if (items.length === 0) {
+    return (
+      <div className="mt-3 rounded-lg border border-dashed border-[var(--border)] p-6 text-center text-sm text-[var(--text-muted)]">
+        No line items for this month
+      </div>
+    );
+  }
+  return (
+    <ul className="mt-3 divide-y divide-[var(--border-subtle)] rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-tertiary)]">
+      {items.map((item, i) => (
+        <li
+          key={`${item.date}-${item.name}-${i}`}
+          className="flex items-center gap-3 px-3 py-2 text-sm"
+        >
+          <span className="w-12 shrink-0 text-xs text-[var(--text-muted)]">
+            {itemDateLabel(item.date)}
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className="block truncate text-[var(--text-primary)]">
+              {item.name}
+            </span>
+            <span className="block truncate text-xs text-[var(--text-muted)]">
+              {labelForCategoryKey(item.categoryKey)} · {item.accountName}
+            </span>
+          </span>
+          <span
+            className="shrink-0 font-mono text-sm tabular-nums"
+            style={
+              parseFloat(item.amount) < 0
+                ? { color: "var(--accent-red)" }
+                : undefined
+            }
+          >
+            {formatCurrency(item.amount)}
+          </span>
+        </li>
+      ))}
+    </ul>
   );
 }
 
 export function CashflowPanel({ refreshKey }: CashflowPanelProps) {
   const [months, setMonths] = useState<CashflowMonth[]>([]);
   const [selectedMonth, setSelectedMonth] = useState<string | null>(null);
+  const [drilldown, setDrilldown] = useState<"income" | "savings" | null>(null);
   const [loading, setLoading] = useState(true);
 
   const fetchCashflow = useCallback(async () => {
@@ -171,7 +245,10 @@ export function CashflowPanel({ refreshKey }: CashflowPanelProps) {
         </span>
         <select
           value={selected.month}
-          onChange={(e) => setSelectedMonth(e.target.value)}
+          onChange={(e) => {
+            setSelectedMonth(e.target.value);
+            setDrilldown(null);
+          }}
           aria-label="Cash flow month"
           className="rounded-lg border border-[var(--border)] bg-[var(--bg-tertiary)] px-2.5 py-1 text-xs text-[var(--text-primary)]"
         >
@@ -185,9 +262,25 @@ export function CashflowPanel({ refreshKey }: CashflowPanelProps) {
       </div>
 
       <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <KpiTile label="Income" value={selected.income} tone="green" />
+        <KpiTile
+          label="Income"
+          value={selected.income}
+          tone="green"
+          active={drilldown === "income"}
+          onClick={() =>
+            setDrilldown((d) => (d === "income" ? null : "income"))
+          }
+        />
         <KpiTile label="Spending" value={selected.spending} tone="red" />
-        <KpiTile label="Saved" value={selected.savings} tone="blue" />
+        <KpiTile
+          label="Saved"
+          value={selected.savings}
+          tone="blue"
+          active={drilldown === "savings"}
+          onClick={() =>
+            setDrilldown((d) => (d === "savings" ? null : "savings"))
+          }
+        />
         <KpiTile
           label="Net cash flow"
           value={selected.netCashFlow}
@@ -195,6 +288,21 @@ export function CashflowPanel({ refreshKey }: CashflowPanelProps) {
           subLabel={savingsRate}
         />
       </div>
+
+      {drilldown && (
+        <div className="mt-4">
+          <span className="text-xs font-medium uppercase tracking-wider text-[var(--text-muted)]">
+            {drilldown === "income" ? "Income" : "Saved"} — {selectedLabel}
+          </span>
+          <LineItemList
+            items={
+              drilldown === "income"
+                ? selected.incomeItems
+                : selected.savingsItems
+            }
+          />
+        </div>
+      )}
 
       <div className="mt-6">
         <span className="text-xs font-medium uppercase tracking-wider text-[var(--text-muted)]">

@@ -51,6 +51,34 @@ function month(overrides: Partial<CashflowMonth> = {}): CashflowMonth {
         total: "412.33",
       },
     ],
+    incomeItems: [
+      {
+        date: "2026-07-01",
+        amount: "4200.00",
+        name: "ACME PAYROLL",
+        merchantName: null,
+        categoryKey: "INCOME_WAGES",
+        accountName: "TOTAL CHECKING",
+      },
+    ],
+    savingsItems: [
+      {
+        date: "2026-07-11",
+        amount: "1400.00",
+        name: "Manual DB-Bkrg 07/11",
+        merchantName: null,
+        categoryKey: "TRANSFER_OUT_INVESTMENT_AND_RETIREMENT_FUNDS",
+        accountName: "TOTAL CHECKING",
+      },
+      {
+        date: "2026-07-20",
+        amount: "-400.00",
+        name: "Acorns Invest Transfer",
+        merchantName: "Acorns",
+        categoryKey: "TRANSFER_IN_INVESTMENT_AND_RETIREMENT_FUNDS",
+        accountName: "PREMIER PLUS CKG",
+      },
+    ],
     ...overrides,
   };
 }
@@ -70,6 +98,34 @@ const PAYLOAD = {
           key: "FOOD_AND_DRINK_GROCERIES",
           primary: "FOOD_AND_DRINK",
           total: "800.00",
+        },
+      ],
+      incomeItems: [
+        {
+          date: "2026-08-05",
+          amount: "2000.00",
+          name: "KING COUNTY PAYROLL",
+          merchantName: null,
+          categoryKey: "INCOME_SALARY",
+          accountName: "TOTAL CHECKING",
+        },
+      ],
+      savingsItems: [
+        {
+          date: "2026-08-08",
+          amount: "900.00",
+          name: "Manual DB-Bkrg 08/08",
+          merchantName: null,
+          categoryKey: "TRANSFER_OUT_INVESTMENT_AND_RETIREMENT_FUNDS",
+          accountName: "TOTAL CHECKING",
+        },
+        {
+          date: "2026-08-12",
+          amount: "-400.00",
+          name: "Manual CR-Bkrg",
+          merchantName: null,
+          categoryKey: "TRANSFER_IN_INVESTMENT_AND_RETIREMENT_FUNDS",
+          accountName: "TOTAL CHECKING",
         },
       ],
     }),
@@ -182,6 +238,93 @@ describe("CashflowPanel", () => {
         screen.getByText("No transaction data for this month")
       ).toBeInTheDocument();
     });
+  });
+
+  it("reveals income line items when the Income tile is clicked", async () => {
+    render(<CashflowPanel />);
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: /^Income/ })).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: /^Income/ }));
+
+    expect(
+      screen.getByText("Income — August 2026 (month to date)")
+    ).toBeInTheDocument();
+    expect(screen.getByText("KING COUNTY PAYROLL")).toBeInTheDocument();
+    expect(screen.getByText("Salary · TOTAL CHECKING")).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /^Income/ })
+    ).toHaveAttribute("aria-pressed", "true");
+  });
+
+  it("switches to the Saved drilldown and renders withdrawals negative", async () => {
+    render(<CashflowPanel />);
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: /^Saved/ })).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: /^Income/ }));
+    fireEvent.click(screen.getByRole("button", { name: /^Saved/ }));
+
+    expect(
+      screen.getByText("Saved — August 2026 (month to date)")
+    ).toBeInTheDocument();
+    expect(screen.queryByText("KING COUNTY PAYROLL")).not.toBeInTheDocument();
+    expect(screen.getByText("Manual DB-Bkrg 08/08")).toBeInTheDocument();
+    expect(screen.getByText("Manual CR-Bkrg")).toBeInTheDocument();
+    expect(screen.getByText("-$400.00")).toBeInTheDocument();
+  });
+
+  it("hides the drilldown when the active tile is clicked again", async () => {
+    render(<CashflowPanel />);
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: /^Income/ })).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: /^Income/ }));
+    fireEvent.click(screen.getByRole("button", { name: /^Income/ }));
+
+    expect(screen.queryByText("KING COUNTY PAYROLL")).not.toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /^Income/ })
+    ).toHaveAttribute("aria-pressed", "false");
+  });
+
+  it("resets the drilldown when the month changes", async () => {
+    render(<CashflowPanel />);
+    await waitFor(() => {
+      expect(screen.getByLabelText("Cash flow month")).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: /^Income/ }));
+    fireEvent.change(screen.getByLabelText("Cash flow month"), {
+      target: { value: "2026-07" },
+    });
+
+    expect(screen.queryByText(/^Income — /)).not.toBeInTheDocument();
+  });
+
+  it("shows an empty state for a month with no line items", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          months: [month({ month: "2026-08", partial: true, incomeItems: [] })],
+        }),
+      })
+    );
+    render(<CashflowPanel />);
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: /^Income/ })).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: /^Income/ }));
+
+    expect(
+      screen.getByText("No line items for this month")
+    ).toBeInTheDocument();
   });
 
   it("renders nothing when the fetch fails", async () => {

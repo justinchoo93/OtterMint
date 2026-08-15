@@ -22,8 +22,8 @@ A human can demonstrate the result: open the dashboard's Analytics view, select 
 - [x] (2026-08-15 22:12Z) Milestone 1: `src/lib/category-rules.ts` with the seeded CR-Bkrg rule; 6 unit tests including the two-consumer end-to-end assertions (classifies as savings, extracts as withdrawal).
 - [x] (2026-08-15 22:15Z) Milestone 2: `selectClassifiedTransactionRows` helper; both analytics routes rewired (mock chains survived as designed); `/api/transactions` and `/api/shared/[token]` map through `applyCategoryRules` with response shapes unchanged; new route tests prove a CR-Bkrg fixture lands in savings (cashflow) and withdrawals (investments). Full suite 330 passed / 41 skipped.
 - [x] (2026-08-15 22:20Z) Milestone 3: `CashflowRow` widened, `CashflowLineItem` added, `aggregateCashflow` emits date-sorted `incomeItems`/`savingsItems`; 3 new unit tests (display signs, sorting, pending/internal exclusion). Suite 333 passed.
-- [ ] Milestone 4: Income/Saved tile drilldown in `CashflowPanel`; component tests.
-- [ ] Milestone 5: full gate (tests, tsc, lint, build), deploy, production verification of the corrected April/May numbers.
+- [x] (2026-08-15 22:25Z) Milestone 4: Income/Saved tiles are toggle buttons (`aria-pressed`), `LineItemList` renders date/name/category·account/amount with withdrawals in red, drilldown resets on month change; 5 new component tests. Suite 338 passed.
+- [ ] Milestone 5: gate + deploy. (Completed so far 2026-08-15 22:30Z: full gate green — 338 passed / 41 skipped, tsc clean, lint clean except the known pre-existing `sync-holdings.ts` warning, build compiles; fresh production export through the real shipped modules reproduces the acceptance table exactly, April income drilldown = 9 salary/interest items with no CR-Bkrg, tripwire 0. Remaining: push, `scripts/deploy.sh`, and Justin's eyeball of the deployed dashboard.)
 
 
 ## Surprises & Discoveries
