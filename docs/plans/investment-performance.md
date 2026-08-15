@@ -15,12 +15,12 @@ A human can demonstrate the result: refresh accounts on two different days, open
 ## Progress
 
 - [x] (2026-08-14 02:00Z) Researched holdings sync (delete-and-reinsert per refresh), the RLS migration pattern (0009), snapshot upsert idiom, the cash-flow classifier, dashboard navigation, and production deployment/migration constraints. Wrote this plan.
-- [ ] Milestone 1: capture tables (`account_balance_snapshots`, `holding_snapshots`) with RLS, populated on every refresh and account link.
-- [ ] Milestone 2: pure performance module `src/lib/investment-performance.ts` (series assembly, attribution, XIRR) with unit tests.
-- [ ] Milestone 3: `GET /api/analytics/investments` with route tests.
-- [ ] Milestone 4: `InvestmentPerformancePanel` on the Investments destination with component tests.
-- [ ] Milestone 5: production rollout (migration via `docs/DEPLOYMENT.md §5.5`, deploy, verify first capture).
-- [ ] Milestone 6 (optional, separately deployable): Plaid investment-transactions sync for dividends and per-account cash flows.
+- [x] (2026-08-15 18:35Z) Milestone 1: capture tables with hand-appended RLS (`drizzle/0011_sleepy_madame_masque.sql`), `captureAccountSnapshots` hooked best-effort into refresh and link (including a post-holdings-sync re-capture so day-one holding snapshots exist), 5 unit tests, RLS isolation suite extended to both tables.
+- [x] (2026-08-15 18:40Z) Milestone 2: `src/lib/investment-performance.ts` with 15 tests. Design revision during implementation: the legacy (null-fingerprint) region is excluded from math entirely rather than heuristically split — see Decision Log and the revision note.
+- [x] (2026-08-15 18:42Z) Milestone 3: `GET /api/analytics/investments` with 7 route tests; response also carries individual flows for chart markers.
+- [x] (2026-08-15 18:45Z) Milestone 4: `InvestmentPerformancePanel` above `HoldingsPanel` on the Investments destination; 9 component tests. Full gate: 308 passed / 39 skipped, lint (one pre-existing unrelated warning), tsc clean, build compiles 36 routes.
+- [ ] Milestone 5: production rollout. (Completed 2026-08-15 18:55Z: migration 0011 applied atomically on the NAS — journal id 12, hash 92efb7aa…, RLS confirmed enabled on both tables — and the app deployed healthy. Remaining: Justin presses Refresh once, then verify one `account_balance_snapshots` row per account and one `holding_snapshots` row per position for today; a second-day refresh proves the daily upsert.)
+- [ ] Milestone 6 (optional, separately deployable): Plaid investment-transactions sync for dividends and per-account cash flows. Not started; ship decision deferred until the capture data has proven itself.
 
 ## Surprises & Discoveries
 
@@ -40,6 +40,12 @@ Pre-seeded from research; add implementation discoveries below.
 
 - Observation: Cost basis is missing for 4 of 33 production holdings ($16,330 of value), so unrealized-gain math must exclude positions without basis rather than treating null as zero.
   Evidence: `count(cost_basis) = 29` of 33; `sum(value) FILTER (WHERE cost_basis IS NULL) = 16330.21`.
+
+- Observation: The Jul 20 legacy step is undetectable by any principled rule: fingerprints are null on both sides (they only exist from Jul 23, two days after the coverage feature shipped), and per-account snapshots don't exist for July. Only a magic-number threshold could "find" it — exactly the invented precision the coverage philosophy forbids. This forced the design revision below.
+  Evidence: production fingerprints are NULL for every row through Jul 22 and present from Jul 23; the step sits at Jul 19→20, inside the null run.
+
+- Observation: The Aug 11→13 fingerprint change (an account re-link) pairs with a coverage event whose adjustment is $0.00 — so boundary steps must come from event adjustments, never from the raw day-over-day delta, or that day's +$22,513 market move would have been mislabeled as a coverage step.
+  Evidence: `user_net_worth_coverage_events` row effective 2026-08-13, `asset_adjustment 0.00`; snapshots 438,415.61 (Aug 11) → 460,928.64 (Aug 13).
 
 - Observation: `drizzle-kit generate` emits only structural DDL. Grants, `ENABLE/FORCE ROW LEVEL SECURITY`, and policies for new tables must be appended to the generated migration by hand, following the exact pattern of `drizzle/0009_loving_wong.sql`.
   Evidence: 0009's `GRANT ... TO app_user`, `ENABLE ROW LEVEL SECURITY`, `FORCE ROW LEVEL SECURITY`, and `CREATE POLICY ... USING (user_id = app_current_user_id())` blocks appear after the generated DDL, separated by `--> statement-breakpoint`.
@@ -88,6 +94,14 @@ Pre-seeded from research; add implementation discoveries below.
 - Decision: The UI lives on the existing Investments navigation destination (currently just the holdings list), not on Analytics.
   Rationale: The destination already exists with the right name and currently under-uses its space; Analytics stays focused on cash flow and net worth.
   Date/Author: 2026-08-14 / Claude + Justin
+
+- Decision (revision): The legacy region — every snapshot row with a null coverage fingerprint — is excluded from attribution and XIRR entirely, and drawn as one dashed, muted segment labeled "coverage unknown." The original idea of detecting legacy boundaries from per-account first-snapshot dates is impossible for the July data (no per-account snapshots exist then), and a step-size threshold would be invented precision. Boundary steps between fingerprinted rows come from coverage-event adjustments; a fingerprint change with no explaining event makes market P&L null ("not computable across an unexplained account change").
+  Rationale: Better to honestly shrink the trusted window (it grows every day) than to publish numbers derived from a region whose account set is unknowable. Consistent with the coverage-aware net-worth chart's refusal to invent values.
+  Date/Author: 2026-08-15 / Claude + Justin
+
+- Decision (revision): XIRR is computed only when the trusted window is at least 30 days AND every fingerprint change inside it is event-explained with a net $0 step. A connected account's balance is not a user cash flow, so any non-zero step would corrupt the rate; rather than modeling pseudo-flows, the rate waits for a clean window.
+  Rationale: A slightly delayed correct number beats an immediately available wrong one; the UI explains exactly why the figure is pending.
+  Date/Author: 2026-08-15 / Claude + Justin
 
 ## Outcomes & Retrospective
 
@@ -226,13 +240,14 @@ The migration is additive and journaled; §5.5 application is transactional (DDL
 
 ## Artifacts and Notes
 
-The production-reality fixture anchoring the attribution and chart tests (values queried 2026-08-14):
+The production-reality fixture anchoring the attribution and chart tests (revised 2026-08-15 to the trusted-window semantics; the original whole-window attribution assumed the Jul 20 legacy step was attributable, which the Decision Log revision rejects):
 
-    aggregate investment series (segment 1): Jul 5 391,010.83 … Jul 19 372,462.75
-    coverage boundary: Jul 19 → Jul 20 step +62,225.27 (account connected, pre-event-capture)
-    aggregate investment series (segment 2): Jul 20 434,688.02 … Aug 14 459,956.89
-    contributions in window: Jul 7 +2,000 · Jul 16 +4,000 · Jul 31 +2,500  (= 8,500)
-    attribution: 391,010.83 + 8,500 − 1,779.21 (market, residual) + 62,225.27 = 459,956.89
+    legacy segment (null fingerprints, dashed, excluded from math):
+      Jul 5 391,010.83 … Jul 22 451,013.63   (contains the unattributable Jul 20 +62k step)
+    trusted window: Jul 23 452,791.71 (fp 3ae0d7a9…) → Aug 14 459,956.89 (fp 662be166…)
+      boundary Aug 13 (re-link), coverage event adjustment 0.00
+      contributions in window: Jul 31 +2,500 (Jul 7/16 are legacy, excluded)
+      attribution: 452,791.71 + 2,500 + 4,665.18 (market, residual) + 0.00 = 459,956.89
     unrealized: value-with-basis 441,206.06 · cost 302,145.39 → +139,060.67 (+46.0%);
                 excluded (no basis): 16,330.21 across 4 positions
     per-account unrealized: Self-Directed 120,103.88/59,450.76 (+102.0%) ·
@@ -289,3 +304,7 @@ In `src/components/dashboard/InvestmentPerformancePanel.tsx`:
 Milestone 6 adds `investmentTransactions` to the schema, `src/lib/sync-investment-transactions.ts`
 (`syncInvestmentTransactions(accessToken, investmentAccountIds, userId, sinceDate, executor)`), and a
 `dividends` block on the API response.
+
+---
+
+Revision note (2026-08-15): During implementation, production data falsified the plan's original legacy-boundary handling — the Jul 20 step sits between two null-fingerprint rows and no per-account snapshots exist for July, so no principled rule can locate it (only a threshold heuristic could, which the coverage philosophy forbids). The plan was revised throughout: legacy rows are excluded from math and drawn as one dashed "coverage unknown" segment; boundary steps come from coverage-event adjustments (the Aug 13 $0 re-link event proved raw day-deltas would mislabel market moves); XIRR additionally requires a step-free trusted window; the attribution fixture in Artifacts and Notes was recomputed accordingly; and the API response shape gained a `flows` array (chart markers) with per-account series nested inside `series`. Sections updated: Surprises, Decision Log, Milestone 2/3 semantics via the Decision Log, Artifacts and Notes, Interfaces (response type in `src/app/api/analytics/investments/route.ts`).
