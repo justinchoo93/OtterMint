@@ -54,7 +54,8 @@ function payload(overrides: Partial<InvestmentsResponse> = {}): InvestmentsRespo
         cost: "302145.39",
         gain: "139060.67",
         gainPct: "46.0",
-        excludedValue: "16330.21",
+        cashValue: "16330.21",
+        excludedValue: "0.00",
       },
       byAccount: [
         {
@@ -163,7 +164,7 @@ describe("InvestmentPerformancePanel", () => {
     expect(screen.getByText("Contributions")).toBeInTheDocument();
     expect(screen.getAllByText("Market P&L").length).toBe(2); // KPI + attribution row
     expect(
-      screen.getByText(/\$16,330\.21 in positions without cost basis/)
+      screen.getByText(/\$16,330\.21 sits in uninvested\s+cash/)
     ).toBeInTheDocument();
   });
 
@@ -197,7 +198,8 @@ describe("InvestmentPerformancePanel", () => {
       attribution: null,
       xirr: null,
       unrealized: {
-        total: { value: "0.00", cost: "0.00", gain: "0.00", gainPct: "0.0", excludedValue: "0.00" },
+        total: { value: "0.00", cost: "0.00", gain: "0.00", gainPct: "0.0",
+          cashValue: "0.00", excludedValue: "0.00" },
         byAccount: [],
         positions: [],
       },

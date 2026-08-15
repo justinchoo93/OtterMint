@@ -249,6 +249,10 @@ export const holdings = pgTable(
     price: numeric("price", { precision: 12, scale: 4 }).notNull(),
     value: numeric("value", { precision: 14, scale: 2 }).notNull(),
     costBasis: numeric("cost_basis", { precision: 14, scale: 2 }),
+    // Plaid securities[].type ("cash", "etf", "equity", ...) and
+    // is_cash_equivalent — authoritative cash/invested split.
+    securityType: text("security_type"),
+    isCashEquivalent: boolean("is_cash_equivalent"),
     isoCurrencyCode: text("iso_currency_code").default("USD"),
     updatedAt: timestamp("updated_at", { withTimezone: true })
       .notNull()
@@ -308,6 +312,8 @@ export const holdingSnapshots = pgTable(
     price: numeric("price", { precision: 12, scale: 4 }).notNull(),
     value: numeric("value", { precision: 14, scale: 2 }).notNull(),
     costBasis: numeric("cost_basis", { precision: 14, scale: 2 }),
+    securityType: text("security_type"),
+    isCashEquivalent: boolean("is_cash_equivalent"),
     date: date("date").notNull(),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()

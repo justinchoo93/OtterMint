@@ -73,6 +73,8 @@ export async function captureAccountSnapshots(
         price: holding.price,
         value: holding.value,
         costBasis: holding.costBasis,
+        securityType: holding.securityType,
+        isCashEquivalent: holding.isCashEquivalent,
         date: today,
       })
       .onConflictDoUpdate({
@@ -87,6 +89,8 @@ export async function captureAccountSnapshots(
           price: holding.price,
           value: holding.value,
           costBasis: holding.costBasis,
+          securityType: holding.securityType,
+          isCashEquivalent: holding.isCashEquivalent,
         },
       });
   }

@@ -369,6 +369,14 @@ export interface HoldingRowInput {
   name: string;
   value: string;
   costBasis: string | null;
+  /** Plaid securities[].type, e.g. "cash", "etf", "equity". */
+  securityType: string | null;
+  isCashEquivalent: boolean | null;
+}
+
+/** Cash / cash-equivalent per Plaid's authoritative security metadata. */
+function isCashPosition(row: HoldingRowInput): boolean {
+  return row.isCashEquivalent === true || row.securityType === "cash";
 }
 
 export interface UnrealizedPosition {
@@ -389,7 +397,9 @@ export interface Unrealized {
     cost: string;
     gain: string;
     gainPct: string;
-    /** Value held in positions without cost basis, excluded from gain math. */
+    /** Uninvested cash and cash equivalents; no gain to measure. */
+    cashValue: string;
+    /** Value in non-cash positions without cost basis (genuinely missing data). */
     excludedValue: string;
   };
   byAccount: Array<{
@@ -404,13 +414,19 @@ export interface Unrealized {
 }
 
 /**
- * Unrealized gains versus cost basis. Positions without a basis are excluded
- * from every gain figure (null-as-zero would fabricate a +100% gain) and
- * surfaced via excludedValue for the UI footnote.
+ * Unrealized gains versus cost basis, over invested positions only. Cash and
+ * cash equivalents have no gain to measure and would only dilute the
+ * percentage, so they are summed separately as cashValue. Non-cash positions
+ * without a basis are excluded from gain figures (null-as-zero would
+ * fabricate a +100% gain) and surfaced via excludedValue.
  */
 export function computeUnrealized(rows: HoldingRowInput[]): Unrealized {
-  const withBasis = rows.filter((r) => r.costBasis !== null);
-  const excludedCents = rows
+  const cashCents = rows
+    .filter(isCashPosition)
+    .reduce((sum, r) => sum + toCents(r.value), 0);
+  const invested = rows.filter((r) => !isCashPosition(r));
+  const withBasis = invested.filter((r) => r.costBasis !== null);
+  const excludedCents = invested
     .filter((r) => r.costBasis === null)
     .reduce((sum, r) => sum + toCents(r.value), 0);
 
@@ -466,6 +482,7 @@ export function computeUnrealized(rows: HoldingRowInput[]): Unrealized {
       cost: fromCents(totalCost),
       gain: fromCents(totalValue - totalCost),
       gainPct: pct(totalValue - totalCost, totalCost),
+      cashValue: fromCents(cashCents),
       excludedValue: fromCents(excludedCents),
     },
     byAccount,

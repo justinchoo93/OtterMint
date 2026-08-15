@@ -46,6 +46,8 @@ export async function syncHoldings(
       price: holding.institution_price.toString(),
       value: holding.institution_value.toString(),
       costBasis: holding.cost_basis?.toString() ?? null,
+      securityType: security?.type ?? null,
+      isCashEquivalent: security?.is_cash_equivalent ?? null,
       isoCurrencyCode: holding.iso_currency_code ?? "USD",
     });
   }

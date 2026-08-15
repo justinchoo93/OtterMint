@@ -77,6 +77,8 @@ const HOLDINGS = [
     name: "Vanguard S&P 500",
     value: "12261.81",
     costBasis: "9891.58",
+    securityType: "etf",
+    isCashEquivalent: false,
   },
 ];
 
@@ -155,6 +157,7 @@ describe("GET /api/analytics/investments", () => {
       cost: "9891.58",
       gain: "2370.23",
       gainPct: "24.0",
+      cashValue: "0.00",
       excludedValue: "0.00",
     });
   });

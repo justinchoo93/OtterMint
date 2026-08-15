@@ -30,7 +30,14 @@ const EMPTY: InvestmentsResponse = {
   attribution: null,
   xirr: null,
   unrealized: {
-    total: { value: "0.00", cost: "0.00", gain: "0.00", gainPct: "0.0", excludedValue: "0.00" },
+    total: {
+      value: "0.00",
+      cost: "0.00",
+      gain: "0.00",
+      gainPct: "0.0",
+      cashValue: "0.00",
+      excludedValue: "0.00",
+    },
     byAccount: [],
     positions: [],
   },
@@ -180,6 +187,7 @@ export function InvestmentPerformancePanel({
   const totalGain = Number.parseFloat(unrealized.total.gain);
   const marketPnl =
     attribution?.marketPnl != null ? Number.parseFloat(attribution.marketPnl) : null;
+  const cashValue = Number.parseFloat(unrealized.total.cashValue);
   const excluded = Number.parseFloat(unrealized.total.excludedValue);
   const windowLabel = attribution
     ? `${formatDateLabel(dateTimestamp(attribution.windowStart))} – ${formatDateLabel(
@@ -481,10 +489,17 @@ export function InvestmentPerformancePanel({
               );
             })}
           </div>
-          {excluded > 0 && (
+          {cashValue > 0 && (
             <p className="mt-3 text-xs text-[var(--text-muted)]">
-              {formatCurrency(unrealized.total.excludedValue)} in positions without
-              cost basis is excluded from gain figures.
+              Gain figures cover invested positions;{" "}
+              {formatCurrency(unrealized.total.cashValue)} sits in uninvested
+              cash (no gain to measure).
+            </p>
+          )}
+          {excluded > 0 && (
+            <p className="mt-1 text-xs text-[var(--text-muted)]">
+              {formatCurrency(unrealized.total.excludedValue)} in positions
+              without cost basis is excluded from gain figures.
             </p>
           )}
         </div>

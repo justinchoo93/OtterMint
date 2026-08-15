@@ -241,25 +241,49 @@ describe("computeDividends", () => {
 describe("computeUnrealized", () => {
   const HOLDINGS = [
     { accountId: "sd", accountName: "Self-Directed", securityId: "qqq",
-      tickerSymbol: "QQQ", name: "Invesco QQQ", value: "77472.90", costBasis: "55985.88" },
+      tickerSymbol: "QQQ", name: "Invesco QQQ", value: "77472.90", costBasis: "55985.88",
+      securityType: "etf", isCashEquivalent: false },
     { accountId: "sd", accountName: "Self-Directed", securityId: "mrvl",
-      tickerSymbol: "MRVL", name: "Marvell", value: "41948.91", costBasis: "12948.20" },
+      tickerSymbol: "MRVL", name: "Marvell", value: "41948.91", costBasis: "12948.20",
+      securityType: "equity", isCashEquivalent: false },
     { accountId: "ind", accountName: "Individual", securityId: "cash",
-      tickerSymbol: null, name: "Money Market", value: "16330.21", costBasis: null },
+      tickerSymbol: "CUR:USD", name: "U S Dollar", value: "13579.98", costBasis: null,
+      securityType: "cash", isCashEquivalent: true },
+    { accountId: "sd", accountName: "Self-Directed", securityId: "sweep",
+      tickerSymbol: "QACDS", name: "Chase Deposit Sweep", value: "2750.23", costBasis: null,
+      securityType: "cash equivalent", isCashEquivalent: true },
+    { accountId: "ind", accountName: "Individual", securityId: "mystery",
+      tickerSymbol: "MYST", name: "No Basis Equity", value: "1000.00", costBasis: null,
+      securityType: "equity", isCashEquivalent: false },
   ];
 
-  it("excludes basis-less positions from gain math and reports their value", () => {
+  it("splits cash from invested and excludes basis-less positions", () => {
     const u = computeUnrealized(HOLDINGS);
-    // 77,472.90 + 41,948.91 = 119,421.81 value · 68,934.08 cost → +50,487.73 (+73.2%)
+    // Invested with basis: 77,472.90 + 41,948.91 = 119,421.81 · cost 68,934.08
+    //   → +50,487.73 (+73.2%)
+    // Cash (CUR:USD 13,579.98 + sweep 2,750.23) = 16,330.21 → cashValue,
+    //   never excludedValue. Only the basis-less EQUITY is excluded data.
     expect(u.total).toEqual({
       value: "119421.81",
       cost: "68934.08",
       gain: "50487.73",
       gainPct: "73.2",
-      excludedValue: "16330.21",
+      cashValue: "16330.21",
+      excludedValue: "1000.00",
     });
     expect(u.positions).toHaveLength(2);
     expect(u.positions[0].ticker).toBe("QQQ"); // sorted by value desc
+  });
+
+  it("treats cash equivalents as cash even when they carry a basis", () => {
+    const u = computeUnrealized([
+      { accountId: "sd", accountName: "Self-Directed", securityId: "mmf",
+        tickerSymbol: "VMFXX", name: "Money Market Fund", value: "5000.00",
+        costBasis: "5000.00", securityType: "mutual fund", isCashEquivalent: true },
+    ]);
+    expect(u.total.cashValue).toBe("5000.00");
+    expect(u.total.value).toBe("0.00");
+    expect(u.positions).toHaveLength(0);
   });
 
   it("groups by account, sorted by gain percent descending", () => {

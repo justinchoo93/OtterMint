@@ -146,6 +146,8 @@ export async function GET(request: NextRequest) {
           name: holdings.name,
           value: holdings.value,
           costBasis: holdings.costBasis,
+          securityType: holdings.securityType,
+          isCashEquivalent: holdings.isCashEquivalent,
         })
         .from(holdings)
         .innerJoin(accounts, eq(holdings.accountId, accounts.accountId))
