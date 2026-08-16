@@ -525,3 +525,223 @@ export function computeUnrealized(rows: HoldingRowInput[]): Unrealized {
     positions,
   };
 }
+
+export interface AccountFeedRow {
+  accountId: string;
+  date: string; // YYYY-MM-DD
+  /** Plaid sign: positive = cash out of the account. */
+  amount: string;
+  type: string;
+  subtype: string | null;
+}
+
+export interface AccountInfoRow {
+  accountId: string;
+  name: string;
+  mask: string | null;
+  currentBalance: string | null;
+  /** YYYY-MM-DD of plaid_items.created_at; proxy for the feed backfill start. */
+  itemCreatedAt: string;
+}
+
+export interface AccountNetGain {
+  accountId: string;
+  name: string;
+  mask: string | null;
+  mode: "lifetime" | "anchored" | "none";
+  /** Inception (lifetime) or anchor snapshot date; null for none. */
+  startDate: string | null;
+  /** Window-scoped, positive magnitudes. */
+  contributions: string;
+  withdrawals: string;
+  netContributions: string;
+  balance: string;
+  gain: string | null;
+  gainPct: string | null;
+  contributionSeries: Array<{ date: string; cumulative: string }>;
+  balanceSeries: Array<{ date: string; value: string }>;
+}
+
+// External cash movements, matched on subtype alone — Plaid's type field
+// drifts across institutions. Corporate actions and option mechanics
+// (split, merger, spin off, assignment, exercise) are deliberately absent.
+const EXTERNAL_FLOW_SUBTYPES = new Set([
+  "transfer",
+  "deposit",
+  "withdrawal",
+  "contribution",
+  "distribution",
+]);
+
+function isExternalFlow(row: AccountFeedRow): boolean {
+  return (
+    row.subtype !== null && EXTERNAL_FLOW_SUBTYPES.has(row.subtype.toLowerCase())
+  );
+}
+
+const BACKFILL_MONTHS = 24;
+const BACKFILL_MARGIN_DAYS = 7;
+
+/** Earliest first-transaction date compatible with a birth we witnessed. */
+function backfillThreshold(itemCreatedAt: string): string {
+  const d = new Date(itemCreatedAt + "T00:00:00Z");
+  d.setUTCMonth(d.getUTCMonth() - BACKFILL_MONTHS);
+  d.setUTCDate(d.getUTCDate() + BACKFILL_MARGIN_DAYS);
+  return d.toISOString().split("T")[0];
+}
+
+/**
+ * True net gain per account: balance minus net external contributions, which
+ * by identity includes realized and unrealized gains, dividends, and interest.
+ * "Lifetime" only when the account's birth is provably inside the feed: the
+ * holdings cash rows reconcile the feed to exactly zero, the earliest feed row
+ * is an external cash-in, and it postdates the item's backfill start by a
+ * margin. Otherwise the figure anchors at the earliest balance snapshot, or is
+ * withheld entirely. Rules and evidence: docs/plans/account-net-gain.md.
+ */
+export function computeAccountNetGains(
+  feedRows: AccountFeedRow[],
+  accountRows: AccountInfoRow[],
+  holdingRows: HoldingRowInput[],
+  snapshotRows: AccountSnapshotRow[],
+  today: string
+): AccountNetGain[] {
+  const feedByAccount = new Map<string, AccountFeedRow[]>();
+  for (const row of feedRows) {
+    const list = feedByAccount.get(row.accountId) ?? [];
+    list.push(row);
+    feedByAccount.set(row.accountId, list);
+  }
+  const snapshotsByAccount = new Map<string, AccountSnapshotRow[]>();
+  for (const row of snapshotRows) {
+    const list = snapshotsByAccount.get(row.accountId) ?? [];
+    list.push(row);
+    snapshotsByAccount.set(row.accountId, list);
+  }
+
+  const results: AccountNetGain[] = [];
+  for (const account of accountRows) {
+    if (account.currentBalance === null) continue;
+    const balanceCents = toCents(account.currentBalance);
+
+    const rows = [...(feedByAccount.get(account.accountId) ?? [])].sort((a, b) =>
+      a.date < b.date ? -1 : a.date > b.date ? 1 : 0
+    );
+    const accountHoldings = holdingRows.filter(
+      (h) => h.accountId === account.accountId
+    );
+    const cashCents = accountHoldings
+      .filter(isCashPosition)
+      .reduce((sum, h) => sum + toCents(h.value), 0);
+    const feedSumCents = rows.reduce((sum, r) => sum + toCents(r.amount), 0);
+
+    const first = rows[0];
+    const lifetime =
+      accountHoldings.length > 0 &&
+      rows.length > 0 &&
+      cashCents + feedSumCents === 0 &&
+      isExternalFlow(first) &&
+      toCents(first.amount) < 0 &&
+      first.date >= backfillThreshold(account.itemCreatedAt);
+
+    const snapshots = [...(snapshotsByAccount.get(account.accountId) ?? [])].sort(
+      (a, b) => (a.date < b.date ? -1 : 1)
+    );
+    const anchor = snapshots[0];
+
+    let mode: AccountNetGain["mode"];
+    let startDate: string | null;
+    let anchorCents = 0;
+    if (lifetime) {
+      mode = "lifetime";
+      startDate = first.date;
+    } else if (anchor) {
+      mode = "anchored";
+      startDate = anchor.date;
+      anchorCents = toCents(anchor.balance);
+    } else {
+      mode = "none";
+      startDate = null;
+    }
+
+    // Anchored windows count flows strictly after the anchor: the anchor
+    // snapshot already contains that day's money (same convention as
+    // computeAttribution).
+    const externals = rows.filter(isExternalFlow);
+    const windowExternals =
+      mode === "anchored"
+        ? externals.filter((r) => r.date > startDate!)
+        : externals;
+
+    let contributionCents = 0;
+    let withdrawalCents = 0;
+    for (const row of windowExternals) {
+      const cents = toCents(row.amount);
+      if (cents < 0) contributionCents += -cents;
+      else withdrawalCents += cents;
+    }
+    const netContributionCents = contributionCents - withdrawalCents;
+
+    let gainCents: number | null = null;
+    let baseCents = 0;
+    if (mode === "lifetime") {
+      gainCents = balanceCents - netContributionCents;
+      baseCents = netContributionCents;
+    } else if (mode === "anchored") {
+      gainCents = balanceCents - anchorCents - netContributionCents;
+      baseCents = anchorCents + netContributionCents;
+    }
+
+    const contributionSeries: Array<{ date: string; cumulative: string }> = [];
+    if (mode === "anchored") {
+      contributionSeries.push({ date: startDate!, cumulative: "0.00" });
+    }
+    let running = 0;
+    for (const row of windowExternals) {
+      running += -toCents(row.amount);
+      const last = contributionSeries[contributionSeries.length - 1];
+      if (last && last.date === row.date) {
+        last.cumulative = fromCents(running);
+      } else {
+        contributionSeries.push({ date: row.date, cumulative: fromCents(running) });
+      }
+    }
+    const lastContribution = contributionSeries[contributionSeries.length - 1];
+    if (lastContribution && lastContribution.date !== today) {
+      contributionSeries.push({ date: today, cumulative: lastContribution.cumulative });
+    }
+
+    const balanceSeries: Array<{ date: string; value: string }> = snapshots
+      .filter((s) => startDate === null || s.date >= startDate)
+      .map((s) => ({ date: s.date, value: fromCents(toCents(s.balance)) }));
+    const lastBalance = balanceSeries[balanceSeries.length - 1];
+    if (lastBalance && lastBalance.date === today) {
+      lastBalance.value = fromCents(balanceCents);
+    } else {
+      balanceSeries.push({ date: today, value: fromCents(balanceCents) });
+    }
+
+    results.push({
+      accountId: account.accountId,
+      name: account.name,
+      mask: account.mask,
+      mode,
+      startDate,
+      contributions: fromCents(contributionCents),
+      withdrawals: fromCents(withdrawalCents),
+      netContributions: fromCents(netContributionCents),
+      balance: fromCents(balanceCents),
+      gain: gainCents === null ? null : fromCents(gainCents),
+      gainPct:
+        gainCents !== null && baseCents > 0
+          ? ((gainCents / baseCents) * 100).toFixed(1)
+          : null,
+      contributionSeries,
+      balanceSeries,
+    });
+  }
+
+  return results.sort(
+    (a, b) => Number.parseFloat(b.balance) - Number.parseFloat(a.balance)
+  );
+}

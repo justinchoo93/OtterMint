@@ -74,6 +74,7 @@ const EMPTY: InvestmentsResponse = {
   flows: [],
   dividends: { trailingTwelveMonths: "0.00", monthly: [] },
   allocation: [],
+  accountReturns: [],
 };
 
 function dateTimestamp(date: string): number {
@@ -84,6 +85,15 @@ function formatDateLabel(ts: number): string {
   return new Date(ts).toLocaleDateString("en-US", {
     month: "short",
     day: "numeric",
+    timeZone: "UTC",
+  });
+}
+
+function formatFullDateLabel(ts: number): string {
+  return new Date(ts).toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
     timeZone: "UTC",
   });
 }
@@ -563,6 +573,159 @@ export function InvestmentPerformancePanel({
               ))}
             </div>
           </div>
+        </div>
+      )}
+
+      {data.accountReturns.length > 0 && (
+        <div className="mt-6">
+          <span className="text-xs font-medium uppercase tracking-wider text-[var(--text-muted)]">
+            Net Gain by Account
+          </span>
+          <div className="mt-3 flex flex-col gap-5">
+            {data.accountReturns.map((account) => {
+              const gain =
+                account.gain != null ? Number.parseFloat(account.gain) : null;
+              const pct =
+                account.gainPct != null ? Number.parseFloat(account.gainPct) : null;
+              // Merge the sparse step series and balance series on date; the
+              // lines each connect across the other's gaps (connectNulls).
+              const merged = new Map<
+                string,
+                { timestamp: number; contributed?: number; balance?: number }
+              >();
+              const rowFor = (date: string) => {
+                let entry = merged.get(date);
+                if (!entry) {
+                  entry = { timestamp: dateTimestamp(date) };
+                  merged.set(date, entry);
+                }
+                return entry;
+              };
+              for (const point of account.contributionSeries) {
+                rowFor(point.date).contributed = Number.parseFloat(point.cumulative);
+              }
+              for (const point of account.balanceSeries) {
+                rowFor(point.date).balance = Number.parseFloat(point.value);
+              }
+              const chartData = [...merged.values()].sort(
+                (a, b) => a.timestamp - b.timestamp
+              );
+              const windowLabel =
+                account.mode === "lifetime"
+                  ? `lifetime · since ${formatFullDateLabel(dateTimestamp(account.startDate!))}`
+                  : account.mode === "anchored"
+                    ? `since ${formatFullDateLabel(dateTimestamp(account.startDate!))} — earlier history not visible to OtterMint`
+                    : "gain not yet measurable";
+              return (
+                <div key={account.accountId} className="text-sm">
+                  <div className="flex items-baseline justify-between gap-2">
+                    <span>
+                      {account.name}
+                      {account.mask && (
+                        <span className="ml-1 font-mono text-xs text-[var(--text-muted)]">
+                          ····{account.mask}
+                        </span>
+                      )}
+                      <span className="ml-2 font-mono text-xs tabular-nums text-[var(--text-muted)]">
+                        in {formatCurrency(account.netContributions)} · balance{" "}
+                        {formatCurrency(account.balance)}
+                      </span>
+                    </span>
+                    {gain == null ? (
+                      <span className="font-mono text-xs text-[var(--text-muted)]">—</span>
+                    ) : (
+                      <span
+                        className={`font-mono text-xs tabular-nums ${
+                          gain >= 0
+                            ? "text-[var(--accent-green)]"
+                            : "text-[var(--accent-red)]"
+                        }`}
+                      >
+                        {gain >= 0 ? "+" : ""}
+                        {formatCurrency(account.gain!)}
+                        {pct != null && (
+                          <>
+                            {" "}
+                            · {pct >= 0 ? "+" : ""}
+                            {account.gainPct}%
+                          </>
+                        )}
+                      </span>
+                    )}
+                  </div>
+                  <div className="text-xs text-[var(--text-muted)]">{windowLabel}</div>
+                  {chartData.length > 1 && (
+                    <div className="mt-2 h-28">
+                      <ResponsiveContainer
+                        width="100%"
+                        height="100%"
+                        initialDimension={{ width: 400, height: 112 }}
+                      >
+                        <LineChart data={chartData}>
+                          <XAxis
+                            dataKey="timestamp"
+                            type="number"
+                            scale="time"
+                            domain={["dataMin", "dataMax"]}
+                            tick={{ fontSize: 10, fill: "var(--text-muted)" }}
+                            tickLine={false}
+                            axisLine={{ stroke: "var(--border-subtle)" }}
+                            interval="preserveStartEnd"
+                            tickFormatter={formatDateLabel}
+                          />
+                          <YAxis
+                            domain={[0, "auto"]}
+                            tick={{ fontSize: 10, fill: "var(--text-muted)" }}
+                            tickLine={false}
+                            axisLine={false}
+                            width={52}
+                            tickFormatter={formatAxisDollars}
+                          />
+                          <Tooltip
+                            contentStyle={{
+                              background: "var(--bg-tertiary)",
+                              border: "1px solid var(--border)",
+                              borderRadius: "8px",
+                              fontSize: "12px",
+                              color: "var(--text-primary)",
+                            }}
+                            itemStyle={{ color: "var(--text-primary)" }}
+                            labelStyle={{ color: "var(--text-primary)" }}
+                            labelFormatter={(ts) => formatDateLabel(ts as number)}
+                            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                            formatter={(value: any) => formatCurrency(value ?? 0)}
+                          />
+                          <Line
+                            dataKey="contributed"
+                            name="Contributed"
+                            type="stepAfter"
+                            stroke="var(--accent-purple)"
+                            strokeWidth={1.5}
+                            dot={false}
+                            connectNulls
+                            isAnimationActive={false}
+                          />
+                          <Line
+                            dataKey="balance"
+                            name="Balance"
+                            stroke="var(--accent-blue)"
+                            strokeWidth={1.5}
+                            dot={false}
+                            connectNulls
+                            isAnimationActive={false}
+                          />
+                        </LineChart>
+                      </ResponsiveContainer>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+          <p className="mt-3 text-xs text-[var(--text-muted)]">
+            Net gain = balance − money put in; includes realized and unrealized
+            gains, dividends, and interest.
+          </p>
         </div>
       )}
 

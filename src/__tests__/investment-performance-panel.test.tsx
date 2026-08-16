@@ -100,6 +100,47 @@ function payload(overrides: Partial<InvestmentsResponse> = {}): InvestmentsRespo
       { type: "derivative", value: "46384.00", share: "10.1", count: 4 },
       { type: "cash", value: "16330.21", share: "3.5", count: 4 },
     ],
+    accountReturns: [
+      {
+        accountId: "ind",
+        name: "Individual",
+        mask: "5111",
+        mode: "lifetime",
+        startDate: "2026-04-22",
+        contributions: "35000.00",
+        withdrawals: "0.00",
+        netContributions: "35000.00",
+        balance: "47514.67",
+        gain: "12514.67",
+        gainPct: "35.8",
+        contributionSeries: [
+          { date: "2026-04-22", cumulative: "3000.00" },
+          { date: "2026-08-16", cumulative: "35000.00" },
+        ],
+        balanceSeries: [{ date: "2026-08-16", value: "47514.67" }],
+      },
+      {
+        accountId: "sd",
+        name: "Self-Directed",
+        mask: "6850",
+        mode: "anchored",
+        startDate: "2026-08-15",
+        contributions: "0.00",
+        withdrawals: "0.00",
+        netContributions: "0.00",
+        balance: "283690.62",
+        gain: "-1200.00",
+        gainPct: "-0.4",
+        contributionSeries: [
+          { date: "2026-08-15", cumulative: "0.00" },
+          { date: "2026-08-16", cumulative: "0.00" },
+        ],
+        balanceSeries: [
+          { date: "2026-08-15", value: "284890.62" },
+          { date: "2026-08-16", value: "283690.62" },
+        ],
+      },
+    ],
     ...overrides,
   };
 }
@@ -220,6 +261,7 @@ describe("InvestmentPerformancePanel", () => {
       flows: [],
       dividends: { trailingTwelveMonths: "0.00", monthly: [] },
       allocation: [],
+      accountReturns: [],
     });
     render(<InvestmentPerformancePanel />);
     await waitFor(() => {
@@ -260,5 +302,65 @@ describe("InvestmentPerformancePanel", () => {
         screen.getByText(/Per-account history accrues from each refresh/)
       ).toBeInTheDocument();
     });
+  });
+
+  it("renders lifetime net gain rows with the window label and figures", async () => {
+    render(<InvestmentPerformancePanel />);
+    await waitFor(() => {
+      expect(screen.getByText("Net Gain by Account")).toBeInTheDocument();
+    });
+    expect(screen.getByText(/lifetime · since Apr 22, 2026/)).toBeInTheDocument();
+    expect(screen.getByText(/\$12,514\.67/)).toBeInTheDocument();
+    expect(
+      screen.getByText(/Net gain = balance − money put in/)
+    ).toBeInTheDocument();
+  });
+
+  it("labels anchored accounts with their measurement start", async () => {
+    render(<InvestmentPerformancePanel />);
+    await waitFor(() => {
+      expect(
+        screen.getByText(/since Aug 15, 2026 — earlier history not visible/)
+      ).toBeInTheDocument();
+    });
+    expect(screen.getByText(/\$1,200\.00/)).toBeInTheDocument();
+  });
+
+  it("shows a dash instead of a gain when the mode is none", async () => {
+    stubFetch(
+      payload({
+        accountReturns: [
+          {
+            accountId: "new",
+            name: "Fresh Account",
+            mask: null,
+            mode: "none",
+            startDate: null,
+            contributions: "0.00",
+            withdrawals: "0.00",
+            netContributions: "0.00",
+            balance: "100.00",
+            gain: null,
+            gainPct: null,
+            contributionSeries: [],
+            balanceSeries: [{ date: "2026-08-16", value: "100.00" }],
+          },
+        ],
+      })
+    );
+    render(<InvestmentPerformancePanel />);
+    await waitFor(() => {
+      expect(screen.getByText("gain not yet measurable")).toBeInTheDocument();
+    });
+    expect(screen.getByText("—")).toBeInTheDocument();
+  });
+
+  it("omits the net-gain section when there are no account returns", async () => {
+    stubFetch(payload({ accountReturns: [] }));
+    render(<InvestmentPerformancePanel />);
+    await waitFor(() => {
+      expect(screen.getByText("Allocation")).toBeInTheDocument();
+    });
+    expect(screen.queryByText("Net Gain by Account")).not.toBeInTheDocument();
   });
 });

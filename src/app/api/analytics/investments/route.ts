@@ -5,6 +5,7 @@ import {
   accountBalanceSnapshots,
   holdings,
   investmentTransactions,
+  plaidItems,
   userNetWorthCoverageEvents,
   userNetWorthSnapshots,
 } from "@/lib/db/schema";
@@ -14,12 +15,14 @@ import { withUser } from "@/lib/db/with-user";
 import { selectClassifiedTransactionRows } from "@/lib/db/classified-transactions";
 import {
   buildPortfolioSeries,
+  computeAccountNetGains,
   computeAllocation,
   computeAttribution,
   computeDividends,
   computeUnrealized,
   computeXirr,
   extractInvestmentFlows,
+  type AccountNetGain,
   type AllocationSlice,
   type Attribution,
   type Dividends,
@@ -39,6 +42,8 @@ export type InvestmentsResponse = {
   dividends: Dividends;
   /** Portfolio allocation by security type, all holdings included. */
   allocation: AllocationSlice[];
+  /** True net gain per account (balance vs net contributions), lifetime or anchored. */
+  accountReturns: AccountNetGain[];
 };
 
 export async function GET(request: NextRequest) {
@@ -143,6 +148,53 @@ export async function GET(request: NextRequest) {
         .innerJoin(accounts, eq(holdings.accountId, accounts.accountId))
         .where(eq(holdings.userId, userId));
 
+      // Per-account net gain reads the FULL feed and snapshot history — the
+      // days parameter deliberately does not apply (lifetime is the point,
+      // and the anchor must be the earliest snapshot ever captured).
+      const feedRows = await tx
+        .select({
+          accountId: investmentTransactions.accountId,
+          date: investmentTransactions.date,
+          amount: investmentTransactions.amount,
+          type: investmentTransactions.type,
+          subtype: investmentTransactions.subtype,
+        })
+        .from(investmentTransactions)
+        .where(eq(investmentTransactions.userId, userId));
+
+      const accountInfoRows = await tx
+        .select({
+          accountId: accounts.accountId,
+          name: accounts.name,
+          mask: accounts.mask,
+          currentBalance: accounts.currentBalance,
+          itemCreatedAt: plaidItems.createdAt,
+        })
+        .from(accounts)
+        .innerJoin(plaidItems, eq(accounts.plaidItemId, plaidItems.id))
+        .where(
+          and(eq(plaidItems.userId, userId), eq(accounts.type, "investment"))
+        );
+
+      const allSnapshotRows = await tx
+        .select({
+          accountId: accountBalanceSnapshots.accountId,
+          name: accounts.name,
+          date: accountBalanceSnapshots.date,
+          balance: accountBalanceSnapshots.balance,
+        })
+        .from(accountBalanceSnapshots)
+        .innerJoin(
+          accounts,
+          eq(accountBalanceSnapshots.accountId, accounts.accountId)
+        )
+        .where(
+          and(
+            eq(accountBalanceSnapshots.userId, userId),
+            eq(accountBalanceSnapshots.type, "investment")
+          )
+        );
+
       const flows = extractInvestmentFlows(flowRows);
       const series = buildPortfolioSeries(aggregateRows, accountRows, eventRows);
       const attribution = computeAttribution(aggregateRows, flows, eventRows);
@@ -175,6 +227,16 @@ export async function GET(request: NextRequest) {
         })),
         dividends: computeDividends(
           dividendRows,
+          new Date().toISOString().split("T")[0]
+        ),
+        accountReturns: computeAccountNetGains(
+          feedRows,
+          accountInfoRows.map((row) => ({
+            ...row,
+            itemCreatedAt: row.itemCreatedAt.toISOString().split("T")[0],
+          })),
+          holdingRows,
+          allSnapshotRows,
           new Date().toISOString().split("T")[0]
         ),
       };

@@ -1,14 +1,18 @@
 import { describe, it, expect } from "vitest";
 import {
   buildPortfolioSeries,
+  computeAccountNetGains,
   computeAllocation,
   computeAttribution,
   computeDividends,
   computeUnrealized,
   computeXirr,
   extractInvestmentFlows,
+  type AccountFeedRow,
+  type AccountInfoRow,
   type AggregateRow,
   type CoverageEventRow,
+  type HoldingRowInput,
   type InvestmentFlow,
   type InvestmentFlowRow,
 } from "@/lib/investment-performance";
@@ -330,5 +334,294 @@ describe("computeUnrealized", () => {
     const u = computeUnrealized(HOLDINGS);
     expect(u.byAccount).toHaveLength(1); // Individual had only the excluded position
     expect(u.byAccount[0]).toMatchObject({ accountId: "sd", gainPct: "73.2" });
+  });
+});
+
+// ── computeAccountNetGains ───────────────────────────────────────────────────
+// Production-reality fixture (queried 2026-08-15/16): the Individual account's
+// entire life sits inside the feed and reconciles to the cent against its
+// holdings cash row, so lifetime mode engages; accounts older than the
+// backfill window fall back to the snapshot anchor.
+
+function feedRow(
+  accountId: string,
+  date: string,
+  amount: string,
+  type: string,
+  subtype: string | null
+): AccountFeedRow {
+  return { accountId, date, amount, type, subtype };
+}
+
+function cashHolding(
+  accountId: string,
+  value: string,
+  securityType: string | null,
+  isCashEquivalent: boolean | null
+): HoldingRowInput {
+  return {
+    accountId,
+    accountName: accountId,
+    securityId: `${accountId}-${securityType}-${value}`,
+    tickerSymbol: null,
+    name: "fixture",
+    value,
+    costBasis: null,
+    securityType,
+    isCashEquivalent,
+  };
+}
+
+const IND = "ind-5111";
+const INDIVIDUAL_INFO: AccountInfoRow = {
+  accountId: IND,
+  name: "Individual",
+  mask: "5111",
+  currentBalance: "47514.67",
+  itemCreatedAt: "2026-07-20",
+};
+// Deposits −35,000 across the real dates; trading + interest nets the cash
+// to exactly the 11,318.17 held in the sweep position.
+const INDIVIDUAL_FEED: AccountFeedRow[] = [
+  feedRow(IND, "2026-04-22", "-3000.00", "transfer", "transfer"),
+  feedRow(IND, "2026-04-30", "-2000.00", "transfer", "transfer"),
+  feedRow(IND, "2026-05-06", "-2000.00", "transfer", "transfer"),
+  feedRow(IND, "2026-05-11", "-2500.00", "transfer", "transfer"),
+  feedRow(IND, "2026-05-18", "-2000.00", "transfer", "transfer"),
+  feedRow(IND, "2026-06-02", "-2000.00", "transfer", "transfer"),
+  feedRow(IND, "2026-06-02", "-1500.00", "transfer", "transfer"),
+  feedRow(IND, "2026-06-03", "-20000.00", "transfer", "transfer"),
+  feedRow(IND, "2026-04-28", "327761.18", "buy", "buy"),
+  feedRow(IND, "2026-05-01", "-304078.96", "sell", "sell"),
+  feedRow(IND, "2026-06-29", "-0.39", "cash", "interest"),
+];
+const INDIVIDUAL_HOLDINGS: HoldingRowInput[] = [
+  cashHolding(IND, "11318.17", "cash", true),
+  cashHolding(IND, "36196.50", "equity", false),
+];
+const NET_GAIN_TODAY = "2026-08-16";
+
+describe("computeAccountNetGains", () => {
+  it("engages lifetime mode when cash reconciles and the first row is a deposit", () => {
+    const [r] = computeAccountNetGains(
+      INDIVIDUAL_FEED,
+      [INDIVIDUAL_INFO],
+      INDIVIDUAL_HOLDINGS,
+      [],
+      NET_GAIN_TODAY
+    );
+    expect(r).toMatchObject({
+      mode: "lifetime",
+      startDate: "2026-04-22",
+      contributions: "35000.00",
+      withdrawals: "0.00",
+      netContributions: "35000.00",
+      balance: "47514.67",
+      gain: "12514.67",
+      gainPct: "35.8",
+    });
+  });
+
+  it("builds a cumulative step series merging same-date flows and extending to today", () => {
+    const [r] = computeAccountNetGains(
+      INDIVIDUAL_FEED,
+      [INDIVIDUAL_INFO],
+      INDIVIDUAL_HOLDINGS,
+      [],
+      NET_GAIN_TODAY
+    );
+    expect(r.contributionSeries).toEqual([
+      { date: "2026-04-22", cumulative: "3000.00" },
+      { date: "2026-04-30", cumulative: "5000.00" },
+      { date: "2026-05-06", cumulative: "7000.00" },
+      { date: "2026-05-11", cumulative: "9500.00" },
+      { date: "2026-05-18", cumulative: "11500.00" },
+      { date: "2026-06-02", cumulative: "15000.00" }, // two same-day flows merged
+      { date: "2026-06-03", cumulative: "35000.00" },
+      { date: "2026-08-16", cumulative: "35000.00" }, // extended to today
+    ]);
+  });
+
+  it("extends the balance series to today and replaces a same-date snapshot", () => {
+    const snapshots = [
+      { accountId: IND, name: "Individual", date: "2026-08-15", balance: "47000.00" },
+      { accountId: IND, name: "Individual", date: "2026-08-16", balance: "47100.00" },
+    ];
+    const [r] = computeAccountNetGains(
+      INDIVIDUAL_FEED,
+      [INDIVIDUAL_INFO],
+      INDIVIDUAL_HOLDINGS,
+      snapshots,
+      NET_GAIN_TODAY
+    );
+    // Today's stale snapshot is replaced by the live balance:
+    expect(r.balanceSeries).toEqual([
+      { date: "2026-08-15", value: "47000.00" },
+      { date: "2026-08-16", value: "47514.67" },
+    ]);
+  });
+
+  it("falls back to anchored mode when the cash residual is non-zero", () => {
+    const holdings = [cashHolding(IND, "99.00", "cash", true)]; // wrong cash
+    const snapshots = [
+      { accountId: IND, name: "Individual", date: "2026-08-15", balance: "47000.00" },
+    ];
+    const [r] = computeAccountNetGains(
+      INDIVIDUAL_FEED,
+      [INDIVIDUAL_INFO],
+      holdings,
+      snapshots,
+      NET_GAIN_TODAY
+    );
+    // No flows after the anchor: gain is pure balance movement since Aug 15.
+    expect(r).toMatchObject({
+      mode: "anchored",
+      startDate: "2026-08-15",
+      contributions: "0.00",
+      netContributions: "0.00",
+      gain: "514.67",
+      gainPct: "1.1",
+    });
+    expect(r.contributionSeries[0]).toEqual({ date: "2026-08-15", cumulative: "0.00" });
+  });
+
+  it("counts anchored-window flows strictly after the anchor date", () => {
+    const feed = [
+      feedRow(IND, "2026-08-15", "-5000.00", "transfer", "transfer"),
+      feedRow(IND, "2026-08-16", "-1000.00", "transfer", "transfer"),
+    ];
+    const snapshots = [
+      { accountId: IND, name: "Individual", date: "2026-08-15", balance: "46000.00" },
+    ];
+    const [r] = computeAccountNetGains(
+      feed,
+      [INDIVIDUAL_INFO],
+      [cashHolding(IND, "99.00", "cash", true)],
+      snapshots,
+      NET_GAIN_TODAY
+    );
+    // The Aug 15 deposit is inside the anchor snapshot; only Aug 16 counts.
+    expect(r).toMatchObject({
+      mode: "anchored",
+      netContributions: "1000.00",
+      gain: "514.67", // 47514.67 − 46000 − 1000
+    });
+  });
+
+  it("refuses lifetime mode when the earliest row is not an external deposit", () => {
+    const feed = [
+      feedRow(IND, "2026-01-10", "1000.00", "buy", "buy"),
+      feedRow(IND, "2026-02-01", "-3000.00", "transfer", "transfer"),
+    ];
+    const [r] = computeAccountNetGains(
+      feed,
+      [INDIVIDUAL_INFO],
+      [cashHolding(IND, "2000.00", "cash", true)], // residual is zero
+      [],
+      NET_GAIN_TODAY
+    );
+    expect(r.mode).toBe("none");
+  });
+
+  it("refuses lifetime mode when the first deposit sits inside the backfill margin", () => {
+    const info: AccountInfoRow = { ...INDIVIDUAL_INFO, itemCreatedAt: "2026-08-15" };
+    // Threshold is 2024-08-15 + 7d = 2024-08-22; this deposit is too early.
+    const feed = [feedRow(IND, "2024-08-18", "-1000.00", "transfer", "transfer")];
+    const [r] = computeAccountNetGains(
+      feed,
+      [info],
+      [cashHolding(IND, "1000.00", "cash", true)],
+      [],
+      NET_GAIN_TODAY
+    );
+    expect(r.mode).toBe("none");
+  });
+
+  it("nets withdrawals against contributions", () => {
+    const feed = [
+      feedRow(IND, "2026-01-05", "-10000.00", "transfer", "transfer"),
+      feedRow(IND, "2026-03-01", "4000.00", "transfer", "transfer"),
+    ];
+    const [r] = computeAccountNetGains(
+      feed,
+      [{ ...INDIVIDUAL_INFO, currentBalance: "7000.00" }],
+      [cashHolding(IND, "6000.00", "cash", true)],
+      [],
+      NET_GAIN_TODAY
+    );
+    expect(r).toMatchObject({
+      mode: "lifetime",
+      contributions: "10000.00",
+      withdrawals: "4000.00",
+      netContributions: "6000.00",
+      gain: "1000.00",
+      gainPct: "16.7",
+    });
+  });
+
+  it("suppresses the percent when net contributions are not positive", () => {
+    const feed = [
+      feedRow(IND, "2026-01-05", "-1000.00", "transfer", "transfer"),
+      feedRow(IND, "2026-02-01", "-6000.00", "sell", "sell"),
+      feedRow(IND, "2026-03-01", "5000.00", "transfer", "transfer"),
+      feedRow(IND, "2026-03-10", "2000.00", "buy", "buy"),
+    ];
+    const [r] = computeAccountNetGains(
+      feed,
+      [{ ...INDIVIDUAL_INFO, currentBalance: "500.00" }],
+      [cashHolding(IND, "2500.00", "equity", false)], // zero cash, but holdings exist
+      [],
+      NET_GAIN_TODAY
+    );
+    expect(r).toMatchObject({
+      mode: "lifetime",
+      netContributions: "-4000.00",
+      gain: "4500.00",
+      gainPct: null,
+    });
+  });
+
+  it("ignores splits and dividends as flows while counting them toward cash", () => {
+    const feed = [
+      feedRow(IND, "2026-01-05", "-1000.00", "transfer", "transfer"),
+      feedRow(IND, "2026-02-01", "-50.00", "fee", "dividend"),
+      feedRow(IND, "2026-02-10", "0.00", "transfer", "split"),
+    ];
+    const [r] = computeAccountNetGains(
+      feed,
+      [INDIVIDUAL_INFO],
+      [cashHolding(IND, "1050.00", "cash", true)],
+      [],
+      NET_GAIN_TODAY
+    );
+    expect(r.mode).toBe("lifetime");
+    expect(r.contributions).toBe("1000.00");
+    expect(r.contributionSeries.map((p) => p.date)).toEqual([
+      "2026-01-05",
+      "2026-08-16",
+    ]);
+  });
+
+  it("refuses lifetime mode for an account with no holdings rows", () => {
+    const feed = [
+      feedRow(IND, "2026-01-05", "-1000.00", "transfer", "transfer"),
+      feedRow(IND, "2026-02-01", "1000.00", "buy", "buy"),
+    ];
+    const [r] = computeAccountNetGains(feed, [INDIVIDUAL_INFO], [], [], NET_GAIN_TODAY);
+    expect(r.mode).toBe("none");
+    expect(r.gain).toBeNull();
+    expect(r.gainPct).toBeNull();
+  });
+
+  it("skips null-balance accounts and sorts by balance descending", () => {
+    const accounts: AccountInfoRow[] = [
+      { accountId: "small", name: "Small", mask: null, currentBalance: "10.00", itemCreatedAt: "2026-07-20" },
+      { accountId: "dead", name: "Dead", mask: null, currentBalance: null, itemCreatedAt: "2026-07-20" },
+      { accountId: "big", name: "Big", mask: null, currentBalance: "999.00", itemCreatedAt: "2026-07-20" },
+    ];
+    const result = computeAccountNetGains([], accounts, [], [], NET_GAIN_TODAY);
+    expect(result.map((r) => r.accountId)).toEqual(["big", "small"]);
+    expect(result[0].mode).toBe("none");
+    expect(result[0].balanceSeries).toEqual([{ date: NET_GAIN_TODAY, value: "999.00" }]);
   });
 });

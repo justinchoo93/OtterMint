@@ -221,5 +221,60 @@ describe("GET /api/analytics/investments", () => {
     expect(body.attribution).toBeNull();
     expect(body.xirr).toBeNull();
     expect(body.unrealized.positions).toEqual([]);
+    expect(body.accountReturns).toEqual([]);
+  });
+
+  it("returns per-account net gains from the full feed and snapshot history", async () => {
+    // Query order: aggregate, windowed snapshots, events, flows, dividends,
+    // holdings, feed, account info, unwindowed snapshots.
+    const feed = [
+      { accountId: "acc_roth", date: "2025-03-21", amount: "-7000.00", type: "transfer", subtype: "transfer" },
+      { accountId: "acc_roth", date: "2025-04-01", amount: "5000.00", type: "buy", subtype: "buy" },
+    ];
+    const info = [
+      {
+        accountId: "acc_roth",
+        name: "Roth IRA",
+        mask: "6093",
+        currentBalance: "12261.81",
+        itemCreatedAt: new Date("2026-07-20T00:00:00Z"),
+      },
+    ];
+    const cashHoldings = [
+      { ...HOLDINGS[0], securityId: "cash", value: "2000.00", securityType: "cash", isCashEquivalent: true },
+    ];
+    queue(AGGREGATE, ACCOUNT_SNAPSHOTS, EVENTS, FLOWS, DIVIDEND_ROWS, cashHoldings, feed, info, ACCOUNT_SNAPSHOTS);
+    const body = await (await GET(request())).json();
+    expect(body.accountReturns).toHaveLength(1);
+    expect(body.accountReturns[0]).toMatchObject({
+      accountId: "acc_roth",
+      mode: "lifetime",
+      startDate: "2025-03-21",
+      netContributions: "7000.00",
+      balance: "12261.81",
+      gain: "5261.81",
+    });
+  });
+
+  it("anchors accounts whose cash does not reconcile the feed", async () => {
+    const feed = [
+      { accountId: "acc_roth", date: "2024-08-15", amount: "5000.00", type: "buy", subtype: "buy" },
+    ];
+    const info = [
+      {
+        accountId: "acc_roth",
+        name: "Roth IRA",
+        mask: "6093",
+        currentBalance: "12261.81",
+        itemCreatedAt: new Date("2026-07-20T00:00:00Z"),
+      },
+    ];
+    queue(AGGREGATE, ACCOUNT_SNAPSHOTS, EVENTS, FLOWS, DIVIDEND_ROWS, HOLDINGS, feed, info, ACCOUNT_SNAPSHOTS);
+    const body = await (await GET(request())).json();
+    expect(body.accountReturns[0]).toMatchObject({
+      mode: "anchored",
+      startDate: "2026-08-15",
+      gain: "0.00", // 12261.81 − 12261.81 anchor − 0 flows
+    });
   });
 });
