@@ -17,7 +17,7 @@ After this work, the Investments view gains a "Net Gain by Account" section that
 - [x] (2026-08-16 19:00Z) Milestone 1: `computeAccountNetGains` in `src/lib/investment-performance.ts` with 12 unit tests (32 total in the module's suite), built on the revised holdings-cash gate.
 - [x] (2026-08-16 19:05Z) Milestone 2: `accountReturns` on `GET /api/analytics/investments` — three new unwindowed queries plus reuse of the existing holdings rows; 2 new route tests (12 total). The new queries sit after the existing ones so the route-test mock queue stays backward-compatible.
 - [x] (2026-08-16 19:10Z) Milestone 3: "Net Gain by Account" section in `InvestmentPerformancePanel` between Allocation and Unrealized, with per-account contribution-vs-balance mini charts (sparse series merged per account, `connectNulls`, year-bearing window labels via a new `formatFullDateLabel`); 4 new component tests (15 total). Full gate: 356 passed / 41 skipped, lint (one pre-existing unrelated warning in `sync-holdings.ts`), tsc clean, build compiles all routes (local build needs dummy `PLAID_ENV`/`PLAID_CLIENT_ID`/`PLAID_SECRET`/`ENCRYPTION_KEY` since real values live only in the NAS deploy env).
-- [ ] Milestone 4: production rollout and verification (no migration needed).
+- [x] (2026-08-16 19:20Z) Milestone 4: merged to main (a9b8748), deployed via `scripts/deploy.sh` (app healthy, `{"status":"ok","db":"ok"}`), and verified against production data: Individual ····5111 gates lifetime (residual 0.00, first row a 2026-04-22 transfer deposit, threshold 2024-07-27) with net contributions 35,000.00 and gain +12,514.67 (+35.8%) — the acceptance figure; Roth ····6093 gates lifetime with gain −5,050.74 (−28.9% on 17,500.14 in; the balance moved 9 cents overnight), and would have been *blocked* under the falsified `available_balance` source; both Self-Directed accounts anchor at 2026-08-15 (first rows are buys at the window edge; residuals 172,649.96 and 2,305.53). Their threshold (2024-07-11) alone would have passed them — gate conditions (a) and (b) are what correctly reject them.
 
 ## Surprises & Discoveries
 
@@ -82,7 +82,13 @@ After this work, the Investments view gains a "Net Gain by Account" section that
 
 ## Outcomes & Retrospective
 
-To be written at completion.
+Shipped 2026-08-16, one day after planning, with no migration. The Investments tab now answers "am I actually up or down in this account?" with true net gain — balance minus net contributions, covering realized gains, unrealized gains, dividends, and interest — where the original panel could only report unrealized-vs-basis. The headline production result is the motivating example working: Individual ····5111 shows +$12,514.67 lifetime (+35.8% on $35,000 in) where the unrealized figure reads −$1,236.78, and the Roth's true position (−$5,050.74) is materially worse than its +$295.92 unrealized suggested. The two pre-window Self-Directed accounts anchor honestly at their first snapshot instead of inventing lifetime numbers.
+
+What worked: running the feasibility queries against production before writing the plan meant every fixture and acceptance figure was real; and the load-bearing validation pass between planning and implementation caught a design flaw — the `available_balance` cash source — that unit tests could never have caught, because the tests would have encoded the same wrong assumption. The falsification was cheap (two read-only queries and a docs read) and the fix was a one-parameter design change; discovering it post-ship would have looked like "lifetime mode randomly refuses to engage."
+
+What remains: per-account XIRR (deferred by design); the anchored accounts' charts stay near-empty until snapshot history accrues; Item-death fragmentation remains an accepted residual risk with `persistent_account_id` stitching as the known remedy; and the cross-check against the brokerage's own lifetime-gain display is a manual step for Justin, being the one test that would expose the gate's residual theoretical hole (pre-existing securities invisible to a cash residual).
+
+Lesson recorded: when a gate's correctness depends on a third-party field's semantics, validate the documented contract before building on the observed value — one day's exact match (both residuals 0.00 on 2026-08-15) concealed a field that drifted 9 cents by the next morning.
 
 ## Context and Orientation
 
