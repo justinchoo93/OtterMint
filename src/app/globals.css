@@ -20,6 +20,17 @@
   --accent-amber-dim: rgba(245, 158, 11, 0.12);
   --accent-purple: #a78bfa;
   --accent-purple-dim: rgba(167, 139, 250, 0.12);
+  /* Categorical chart series, in fixed assignment order. Validated for
+     colorblind-safe adjacency and >=3:1 contrast against --bg-secondary. */
+  --chart-cat-1: #3987e5;
+  --chart-cat-2: #d95926;
+  --chart-cat-3: #199e70;
+  --chart-cat-4: #c98500;
+  --chart-cat-5: #d55181;
+  --chart-cat-6: #008300;
+  --chart-cat-7: #9085e9;
+  --chart-cat-8: #e66767;
+  --chart-cat-other: #6b7280;
 }
 
 @theme inline {

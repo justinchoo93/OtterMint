@@ -4,6 +4,8 @@ import { useCallback, useEffect, useState } from "react";
 import {
   BarChart,
   Bar,
+  PieChart,
+  Pie,
   XAxis,
   YAxis,
   Tooltip,
@@ -23,6 +25,20 @@ interface CashflowPanelProps {
 }
 
 const TOP_CATEGORIES = 8;
+
+// Fixed slot order for the spending pie: slice i always wears color i, and the
+// "Other" slice is always the de-emphasis gray.
+const CATEGORY_COLORS = [
+  "var(--chart-cat-1)",
+  "var(--chart-cat-2)",
+  "var(--chart-cat-3)",
+  "var(--chart-cat-4)",
+  "var(--chart-cat-5)",
+  "var(--chart-cat-6)",
+  "var(--chart-cat-7)",
+  "var(--chart-cat-8)",
+];
+const OTHER_COLOR = "var(--chart-cat-other)";
 
 function monthLabel(month: string): string {
   return new Date(`${month}-01T00:00:00`).toLocaleDateString("en-US", {
@@ -229,6 +245,15 @@ export function CashflowPanel({ refreshKey }: CashflowPanelProps) {
       : []),
   ];
 
+  // A pie can only show positive slices; net-refund categories are dropped.
+  const positiveCategories = categoryData.filter((d) => d.total > 0);
+  const pieSum = positiveCategories.reduce((sum, d) => sum + d.total, 0);
+  const pieData = positiveCategories.map((d, i) => ({
+    ...d,
+    pct: Math.round((d.total / pieSum) * 100),
+    fill: d.category === "Other" ? OTHER_COLOR : CATEGORY_COLORS[i],
+  }));
+
   const tooltipStyle = {
     background: "var(--bg-tertiary)",
     border: "1px solid var(--border)",
@@ -370,7 +395,7 @@ export function CashflowPanel({ refreshKey }: CashflowPanelProps) {
         <span className="text-xs font-medium uppercase tracking-wider text-[var(--text-muted)]">
           Spending — {selectedLabel}
         </span>
-        {categoryData.length === 0 ? (
+        {pieData.length === 0 ? (
           <div className="mt-3 rounded-lg border border-dashed border-[var(--border)] p-6 text-center text-sm text-[var(--text-muted)]">
             No transaction data for this month
           </div>
@@ -381,42 +406,49 @@ export function CashflowPanel({ refreshKey }: CashflowPanelProps) {
               height="100%"
               initialDimension={{ width: 400, height: 224 }}
             >
-              <BarChart data={categoryData} layout="vertical">
-                <CartesianGrid
-                  strokeDasharray="3 3"
-                  stroke="var(--border-subtle)"
-                  horizontal={false}
-                />
-                <XAxis
-                  type="number"
-                  tick={{ fontSize: 10, fill: "var(--text-muted)" }}
-                  tickLine={false}
-                  axisLine={{ stroke: "var(--border-subtle)" }}
-                  tickFormatter={formatAxisDollars}
-                />
-                <YAxis
-                  type="category"
-                  dataKey="category"
-                  tick={{ fontSize: 11, fill: "var(--text-secondary)" }}
-                  tickLine={false}
-                  axisLine={false}
-                  width={110}
-                />
+              <PieChart>
                 <Tooltip
                   contentStyle={tooltipStyle}
                   itemStyle={{ color: "var(--text-primary)" }}
-                  labelStyle={{ color: "var(--text-primary)" }}
+                  formatter={(
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                    value: any,
+                    name: string | undefined,
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                    item: any
+                  ) => [
+                    `${formatCurrency(value ?? 0)} · ${item?.payload?.pct ?? 0}%`,
+                    name ?? "",
+                  ]}
+                />
+                <Legend
+                  layout="vertical"
+                  align="right"
+                  verticalAlign="middle"
+                  iconType="circle"
+                  iconSize={8}
+                  // Keep slice order (largest first), not the alphabetical default.
+                  itemSorter={null}
+                  wrapperStyle={{ fontSize: "11px" }}
                   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                  formatter={(value: any) => [formatCurrency(value ?? 0), "Spent"]}
-                  cursor={{ fill: "var(--bg-hover)" }}
+                  formatter={(value: string, entry: any) => (
+                    <span style={{ color: "var(--text-secondary)" }}>
+                      {value}{" "}
+                      <span style={{ color: "var(--text-muted)" }}>
+                        {entry?.payload?.pct}%
+                      </span>
+                    </span>
+                  )}
                 />
-                <Bar
+                <Pie
+                  data={pieData}
                   dataKey="total"
-                  fill="var(--accent-blue)"
-                  radius={[0, 4, 4, 0]}
-                  barSize={16}
+                  nameKey="category"
+                  stroke="var(--bg-secondary)"
+                  strokeWidth={2}
+                  outerRadius="90%"
                 />
-              </BarChart>
+              </PieChart>
             </ResponsiveContainer>
           </div>
         )}

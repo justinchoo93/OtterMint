@@ -26,6 +26,12 @@ vi.mock("recharts", () => ({
   Bar: ({ dataKey }: { dataKey?: string }) => (
     <div data-testid="chart-bar" data-key={dataKey} />
   ),
+  PieChart: ({ children }: { children: React.ReactNode }) => (
+    <div data-testid="pie-chart">{children}</div>
+  ),
+  Pie: ({ data }: { data?: Array<Record<string, unknown>> }) => (
+    <div data-testid="pie" data-chart-data={JSON.stringify(data ?? [])} />
+  ),
 }));
 
 import { CashflowPanel } from "@/components/dashboard/CashflowPanel";
@@ -198,15 +204,18 @@ describe("CashflowPanel", () => {
     expect(screen.getByText("$1,517.67")).toBeInTheDocument();
     expect(screen.getByText("Spending — July 2026")).toBeInTheDocument();
 
-    // July's category chart contains rent, labeled without the primary prefix.
-    const charts = screen.getAllByTestId("bar-chart");
-    const categoryChart = charts[charts.length - 1];
+    // July's category pie contains rent, labeled without the primary prefix.
     const data = JSON.parse(
-      categoryChart.getAttribute("data-chart-data") ?? "[]"
+      screen.getByTestId("pie").getAttribute("data-chart-data") ?? "[]"
     );
     expect(data).toEqual([
-      { category: "Rent", total: 1800 },
-      { category: "Restaurants", total: 412.33 },
+      { category: "Rent", total: 1800, pct: 81, fill: "var(--chart-cat-1)" },
+      {
+        category: "Restaurants",
+        total: 412.33,
+        pct: 19,
+        fill: "var(--chart-cat-2)",
+      },
     ]);
   });
 
