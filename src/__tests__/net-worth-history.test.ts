@@ -241,3 +241,34 @@ describe("normalizeNetWorthHistory", () => {
     expect(history.periodChange).toBeNull();
   });
 });
+
+describe("reconstructed history", () => {
+  it("does not add later connection balances to a reconstructed total", () => {
+    const result = normalizeNetWorthHistory({
+      snapshots: [
+        { ...snapshot("2026-01-31", "100.00", "10.00", "same"), reconstructionNotes: "Prior statement used." },
+        snapshot("2026-02-28", "100.00", "10.00", "same"),
+      ],
+      events: [event("2026-02-15", "100.00")],
+    });
+    expect(result.snapshots[0]).toMatchObject({
+      netWorth: "90.00", adjustedNetWorth: "90.00", quality: "reconstructed",
+    });
+    expect(result.snapshots[1].coverageSegment).not.toBe(result.snapshots[0].coverageSegment);
+    expect(result.snapshots[1].comparisonSegment).not.toBe(result.snapshots[0].comparisonSegment);
+    expect(result.periodChange?.normalized).toBeNull();
+  });
+
+  it("connects like-for-like reconstructions but never calls their change normalized", () => {
+    const result = normalizeNetWorthHistory({
+      snapshots: ["2026-01-31", "2026-02-28"].map((date) => ({
+        ...snapshot(date, "100.00", "0.00", "reconstruction-v1"),
+        reconstructionNotes: "Estimated from dated evidence.",
+      })),
+      events: [],
+    });
+    expect(result.snapshots.every((point) => point.quality === "reconstructed")).toBe(true);
+    expect(result.snapshots[1].coverageSegment).toBe(0);
+    expect(result.periodChange).toEqual({ reported: "0.00", normalized: null });
+  });
+});

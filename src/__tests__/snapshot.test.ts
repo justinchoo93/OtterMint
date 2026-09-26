@@ -121,3 +121,13 @@ describe("computeSnapshot", () => {
     expect(result.loanTotal).toBe("25000.00");
   });
 });
+
+it("clears reconstruction metadata when a date receives a live observation", async () => {
+  const { saveUserSnapshot } = await import("@/lib/compute-snapshot");
+  const update = vi.fn();
+  const values = vi.fn<(data: unknown) => { onConflictDoUpdate: typeof update }>(() => ({ onConflictDoUpdate: update }));
+  const executor = { insert: vi.fn(() => ({ values })) };
+  await saveUserSnapshot("owner", computeSnapshot([], []), "live", executor as unknown as Parameters<typeof saveUserSnapshot>[3]);
+  expect(values.mock.calls[0][0]).toMatchObject({ reconstructionNotes: null });
+  expect(update.mock.calls[0][0].set).toMatchObject({ reconstructionNotes: null });
+});

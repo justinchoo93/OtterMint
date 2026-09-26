@@ -129,7 +129,7 @@ function buildLineSeries(
           name: metric.name,
           color: metric.color,
           width: metric.width,
-          estimated: false,
+          estimated: segment.some((point) => point.quality === "reconstructed"),
           points: segment.map((point) => ({
             date: point.date,
             value: Number.parseFloat(metric.raw(point)),
@@ -149,7 +149,7 @@ function buildLineSeries(
             current = null;
             continue;
           }
-          const estimated = point.quality === "flat_normalized";
+          const estimated = point.quality === "flat_normalized" || point.quality === "reconstructed";
           const linePoint = {
             date: point.date,
             value: Number.parseFloat(value),
@@ -202,6 +202,7 @@ function buildChartModel(
 }
 
 function qualityLabel(point: NetWorthSnapshotRow, mode: ChartMode): string {
+  if (point.quality === "reconstructed") return "Reconstructed estimate";
   if (mode === "reported") return "Reported observation";
   if (point.quality === "flat_normalized") {
     return "Flat normalization from first known balance";
@@ -218,13 +219,14 @@ export function NetWorthChart({ refreshKey, groupId }: NetWorthChartProps) {
   });
   const [mode, setMode] = useState<ChartMode>("normalized");
   const [loading, setLoading] = useState(true);
+  const [days, setDays] = useState(90);
 
   const fetchSnapshots = useCallback(async () => {
     setLoading(true);
     try {
       const url = groupId
-        ? `/api/groups/${groupId}/net-worth?days=90`
-        : "/api/net-worth?days=90";
+        ? `/api/groups/${groupId}/net-worth?days=${days}`
+        : `/api/net-worth?days=${days}`;
       const response = await fetch(url);
       if (!response.ok) throw new Error(`History request failed: ${response.status}`);
       const data = (await response.json()) as Partial<HistoryPayload>;
@@ -239,7 +241,7 @@ export function NetWorthChart({ refreshKey, groupId }: NetWorthChartProps) {
     } finally {
       setLoading(false);
     }
-  }, [groupId]);
+  }, [groupId, days]);
 
   useEffect(() => {
     fetchSnapshots();
@@ -269,7 +271,7 @@ export function NetWorthChart({ refreshKey, groupId }: NetWorthChartProps) {
     );
   }
 
-  if (history.snapshots.length < 2) return null;
+  const reconstructedPoints = history.snapshots.filter((point) => point.reconstructionNotes);
 
   return (
     <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-secondary)] p-6">
@@ -283,6 +285,15 @@ export function NetWorthChart({ refreshKey, groupId }: NetWorthChartProps) {
               Change excluding coverage: {formatCurrency(history.periodChange?.normalized)}
             </div>
           )}
+        </div>
+        <div className="flex gap-1" aria-label="Net worth history range">
+          {([90, 365] as const).map((range) => (
+            <button key={range} type="button" aria-pressed={days === range}
+              onClick={() => setDays(range)}
+              className={`rounded-md border border-[var(--border)] px-2.5 py-1 text-xs ${days === range ? "bg-[var(--bg-tertiary)] text-[var(--text-primary)]" : "text-[var(--text-muted)]"}`}>
+              {range === 90 ? "90 days" : "1 year"}
+            </button>
+          ))}
         </div>
         {normalizedAvailable && (
           <div
@@ -308,6 +319,9 @@ export function NetWorthChart({ refreshKey, groupId }: NetWorthChartProps) {
         )}
       </div>
 
+      {history.snapshots.length < 2 && (
+        <p className="mt-3 text-xs text-[var(--text-muted)]">Not enough history in this range. Try a longer range.</p>
+      )}
       <div className="mt-4 h-56">
         <ResponsiveContainer
           width="100%"
@@ -359,6 +373,9 @@ export function NetWorthChart({ refreshKey, groupId }: NetWorthChartProps) {
                     <div className="mt-1 text-[var(--text-muted)]">
                       {qualityLabel(point, activeMode)}
                     </div>
+                    {point.reconstructionNotes && (
+                      <p className="mt-1 max-w-xs">{point.reconstructionNotes}</p>
+                    )}
                     <div className="mt-2 space-y-1 font-mono tabular-nums">
                       <div>
                         Net Worth: {formatCurrency(
@@ -420,6 +437,14 @@ export function NetWorthChart({ refreshKey, groupId }: NetWorthChartProps) {
         </ResponsiveContainer>
       </div>
 
+      {reconstructedPoints.length > 0 && (
+        <details className="mt-3 text-xs text-[var(--text-muted)]">
+          <summary>Dashed historical values are reconstructed estimates. View sources and assumptions.</summary>
+          {reconstructedPoints.map((point) => (
+            <p className="mt-2" key={point.date}>{formatDateLabel(point.date)} · {point.reconstructionNotes}</p>
+          ))}
+        </details>
+      )}
       {(normalizedAvailable || hasUnknownCoverage) && (
         <div className="mt-3 space-y-1 text-xs text-[var(--text-muted)]">
           {normalizedAvailable && activeMode === "normalized" && (

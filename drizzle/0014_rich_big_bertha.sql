@@ -1,0 +1,1 @@
+ALTER TABLE "user_net_worth_snapshots" ADD COLUMN "reconstruction_notes" text;

@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 
 export type HistoryQuality =
+  | "reconstructed"
   | "observed"
   | "flat_normalized"
   | "unknown_coverage";
@@ -21,6 +22,7 @@ export interface CanonicalSnapshot {
   totalLiabilities: string;
   netWorth: string;
   coverageFingerprint?: string | null;
+  reconstructionNotes?: string | null;
 }
 
 export interface NetWorthHistoryPoint extends CanonicalSnapshot {
@@ -226,9 +228,12 @@ export function normalizeNetWorthHistory<T extends CanonicalSnapshot>(input: {
         legacyBoundaries
       );
       const edgeEvents = eventsForEdge(previous.date, snapshot.date, events);
-      const hasReportedBoundary = fingerprintChanged || touchesLegacy;
+      const reconstructionBoundary =
+        Boolean(previous.reconstructionNotes) !== Boolean(snapshot.reconstructionNotes);
+      const hasReportedBoundary = fingerprintChanged || touchesLegacy || reconstructionBoundary;
       const explainedAddition =
-        fingerprintChanged && !fingerprintUnknown && !touchesLegacy && edgeEvents.length > 0;
+        fingerprintChanged && !fingerprintUnknown && !touchesLegacy &&
+        !reconstructionBoundary && !snapshot.reconstructionNotes && edgeEvents.length > 0;
       const unknownBoundary = hasReportedBoundary && !explainedAddition;
 
       if (hasReportedBoundary) coverageSegment += 1;
@@ -256,7 +261,7 @@ export function normalizeNetWorthHistory<T extends CanonicalSnapshot>(input: {
     }
 
     const laterEvents = events.filter(
-      (event) => snapshot.date < event.effectiveDate
+      (event) => !snapshot.reconstructionNotes && snapshot.date < event.effectiveDate
     );
     const assetAdjustment = laterEvents.reduce(
       (sum, event) => sum + money(event.assetAdjustment),
@@ -275,11 +280,13 @@ export function normalizeNetWorthHistory<T extends CanonicalSnapshot>(input: {
       adjustedTotalAssets: fixed(adjustedAssets),
       adjustedTotalLiabilities: fixed(adjustedLiabilities),
       adjustedNetWorth: fixed(adjustedAssets - adjustedLiabilities),
-      quality: startsUnknownSegment
-        ? "unknown_coverage"
-        : laterEvents.length > 0
-          ? "flat_normalized"
-          : "observed",
+      quality: snapshot.reconstructionNotes
+        ? "reconstructed"
+        : startsUnknownSegment
+          ? "unknown_coverage"
+          : laterEvents.length > 0
+            ? "flat_normalized"
+            : "observed",
       coverageSegment,
       comparisonSegment,
     } satisfies T & NetWorthHistoryPoint;
@@ -295,6 +302,7 @@ export function normalizeNetWorthHistory<T extends CanonicalSnapshot>(input: {
             money(points.at(-1)?.netWorth) - money(points[0].netWorth)
           ),
           normalized:
+            !points.some((point) => point.reconstructionNotes) &&
             points[0].comparisonSegment === points.at(-1)?.comparisonSegment
               ? fixed(
                   money(points.at(-1)?.adjustedNetWorth) -

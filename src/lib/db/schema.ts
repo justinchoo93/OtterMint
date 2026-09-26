@@ -416,6 +416,7 @@ export const userNetWorthSnapshots = pgTable(
       precision: 14,
       scale: 2,
     }),
+    reconstructionNotes: text("reconstruction_notes"),
     coverageFingerprint: text("coverage_fingerprint"),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()

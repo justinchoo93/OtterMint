@@ -95,10 +95,11 @@ export async function saveUserSnapshot(
       userId,
       date: today,
       ...snapshotValues(data, coverageFingerprint),
+      reconstructionNotes: null,
     })
     .onConflictDoUpdate({
       target: [userNetWorthSnapshots.userId, userNetWorthSnapshots.date],
-      set: snapshotValues(data, coverageFingerprint),
+      set: { ...snapshotValues(data, coverageFingerprint), reconstructionNotes: null },
     });
 }
 

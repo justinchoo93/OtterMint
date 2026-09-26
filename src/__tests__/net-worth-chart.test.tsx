@@ -49,12 +49,15 @@ vi.mock("recharts", () => ({
   Line: ({
     data,
     dataKey,
+    strokeDasharray,
   }: {
+    strokeDasharray?: string;
     data?: unknown;
     dataKey?: string;
   }) => (
     <div
       data-testid="chart-line"
+      data-dash={strokeDasharray}
       data-has-private-data={String(data !== undefined)}
       data-key={dataKey}
     />
@@ -331,4 +334,24 @@ describe("NetWorthChart", () => {
       expect(fetch).toHaveBeenCalledWith("/api/groups/group-2/net-worth?days=90")
     );
   });
+});
+
+
+it("labels and dashes reconstructed values and allows requesting a full year", async () => {
+  vi.stubGlobal("fetch", vi.fn().mockResolvedValue({
+    ok: true, json: async () => response({
+      snapshots: response().snapshots.map((point) => ({
+        ...point, quality: "reconstructed", reconstructionNotes: "Card value carried from its prior statement.",
+        coverageSegment: 0, comparisonSegment: 0,
+      })), coverageEvents: [], periodChange: { reported: "0.00", normalized: null },
+    }),
+  }));
+  try {
+    render(<NetWorthChart />);
+    expect(await screen.findByText(/Dashed historical values are reconstructed estimates/)).toBeInTheDocument();
+    expect(screen.getAllByText(/Card value carried from its prior statement/)).toHaveLength(2);
+    expect(screen.getAllByTestId("chart-line").every((line) => line.getAttribute("data-dash") === "6 4")).toBe(true);
+    fireEvent.click(screen.getByRole("button", { name: "1 year" }));
+    await waitFor(() => expect(fetch).toHaveBeenCalledWith("/api/net-worth?days=365"));
+  } finally { vi.unstubAllGlobals(); }
 });

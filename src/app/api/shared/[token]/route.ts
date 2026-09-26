@@ -86,7 +86,7 @@ export async function GET(
           )
           .orderBy(asc(userNetWorthSnapshots.date));
 
-        result.snapshots = snapshots.map((s) => ({
+        result.snapshots = snapshots.filter((s) => !s.reconstructionNotes).map((s) => ({
           date: s.date,
           totalAssets: s.totalAssets,
           totalLiabilities: s.totalLiabilities,
