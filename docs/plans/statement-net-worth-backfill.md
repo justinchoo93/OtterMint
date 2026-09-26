@@ -12,7 +12,7 @@ Make the collected 2026 records usable in the personal net-worth chart without p
 - [x] (2026-09-26) Implemented nullable reconstruction metadata, guarded presentation, and range selection.
 - [x] (2026-09-26) Prepared six private January–June totals and reversible import; preserved 41 existing observations in database rehearsal.
 - [x] (2026-09-26) Passed focused/full tests, TypeScript, lint apart from one existing warning, migration/RLS checks, and authenticated API/browser acceptance.
-- [ ] Complete deployment/import if authorized, or present the tested concrete result and the exact remaining deployment step.
+- [x] (2026-09-26) User approved deployment/import. Published and deployed app commit 93cfb8b, journaled migration 0014, and applied/verified six historical estimates with all prior records preserved.
 
 ## Surprises & Discoveries
 
@@ -28,7 +28,7 @@ Decision: Use the verified local evidence to prepare estimates for otherwise uns
 
 ## Outcomes & Retrospective
 
-Implementation and local verification are complete. Six January–June estimates are prepared; all 41 existing July–September observations were preserved in rehearsal. The UI and API label estimates, split the live boundary, expose assumptions, and support one year. No aggregate history or schema changes have been written to production. The host operating guide requires confirmation before this non-trivial deployment; the concrete tested result is ready for that final step.
+Implementation and local verification are complete. Six January–June estimates are prepared; all 41 existing July–September observations were preserved in rehearsal. The UI and API label estimates, split the live boundary, expose assumptions, and support one year. The user subsequently approved deployment. Migration 0014 and app commit 93cfb8b are live, and all six estimates are applied and verified. Existing aggregate history and all other scoped financial rows were preserved.
 
 ## Context and Orientation
 
@@ -82,6 +82,14 @@ Migration `drizzle/0014_rich_big_bertha.sql` adds only nullable `reconstruction_
 
 The local financial-data rehearsal preserved the 41 original aggregate snapshots by row hash, inserted six rows, repeated without duplicates, reversed them without changing the baseline, and rejected undo after simulated changes. That temporary financial copy was deleted from the disposable database before browser checks. A synthetic account then passed authenticated API and Firefox UI checks: one-year data, dashed estimates, readable assumptions and a separate observed segment.
 
-The NAS has migrations through 0013 and no new metadata column. Follow `docs/DEPLOYMENT.md` after confirmation. Its referenced host guide, `~/Library/Mobile Documents/iCloud~md~obsidian/Documents/life/interests/OtterHolt.md`, requires framing and a confirmation prompt before non-trivial host actions. This deployment changes the existing app and adds a nullable database column; no ports or authentication settings are changed. Prepare backup and rollback before applying. Keep all financial manifests, database exports and receipts outside git.
+Before deployment, the NAS had migrations through 0013 and no new metadata column. Deployment followed `docs/DEPLOYMENT.md` after explicit confirmation. Its referenced host guide, `~/Library/Mobile Documents/iCloud~md~obsidian/Documents/life/interests/OtterHolt.md`, requires framing and a confirmation prompt before non-trivial host actions. This deployment changes the existing app and adds a nullable database column; no ports or authentication settings are changed. Prepare backup and rollback before applying. Keep all financial manifests, database exports and receipts outside git.
 
 Revision note (2026-09-26): Recorded completed implementation, source reconstruction, real-database rehearsal, tests and UI verification. Deployment/import is the sole remaining execution milestone, subject to the host guide's explicit confirmation requirement.
+
+## Production completion
+
+On September 26, 2026 the user approved publication, deployment and import. The code was pushed as a fast-forward to main and built on the NAS. An encrypted pre-change database backup was created and verified, and the prior app image retained. Migration 0014 was applied atomically with its exact Drizzle hash and timestamp. The new app passed its health probe before any reconstructed rows were loaded.
+
+Production rehearsal passed; six January–June estimates were then inserted. All 41 original aggregate rows and all scoped transactions, per-account balances, manual accounts, account inventory and coverage events remained unchanged. The application database role sees 47 aggregate points including six with reconstruction notes. HTTPS health through the existing Caddy proxy passed, and unauthenticated history returned 401. Firefox DNS resolution prevented live visual verification; the local authenticated API/browser acceptance already passed. No network settings were changed. Private result and recovery records are in `bank_statements/backfill/net-worth-result.json` and its README.
+
+Revision note (2026-09-26): Marked the approved deployment and import complete, recorded production preservation checks and the live-browser DNS limitation.
