@@ -340,7 +340,13 @@ describe("comparableChange", () => {
     // never recorded as removed, so raw net worth barely moved while every
     // earlier adjusted point was lifted by 152,000.
     const lifted = (date: string, raw: number) =>
-      point(date, raw, { quality: "flat_normalized", coverageSegment: 7, comparisonSegment: 6, adjustedNetWorth: (raw + 152000).toFixed(2) });
+      point(date, raw, {
+        quality: "flat_normalized",
+        coverageSegment: 7,
+        comparisonSegment: 6,
+        adjustedTotalAssets: (raw + 152000).toFixed(2),
+        adjustedNetWorth: (raw + 152000).toFixed(2),
+      });
     const series = [
       lifted("2026-07-23", 646717),
       lifted("2026-09-02", 650610),
@@ -352,10 +358,45 @@ describe("comparableChange", () => {
     expect(change.amount).toBeCloseTo(38686);
   });
 
+  it("measures across a liability addition that showed up even when assets rose the same day", () => {
+    // Production shape (Aug 13, 2026): a credit card with 11,016.62 owed was
+    // connected; liabilities rose 11,124 while investments rose 22,513, so net
+    // worth went up. The addition did show up; this is not a contradiction.
+    const beforeCard = (date: string, assets: number, liabilities: number) =>
+      point(date, assets - liabilities, {
+        totalAssets: assets.toFixed(2),
+        totalLiabilities: liabilities.toFixed(2),
+        adjustedTotalAssets: assets.toFixed(2),
+        adjustedTotalLiabilities: (liabilities + 11016.62).toFixed(2),
+        adjustedNetWorth: (assets - liabilities - 11016.62).toFixed(2),
+        quality: "flat_normalized",
+        coverageSegment: 6,
+        comparisonSegment: 6,
+      });
+    const afterCard = (date: string, assets: number, liabilities: number) =>
+      point(date, assets - liabilities, {
+        totalAssets: assets.toFixed(2),
+        totalLiabilities: liabilities.toFixed(2),
+        adjustedTotalAssets: assets.toFixed(2),
+        adjustedTotalLiabilities: liabilities.toFixed(2),
+        adjustedNetWorth: (assets - liabilities).toFixed(2),
+        coverageSegment: 7,
+        comparisonSegment: 6,
+      });
+    const series = [
+      beforeCard("2026-07-23", 647500, 783),
+      beforeCard("2026-08-11", 643224.3, 829.46),
+      afterCard("2026-08-13", 665736.34, 11953.76),
+      afterCard("2026-09-02", 656923.2, 6313.64),
+    ];
+    expect(normalizationContradictions(series)).toEqual([]);
+    expect(comparableChange(series, "normalized")!.fromDate).toBe("2026-07-23");
+  });
+
   it("measures across an account change whose adjustment matches the balance jump", () => {
     const series = [
-      point("2026-08-01", 100000, { quality: "flat_normalized", coverageSegment: 0, comparisonSegment: 0, adjustedNetWorth: "150000.00" }),
-      point("2026-08-10", 101000, { quality: "flat_normalized", coverageSegment: 0, comparisonSegment: 0, adjustedNetWorth: "151000.00" }),
+      point("2026-08-01", 100000, { quality: "flat_normalized", coverageSegment: 0, comparisonSegment: 0, adjustedTotalAssets: "150000.00", adjustedNetWorth: "150000.00" }),
+      point("2026-08-10", 101000, { quality: "flat_normalized", coverageSegment: 0, comparisonSegment: 0, adjustedTotalAssets: "151000.00", adjustedNetWorth: "151000.00" }),
       point("2026-08-11", 151500, { coverageSegment: 1, comparisonSegment: 0 }),
       point("2026-09-01", 153000, { coverageSegment: 1, comparisonSegment: 0 }),
     ];
@@ -366,7 +407,13 @@ describe("comparableChange", () => {
 
   it("lists the account changes whose normalization the balances contradict", () => {
     const lifted = (date: string, raw: number) =>
-      point(date, raw, { quality: "flat_normalized", coverageSegment: 7, comparisonSegment: 6, adjustedNetWorth: (raw + 152000).toFixed(2) });
+      point(date, raw, {
+        quality: "flat_normalized",
+        coverageSegment: 7,
+        comparisonSegment: 6,
+        adjustedTotalAssets: (raw + 152000).toFixed(2),
+        adjustedNetWorth: (raw + 152000).toFixed(2),
+      });
     expect(
       normalizationContradictions([
         lifted("2026-09-02", 650610),

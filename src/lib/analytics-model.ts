@@ -401,23 +401,44 @@ export interface ComparableChange {
 }
 
 /**
+ * Whether one side (assets or liabilities) of an account-change edge moved in
+ * a way the recorded adjustment explains. If "no addition happened" explains
+ * the jump better than the adjustment does, by more than half the adjustment
+ * and more than 1% of that side's total, the adjustment never showed up.
+ */
+function sideContradicted(adjustment: number, jump: number, level: number): boolean {
+  if (Math.abs(adjustment) < 0.005) return false;
+  const organicIfReal = Math.abs(jump - adjustment);
+  const organicIfNot = Math.abs(jump);
+  return organicIfReal - organicIfNot > Math.max(Math.abs(adjustment) * 0.5, Math.abs(level) * 0.01);
+}
+
+/**
  * Across an account-change edge inside one comparison segment, normalization
- * lifts earlier points by the recorded adjustment, so the adjusted series
- * should move only by ordinary day-to-day change. When the adjusted series
- * instead jumps by more than half the adjustment (and more than 1% of net
- * worth), the recorded adjustment never showed up in the balance, e.g. a
- * re-created manual account whose predecessor's removal was not recorded,
- * and measuring across the edge would report a change that did not happen.
+ * lifts earlier points by the recorded adjustment, so the newly covered
+ * balance should appear on its side of the ledger at the edge. Each side is
+ * checked on its own so a market move in investments cannot mask, or mimic,
+ * a card's liability appearing. A contradiction (e.g. a re-created manual
+ * account recorded as new while its predecessor was already counted) means
+ * measuring across the edge would report a change that did not happen.
  */
 function normalizationHolds(before: NetWorthSnapshotRow, after: NetWorthSnapshotRow): boolean {
   if (before.coverageSegment === after.coverageSegment) return true;
-  const rawBefore = Number.parseFloat(before.netWorth);
-  const rawAfter = Number.parseFloat(after.netWorth);
-  const adjBefore = Number.parseFloat(before.adjustedNetWorth as string);
-  const adjAfter = Number.parseFloat(after.adjustedNetWorth as string);
-  const adjustment = adjBefore - rawBefore - (adjAfter - rawAfter);
-  const adjustedJump = Math.abs(adjAfter - adjBefore);
-  return adjustedJump <= Math.max(Math.abs(adjustment) * 0.5, Math.abs(adjAfter) * 0.01);
+  const n = (value: string | null | undefined) => Number.parseFloat(value ?? "0");
+  const assetAdjustment =
+    n(before.adjustedTotalAssets) - n(before.totalAssets) - (n(after.adjustedTotalAssets) - n(after.totalAssets));
+  const liabilityAdjustment =
+    n(before.adjustedTotalLiabilities) -
+    n(before.totalLiabilities) -
+    (n(after.adjustedTotalLiabilities) - n(after.totalLiabilities));
+  return (
+    !sideContradicted(assetAdjustment, n(after.totalAssets) - n(before.totalAssets), n(after.totalAssets)) &&
+    !sideContradicted(
+      liabilityAdjustment,
+      n(after.totalLiabilities) - n(before.totalLiabilities),
+      n(after.totalLiabilities)
+    )
+  );
 }
 
 /**

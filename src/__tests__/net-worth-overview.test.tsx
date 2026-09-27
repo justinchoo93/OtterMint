@@ -142,7 +142,13 @@ describe("NetWorthOverview", () => {
 
   it("opens in Reported and says why when the balances contradict an account change", async () => {
     const lifted = (date: string, raw: number) =>
-      point(date, raw, { quality: "flat_normalized", coverageSegment: 7, comparisonSegment: 6, adjustedNetWorth: (raw + 152000).toFixed(2) });
+      point(date, raw, {
+        quality: "flat_normalized",
+        coverageSegment: 7,
+        comparisonSegment: 6,
+        adjustedTotalAssets: (raw + 152000).toFixed(2),
+        adjustedNetWorth: (raw + 152000).toFixed(2),
+      });
     stubHistory([
       lifted("2026-09-01", 649580),
       lifted("2026-09-02", 650610),
