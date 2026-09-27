@@ -15,9 +15,7 @@ import { AccountsPanel } from "@/components/dashboard/AccountsPanel";
 import { TransactionsFeed } from "@/components/dashboard/TransactionsFeed";
 import { HoldingsPanel } from "@/components/dashboard/HoldingsPanel";
 import { ManualAccountsPanel } from "@/components/manual/ManualAccountsPanel";
-import { NetWorthOverview } from "@/components/dashboard/NetWorthOverview";
-import { netWorthDaysForRange, todayUtc } from "@/lib/analytics-model";
-import { CashflowPanel } from "@/components/dashboard/CashflowPanel";
+import { AnalyticsView } from "@/components/dashboard/AnalyticsView";
 import { InvestmentPerformancePanel } from "@/components/dashboard/InvestmentPerformancePanel";
 import { RefreshButton } from "@/components/dashboard/RefreshButton";
 import { PlaidLinkButton } from "@/components/plaid/PlaidLinkButton";
@@ -280,22 +278,12 @@ export default function Dashboard() {
     }
 
     return (
-      <div className="space-y-6 animate-fade-in">
-        <NetWorthOverview
-          accounts={visibleAccounts}
-          manualAccounts={visibleManualAccounts}
-          days={netWorthDaysForRange("6M", todayUtc())}
-          groupId={isHousehold ? group?.id : undefined}
-          refreshKey={refreshKey}
-        />
-        {isHousehold ? (
-          <div className="rounded-xl border border-dashed border-[var(--border)] bg-[var(--bg-secondary)] p-8 text-center text-sm text-[var(--text-muted)]">
-            Household spending analytics are not available yet.
-          </div>
-        ) : (
-          <CashflowPanel refreshKey={refreshKey} />
-        )}
-      </div>
+      <AnalyticsView
+        accounts={visibleAccounts}
+        manualAccounts={visibleManualAccounts}
+        groupId={isHousehold ? group?.id : undefined}
+        refreshKey={refreshKey}
+      />
     );
   };
 

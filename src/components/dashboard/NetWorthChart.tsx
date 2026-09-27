@@ -165,11 +165,17 @@ function qualityLabel(point: NetWorthSnapshotRow, mode: ChartMode): string {
   return "Observed";
 }
 
-/** First-of-month ticks across the range; every third month on long ranges. */
-function monthTicks(min: number, max: number): { ticks: number[]; dense: boolean } | null {
-  const start = new Date(min);
-  let year = start.getUTCFullYear();
-  let month = start.getUTCMonth() + (start.getUTCDate() > 1 ? 1 : 0);
+/**
+ * First-of-month ticks across the range; every third month on long ranges.
+ * When the data starts within the first ten days of a month, the axis starts
+ * on that month's first day so its label is shown.
+ */
+function monthTicks(min: number, max: number): { ticks: number[]; dense: boolean; start: number } | null {
+  const first = new Date(min);
+  const monthStart = Date.UTC(first.getUTCFullYear(), first.getUTCMonth(), 1);
+  const start = min - monthStart <= 10 * 86_400_000 ? monthStart : min;
+  let year = first.getUTCFullYear();
+  let month = first.getUTCMonth() + (start === monthStart ? 0 : 1);
   const ticks: number[] = [];
   for (;;) {
     const t = Date.UTC(year, month, 1);
@@ -183,7 +189,7 @@ function monthTicks(min: number, max: number): { ticks: number[]; dense: boolean
   }
   if (ticks.length < 2) return null;
   const dense = ticks.length > 12;
-  return { ticks: dense ? ticks.filter((_, i) => i % 3 === 0) : ticks, dense };
+  return { ticks: dense ? ticks.filter((_, i) => i % 3 === 0) : ticks, dense, start };
 }
 
 function monthKeyOf(timestamp: number): string {
@@ -260,7 +266,7 @@ export function NetWorthChart({
               dataKey="timestamp"
               type="number"
               scale="time"
-              domain={["dataMin", "dataMax"]}
+              domain={axis ? [axis.start, "dataMax"] : ["dataMin", "dataMax"]}
               ticks={axis?.ticks}
               interval={axis ? 0 : "preserveStartEnd"}
               tick={{ fontSize: 11, fill: "var(--text-muted)", fontFamily: "var(--font-geist-mono)" }}

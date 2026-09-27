@@ -89,7 +89,8 @@ export interface ResolvedPeriod {
   historyStartsLabel: string | null;
 }
 
-function spanLabel(months: CashflowMonth[]): string {
+/** "Apr–Sep 2026", "Oct 2025–Sep 2026", or "August 2026" for one month. */
+export function spanLabel(months: CashflowMonth[]): string {
   if (months.length === 0) return "";
   const first = parseMonthKey(months[0].month);
   const last = parseMonthKey(months[months.length - 1].month);
@@ -332,7 +333,7 @@ export function layoutCashflowColumns(months: CashflowMonth[]): CashflowColumnLa
 
   const baselinePct = (up / total) * 100;
   const pct = (amount: number) => (amount / total) * 100;
-  const step = niceStep(Math.max(upMax, downMax), 2);
+  const step = niceStep(Math.max(upMax, downMax), 3);
   const ticks: CashflowColumnLayout["ticks"] = [];
   for (let k = -Math.floor(down / step); k <= Math.floor(up / step); k++) {
     ticks.push({ value: k * step, pct: baselinePct - pct(k * step) });

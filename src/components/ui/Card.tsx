@@ -33,14 +33,14 @@ export interface CardHeaderProps {
 export function CardHeader({ title, subtitle, actions, headingLevel = 2 }: CardHeaderProps) {
   const Heading = headingLevel === 3 ? "h3" : "h2";
   return (
-    <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-3">
-      <div className="flex min-w-0 flex-col gap-1">
+    <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-6">
+      <div className="flex min-w-0 flex-col gap-1 sm:flex-1">
         <Heading className="font-serif text-[1.375rem] leading-[1.15] font-normal text-ink sm:text-title">
           {title}
         </Heading>
         {subtitle && <p className="text-caption text-ink-secondary">{subtitle}</p>}
       </div>
-      {actions && <div className="flex shrink-0 flex-wrap items-center gap-3">{actions}</div>}
+      {actions && <div className="flex shrink-0 flex-wrap items-center gap-3 sm:pt-1.5">{actions}</div>}
     </div>
   );
 }
