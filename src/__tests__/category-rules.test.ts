@@ -72,3 +72,51 @@ describe("applyCategoryRules", () => {
     ]);
   });
 });
+
+// The production shape behind the River rule: weekly bitcoin buys from
+// checking that Plaid labels as ordinary spending (Internet & Cable here;
+// also seen as Online Marketplaces, Casinos & Gambling, General Services).
+const riverBuy = {
+  name: "RIVER. RECUR BUY PDSTYN6SEQ WEB ID: 4611920351",
+  amount: "50.00",
+  date: "2026-08-07",
+  pending: false,
+  category: "RENT_AND_UTILITIES",
+  categoryDetailed: "RENT_AND_UTILITIES_INTERNET_AND_CABLE",
+  accountType: "depository",
+  accountSubtype: "checking",
+};
+
+describe("applyCategoryRules: River recurring buys", () => {
+  it("corrects both River buy name variants to a savings transfer-out", () => {
+    for (const name of [
+      "RIVER. RECUR BUY PDSTYN6SEQ WEB ID: 4611920351",
+      "RIVER. SUPER BUY 7AYU4ANTYY WEB ID: 4611920351",
+    ]) {
+      const corrected = applyCategoryRules({ ...riverBuy, name });
+      expect(corrected.category).toBe("TRANSFER_OUT");
+      expect(corrected.categoryDetailed).toBe("TRANSFER_OUT_SAVINGS");
+    }
+  });
+
+  it("leaves River's penny-verification credit and look-alikes alone", () => {
+    for (const name of [
+      "REAL TIME PAYMENT CREDIT RECD FROM: RIVER FINANCIAL REF: 7bd1b78c",
+      "RIVERSIDE CAFE SEATTLE",
+    ]) {
+      const row = { ...riverBuy, name };
+      expect(applyCategoryRules(row)).toBe(row);
+    }
+  });
+
+  // The point of the rule: the buy moves from spending to savings, without
+  // leaking into investment-performance flows (River is not a linked account).
+  it("makes the corrected row classify as savings", () => {
+    expect(classifyTransaction(riverBuy)).toBe("spending");
+    expect(classifyTransaction(applyCategoryRules(riverBuy))).toBe("savings");
+  });
+
+  it("does not extract the corrected row as an investment flow", () => {
+    expect(extractInvestmentFlows([applyCategoryRules(riverBuy)])).toEqual([]);
+  });
+});

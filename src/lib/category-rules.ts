@@ -25,6 +25,13 @@ export const CATEGORY_RULES: CategoryRule[] = [
     reason:
       "Chase manual brokerage credits ('Manual CR-Bkrg') are money returning from a brokerage; Plaid tags them INCOME_CONTRACTOR.",
   },
+  {
+    pattern: /^RIVER\. (SUPER|RECUR) BUY\b/i,
+    category: "TRANSFER_OUT",
+    categoryDetailed: "TRANSFER_OUT_SAVINGS",
+    reason:
+      "River (bitcoin exchange) recurring buys are savings, not spending; Plaid scatters them across Internet & Cable, Online Marketplaces, Casinos & Gambling, and General Services. TRANSFER_OUT_SAVINGS (not investment funds) keeps them out of investment-performance flows — River's balance is not a linked account. The anchored pattern skips River's inbound penny-verification credits ('... FROM: RIVER FINANCIAL ...').",
+  },
 ];
 
 /**
