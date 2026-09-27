@@ -4,7 +4,7 @@ The reference for the Analytics redesign (`docs/plans/analytics-redesign.md`). T
 
 - `desktop.html` (1440 × 1700) and `phone.html` (390 × 2000) are static, self-contained renders. Open them in a browser, or serve this folder (`python3 -m http.server 8931` from `docs/design`) and screenshot at those widths.
 - `source/*.dc.html` are the canvas boards. Their markup uses `{{ }}` holes plus `<sc-for>` and `<sc-if>` over values from each board's `renderVals()`.
-- `render.cjs` re-renders the static files from the sources: `node docs/design/analytics-redesign/render.cjs` from the repository root (it uses the repo's `jsdom`).
+- `render.mjs` re-renders the static files from the sources: `node docs/design/analytics-redesign/render.mjs` from the repository root (it uses the repo's `jsdom`).
 
 ## Intended deviations in the implementation
 

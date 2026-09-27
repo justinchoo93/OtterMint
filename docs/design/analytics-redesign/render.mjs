@@ -1,8 +1,11 @@
 // Expand a design-canvas .dc.html board into static, self-contained HTML:
 // evaluate its Component.renderVals(), then expand {{ holes }}, <sc-for> and <sc-if>.
-const fs = require("fs");
-const path = require("path");
-const { JSDOM } = require("jsdom");
+import fs from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+import { JSDOM } from "jsdom";
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 function render(srcPath, outPath, props, title) {
   const src = fs.readFileSync(srcPath, "utf8");
