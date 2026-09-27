@@ -1,15 +1,40 @@
 @import "tailwindcss";
 
+/*
+ * OtterMint design tokens. docs/design-system.md is the guide.
+ *
+ * Two layers:
+ * - Raw tokens (:root) hold the values. Their names predate the design
+ *   system and are used directly by older components as var(--name).
+ * - Semantic tokens (@theme inline) map raw tokens to Tailwind utilities
+ *   such as bg-surface, text-ink-muted, border-line and rounded-card.
+ *   New code uses these utilities, not var(--...) classes.
+ *
+ * src/__tests__/design-tokens.test.ts enforces the contrast minimums below.
+ */
 :root {
-  --bg-primary: #0c0e11;
-  --bg-secondary: #13161b;
-  --bg-tertiary: #1a1d24;
-  --bg-hover: #1f2229;
-  --border: #2a2d35;
-  --border-subtle: #1f2229;
-  --text-primary: #e8eaed;
-  --text-secondary: #9aa0a8;
-  --text-muted: #6b7280;
+  /* Surfaces, darkest to lightest. */
+  --bg-primary: #0a0d0c; /* page ground */
+  --bg-secondary: #111614; /* card surface */
+  --bg-tertiary: #171d1a; /* raised: inputs, tooltips, segmented tracks */
+  --bg-hover: #1c2320; /* hover and selected fills */
+  --border: #242c28;
+  --border-subtle: #1b221e;
+
+  /* Text. Each clears 4.5:1 on every surface above. */
+  --text-primary: #edf1ef;
+  --text-secondary: #a3ada8;
+  --text-muted: #85908a;
+
+  /* Brand accent: active navigation, primary actions, the net-worth line. */
+  --accent-mint: #34d399;
+  --accent-mint-dim: rgba(52, 211, 153, 0.12);
+
+  /* Change direction for deltas. Always paired with an arrow. */
+  --delta-up: #34d399;
+  --delta-down: #f0836f;
+
+  /* Legacy semantic accents, still used by existing panels. */
   --accent-green: #22c55e;
   --accent-green-dim: rgba(34, 197, 94, 0.12);
   --accent-red: #ef4444;
@@ -20,8 +45,15 @@
   --accent-amber-dim: rgba(245, 158, 11, 0.12);
   --accent-purple: #a78bfa;
   --accent-purple-dim: rgba(167, 139, 250, 0.12);
+
+  /* Chart chrome: solid hairlines, never dashed. */
+  --chart-grid: #1e2622;
+  --chart-baseline: #2e3833;
+  --chart-muted-line: #3a453f; /* sparklines, crosshair */
+
   /* Categorical chart series, in fixed assignment order. Validated for
-     colorblind-safe adjacency and >=3:1 contrast against --bg-secondary. */
+     colorblind-safe adjacency and >=3:1 contrast against --bg-secondary
+     (#111614). */
   --chart-cat-1: #3987e5;
   --chart-cat-2: #d95926;
   --chart-cat-3: #199e70;
@@ -31,13 +63,66 @@
   --chart-cat-7: #9085e9;
   --chart-cat-8: #e66767;
   --chart-cat-other: #6b7280;
+
+  /* Cash-flow series: fixed meaning, never reassigned. */
+  --series-income: var(--chart-cat-3);
+  --series-spending: var(--chart-cat-2);
+  --series-saved: var(--chart-cat-1);
 }
 
 @theme inline {
   --color-background: var(--bg-primary);
   --color-foreground: var(--text-primary);
+
+  --color-canvas: var(--bg-primary);
+  --color-surface: var(--bg-secondary);
+  --color-surface-raised: var(--bg-tertiary);
+  --color-surface-hover: var(--bg-hover);
+  --color-line: var(--border);
+  --color-line-subtle: var(--border-subtle);
+  --color-ink: var(--text-primary);
+  --color-ink-secondary: var(--text-secondary);
+  --color-ink-muted: var(--text-muted);
+  --color-accent: var(--accent-mint);
+  --color-accent-dim: var(--accent-mint-dim);
+  --color-on-accent: var(--bg-primary);
+  --color-positive: var(--delta-up);
+  --color-negative: var(--delta-down);
+  --color-warning: var(--accent-amber);
+  --color-series-income: var(--series-income);
+  --color-series-spending: var(--series-spending);
+  --color-series-saved: var(--series-saved);
+  --color-chart-grid: var(--chart-grid);
+  --color-chart-baseline: var(--chart-baseline);
+  --color-chart-muted: var(--chart-muted-line);
+
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+  --font-serif: var(--font-instrument-serif), Georgia, serif;
+
+  /* Type scale beyond Tailwind's defaults. */
+  --text-hero: 3.25rem;
+  --text-hero--line-height: 1.05;
+  --text-hero--letter-spacing: -0.025em;
+  --text-hero--font-weight: 600;
+  --text-figure: 1.75rem;
+  --text-figure--line-height: 1.1;
+  --text-figure--letter-spacing: -0.02em;
+  --text-figure--font-weight: 600;
+  --text-display: 1.625rem;
+  --text-display--line-height: 1.1;
+  --text-title: 1.5rem;
+  --text-title--line-height: 1.15;
+  --text-caption: 0.8125rem;
+  --text-caption--line-height: 1.4;
+  --text-micro: 0.6875rem;
+  --text-micro--line-height: 1.3;
+
+  --radius-control: 10px;
+  --radius-tile: 14px;
+  --radius-card: 16px;
+
+  --shadow-popover: 0 8px 24px rgb(0 0 0 / 0.35);
 }
 
 html,
@@ -50,6 +135,19 @@ body {
   background: var(--bg-primary);
   color: var(--text-primary);
   font-family: var(--font-sans), system-ui, sans-serif;
+}
+
+/* Base layer so utilities can still override these. */
+@layer base {
+  /* Visible keyboard focus everywhere. */
+  :focus-visible {
+    outline: 2px solid var(--accent-mint);
+    outline-offset: 2px;
+  }
+
+  button:not(:disabled) {
+    cursor: pointer;
+  }
 }
 
 /* Scrollbar styling */
@@ -96,4 +194,11 @@ body {
 
 .animate-spin-slow {
   animation: spin-slow 1.2s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-fade-in,
+  .animate-pulse-subtle {
+    animation: none;
+  }
 }
