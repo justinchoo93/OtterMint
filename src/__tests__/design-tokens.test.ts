@@ -62,6 +62,12 @@ describe("design tokens", () => {
     });
   }
 
+  for (const text of ["text-primary", "text-secondary"]) {
+    it(`--${text} reaches 4.5:1 on the selected-segment fill --bg-active`, () => {
+      expect(contrast(hexToken(text), hexToken("bg-active"))).toBeGreaterThanOrEqual(4.5);
+    });
+  }
+
   it("dark ink on the mint accent reaches 4.5:1", () => {
     expect(contrast(hexToken("bg-primary"), hexToken("accent-mint"))).toBeGreaterThanOrEqual(4.5);
   });

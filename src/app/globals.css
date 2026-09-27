@@ -17,7 +17,8 @@
   --bg-primary: #0a0d0c; /* page ground */
   --bg-secondary: #111614; /* card surface */
   --bg-tertiary: #171d1a; /* raised: inputs, tooltips, segmented tracks */
-  --bg-hover: #1c2320; /* hover and selected fills */
+  --bg-hover: #1c2320; /* hover fills, selected rows and columns */
+  --bg-active: #242c28; /* selected segment on a raised track; no muted text on it */
   --border: #242c28;
   --border-subtle: #1b221e;
 
@@ -78,6 +79,7 @@
   --color-surface: var(--bg-secondary);
   --color-surface-raised: var(--bg-tertiary);
   --color-surface-hover: var(--bg-hover);
+  --color-surface-active: var(--bg-active);
   --color-line: var(--border);
   --color-line-subtle: var(--border-subtle);
   --color-ink: var(--text-primary);
