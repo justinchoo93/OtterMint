@@ -26,7 +26,7 @@ The approved visual design is a private design canvas at https://claude.ai/artif
 - [x] (2026-09-27 15:45Z) Wrote this ExecPlan.
 - [x] (2026-09-27 16:10Z) User approved the app-wide theme, added a baseline design system to scope, asked for all pending work to be committed first, and authorized running the plan end to end including deploy.
 - [x] (2026-09-27 16:20Z) Created branch `feat/analytics-redesign` from `origin/main` (42e6e91) and committed the pending work: the River category rule (4c59049), this plan with the records-backfill checklist (26f62bb), and an ignore rule for `.playwright-mcp/` (328125a). Working tree clean.
-- [ ] Milestone 1: design-system foundation (tokens, fonts, primitives, gallery, guide, contrast test) and shell adoption.
+- [x] (2026-09-27 21:55Z) Milestone 1: design-system foundation and shell adoption. Tokens and fonts (a99df32), primitives, gallery and guide (bb948c6), shell adoption (26f5365). 407 tests pass; `tsc` clean; lint unchanged; `npm run build` passes and serves `/design-system` as a 404 in production. Gallery and Dashboard verified in the browser harness.
 - [ ] Milestone 2: pure analytics model and formatting helpers, test-first.
 - [ ] Milestone 3: spending line-items API route and the longer net-worth range.
 - [ ] Milestone 4: net-worth hero and restyled single-line chart.
@@ -61,6 +61,13 @@ The approved visual design is a private design canvas at https://claude.ai/artif
 - Observation: the current `--text-muted` (#6b7280) is 3.75:1 on the card surface and 3.49:1 on the raised surface, below the 4.5:1 WCAG minimum for body text. The retuned muted gray is 4.90:1 on cards and 4.85:1 on hover fills.
 
 - Observation: the Playwright browser tool used during research runs harness code in a sandbox without the `URL` global and only loads script files from inside the repository. Pass harness code inline, or save it under the untracked `.playwright-mcp/` directory, and parse request URLs with a regular expression.
+
+- Observation: a selected segment needs its own fill. Hover (#1c2320) on a raised track (#171d1a) differs by only 1.07:1, so the selected state was invisible. A new `--bg-active` (#242c28, `bg-surface-active`) reads clearly. Primary and secondary text clear 4.5:1 on it, but muted text measures only 4.33:1, so muted text is not allowed on that fill.
+  Evidence: contrast check during Milestone 1; the token test asserts primary and secondary on `--bg-active`.
+
+- Observation: in Tailwind v4, unlayered CSS outranks utilities, so the global focus ring and cursor rule go inside `@layer base` where components can still override them.
+
+- Observation: `next build` and `next dev` can run at the same time; the dev server writes to `.next/dev`.
 
 - Observation: the local `main` branch is stale at 513a880, while `origin/main` equals the current branch tip 42e6e91. Start work from `origin/main`, not local `main`.
 
