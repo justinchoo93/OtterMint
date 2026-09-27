@@ -1,6 +1,7 @@
 "use client";
 
 import { formatCurrency } from "@/lib/format";
+import { computeNetWorthTotals } from "@/lib/net-worth-totals";
 import type { AccountWithInstitution } from "@/app/api/accounts/route";
 import type { ManualAccountRow } from "@/app/api/manual-accounts/route";
 
@@ -11,29 +12,12 @@ interface NetWorthCardProps {
 }
 
 export function NetWorthCard({ accounts, manualAccounts = [], label = "Net Worth" }: NetWorthCardProps) {
-  // Plaid account assets/liabilities
-  const plaidAssets = accounts
-    .filter((a) => a.type === "depository" || a.type === "investment")
-    .reduce((sum, a) => sum + parseFloat(a.currentBalance ?? "0"), 0);
-
-  const plaidLiabilities = accounts
-    .filter((a) => a.type === "credit" || a.type === "loan")
-    .reduce((sum, a) => sum + Math.abs(parseFloat(a.currentBalance ?? "0")), 0);
-
-  // Manual account assets/liabilities
-  const manualAssets = manualAccounts
-    .filter((a) => a.type === "asset")
-    .reduce((sum, a) => sum + parseFloat(a.balance), 0);
-
-  const manualLiabilities = manualAccounts
-    .filter((a) => a.type === "liability")
-    .reduce((sum, a) => sum + Math.abs(parseFloat(a.balance)), 0);
-
-  const totalAssets = plaidAssets + manualAssets;
-  const totalLiabilities = plaidLiabilities + manualLiabilities;
-  const netWorth = totalAssets - totalLiabilities;
-
-  const totalAccounts = accounts.length + manualAccounts.length;
+  const {
+    assets: totalAssets,
+    liabilities: totalLiabilities,
+    netWorth,
+    accountCount: totalAccounts,
+  } = computeNetWorthTotals(accounts, manualAccounts);
 
   return (
     <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-secondary)] p-4 sm:p-6">

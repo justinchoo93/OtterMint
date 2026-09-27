@@ -38,3 +38,52 @@ describe("formatCurrency", () => {
     expect(formatCurrency(1000000)).toBe("$1,000,000.00");
   });
 });
+
+import {
+  formatCompactCurrency,
+  formatSignedPercent,
+  formatSignedWholeCurrency,
+  formatWholeCurrency,
+} from "@/lib/format";
+
+describe("formatWholeCurrency", () => {
+  it("rounds to whole dollars", () => {
+    expect(formatWholeCurrency(396515.6)).toBe("$396,516");
+    expect(formatWholeCurrency("1234.49")).toBe("$1,234");
+  });
+  it("formats negatives and bad input", () => {
+    expect(formatWholeCurrency(-1200)).toBe("-$1,200");
+    expect(formatWholeCurrency(null)).toBe("$0");
+    expect(formatWholeCurrency("abc")).toBe("$0");
+  });
+});
+
+describe("formatSignedWholeCurrency", () => {
+  it("signs gains and losses, and leaves zero unsigned", () => {
+    expect(formatSignedWholeCurrency(27555.2)).toBe("+$27,555");
+    expect(formatSignedWholeCurrency(-1200)).toBe("-$1,200");
+    expect(formatSignedWholeCurrency(0.4)).toBe("$0");
+  });
+});
+
+describe("formatCompactCurrency", () => {
+  it("abbreviates thousands and millions", () => {
+    expect(formatCompactCurrency(950)).toBe("$950");
+    expect(formatCompactCurrency(5000)).toBe("$5k");
+    expect(formatCompactCurrency(7500)).toBe("$7.5k");
+    expect(formatCompactCurrency(396516)).toBe("$397k");
+    expect(formatCompactCurrency(1_240_000)).toBe("$1.24M");
+    expect(formatCompactCurrency(999_700)).toBe("$1.00M");
+    expect(formatCompactCurrency(-10000)).toBe("-$10k");
+    expect(formatCompactCurrency(0)).toBe("$0");
+  });
+});
+
+describe("formatSignedPercent", () => {
+  it("signs and rounds", () => {
+    expect(formatSignedPercent(7.46)).toBe("+7.5%");
+    expect(formatSignedPercent(-8.24)).toBe("-8.2%");
+    expect(formatSignedPercent(0.04)).toBe("0.0%");
+    expect(formatSignedPercent(13.6, 0)).toBe("+14%");
+  });
+});
