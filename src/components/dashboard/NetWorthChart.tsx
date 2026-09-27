@@ -391,8 +391,19 @@ export function NetWorthChart({
                 stroke="var(--bg-secondary)"
                 strokeWidth={2}
                 label={
-                  event === latestEvent
-                    ? { value: event.label, position: "right", offset: 8, fill: "var(--text-muted)", fontSize: 11 }
+                  // Only a lone account change gets an on-chart label (never on phones);
+                  // with several, the legend and "About this chart" explain the dots.
+                  history.coverageEvents.length === 1 && event === latestEvent
+                    ? {
+                        value: event.label,
+                        className: "hidden sm:inline",
+                        // Flip to the marker's left near the right edge so the label is never clipped.
+                        position:
+                          maxTs > minTs && (dateTimestamp(event.date) - minTs) / (maxTs - minTs) > 0.6 ? "left" : "right",
+                        offset: 8,
+                        fill: "var(--text-muted)",
+                        fontSize: 11,
+                      }
                     : undefined
                 }
               />
