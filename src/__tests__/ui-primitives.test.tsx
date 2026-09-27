@@ -46,12 +46,12 @@ describe("Button", () => {
   it("sizes icon-only buttons as squares without horizontal padding", () => {
     render(<Button iconOnly size="sm" aria-label="Close details" icon={<svg />} />);
     const button = screen.getByRole("button", { name: "Close details" });
-    expect(button.className).toContain("w-8");
+    expect(button.className).toContain("sm:w-8");
     expect(button.className).not.toMatch(/\bpx-/);
   });
 
   it("exposes the look for links", () => {
-    expect(buttonClassName({ variant: "ghost", size: "sm" })).toContain("h-8");
+    expect(buttonClassName({ variant: "ghost", size: "sm" })).toContain("sm:h-8");
   });
 });
 

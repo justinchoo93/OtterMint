@@ -29,7 +29,12 @@ export function SegmentedControl<T extends string>({
   fullWidth = false,
   className,
 }: SegmentedControlProps<T>) {
-  const height = fullWidth ? "h-11 flex-1 sm:h-[30px]" : size === "sm" ? "h-6" : "h-[30px]";
+  // At least 44px tall on phones; compact from the sm breakpoint up.
+  const height = fullWidth
+    ? "h-11 flex-1 sm:h-[30px]"
+    : size === "sm"
+      ? "h-11 sm:h-6"
+      : "h-11 sm:h-[30px]";
   const text = size === "sm" ? "px-2.5 text-xs" : "px-3.5 text-caption";
   return (
     <div

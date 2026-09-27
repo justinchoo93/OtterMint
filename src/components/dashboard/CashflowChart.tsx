@@ -43,7 +43,8 @@ export function CashflowChart({ months, windowLabel, selectedMonth, onSelectMont
   const layout = layoutCashflowColumns(months);
   const width = barWidth(months.length);
   const dense = months.length > 12;
-  const labelled = selectedMonth ?? months[months.length - 1]?.month ?? null;
+  // Dense charts label only a selected month; the readout and details carry the rest.
+  const labelled = selectedMonth ?? (dense ? null : months[months.length - 1]?.month ?? null);
 
   return (
     <Card aria-label="Cash flow">
@@ -144,15 +145,15 @@ export function CashflowChart({ months, windowLabel, selectedMonth, onSelectMont
                   <>
                     <span
                       aria-hidden
-                      className={cx(floating, "text-micro font-semibold text-ink")}
-                      style={{ bottom: `calc(${100 - layout.baselinePct + upPct}% + 6px)` }}
+                      className={cx(floating, "rounded bg-surface/90 px-1 text-micro font-semibold text-ink")}
+                      style={{ bottom: `calc(${100 - layout.baselinePct + upPct}% + 4px)` }}
                     >
                       {formatSignedWholeCurrency(totals.income)}
                     </span>
                     <span
                       aria-hidden
-                      className={cx(floating, "text-micro font-semibold text-ink")}
-                      style={{ top: `calc(${layout.baselinePct + downPct}% + 6px)` }}
+                      className={cx(floating, "rounded bg-surface/90 px-1 text-micro font-semibold text-ink")}
+                      style={{ top: `calc(${layout.baselinePct + downPct}% + 4px)` }}
                     >
                       {formatWholeCurrency(-(totals.spending + Math.max(totals.savings, 0)))}
                     </span>

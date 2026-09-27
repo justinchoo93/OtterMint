@@ -398,7 +398,7 @@ export default function Dashboard() {
                     key={item.id}
                     type="button"
                     onClick={() => setActiveDestination(item.id)}
-                    className={`flex h-10 min-w-10 shrink-0 items-center gap-2 rounded-lg px-3 text-sm font-medium transition-colors ${
+                    className={`flex h-11 min-w-11 shrink-0 items-center gap-2 rounded-lg px-3 text-sm font-medium transition-colors ${
                       active
                         ? "bg-surface-hover text-ink"
                         : "text-[var(--text-secondary)] hover:bg-[var(--bg-hover)]"

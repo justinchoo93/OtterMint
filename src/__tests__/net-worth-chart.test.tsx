@@ -247,7 +247,9 @@ describe("NetWorthChart", () => {
     render(<NetWorthChart history={history} mode="reported" normalizedAvailable={false} onModeChange={() => {}} />);
     expect(screen.getByText(/Dashed history is estimated from statements/)).toBeInTheDocument();
     expect(screen.getByText(/Dashed historical values are reconstructed estimates/)).toBeInTheDocument();
-    expect(screen.getAllByText(/Card value carried from its prior statement/)).toHaveLength(2);
+    // Two consecutive points with the same note collapse into one dated range.
+    expect(screen.getAllByText(/Card value carried from its prior statement/)).toHaveLength(1);
+    expect(screen.getByText(/Jul 1 – Jul 5/)).toBeInTheDocument();
     expect(screen.getAllByTestId("chart-line").every((line) => line.getAttribute("data-dash") === "6 4")).toBe(true);
     expect(screen.getByText("Estimated")).toBeInTheDocument();
     expect(screen.queryByTestId("chart-area")).not.toBeInTheDocument();

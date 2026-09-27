@@ -14,15 +14,16 @@ const VARIANTS: Record<ButtonVariant, string> = {
   ghost: "font-medium text-ink-secondary hover:bg-surface-hover hover:text-ink",
 };
 
+// Every control is at least 44px tall on phones (below the sm breakpoint).
 const SIZES: Record<ButtonSize, string> = {
-  sm: "h-8 px-3 text-xs",
-  md: "h-9 px-3.5 text-sm",
+  sm: "h-11 px-3 text-xs sm:h-8",
+  md: "h-11 px-3.5 text-sm sm:h-9",
 };
 
 // Square, padding-free sizes for icon-only buttons (no conflicting px-* classes).
 const ICON_SIZES: Record<ButtonSize, string> = {
-  sm: "h-8 w-8",
-  md: "h-9 w-9",
+  sm: "h-11 w-11 sm:h-8 sm:w-8",
+  md: "h-11 w-11 sm:h-9 sm:w-9",
 };
 
 /** The button look as a class string, for links that should read as buttons. */

@@ -16,7 +16,7 @@ export function Chip({ label, onDismiss, dismissLabel = "Clear" }: ChipProps) {
       type="button"
       onClick={onDismiss}
       aria-label={`${dismissLabel}: ${label}`}
-      className="inline-flex h-9 items-center gap-2 rounded-control border border-line bg-surface-raised pr-2.5 pl-3 text-caption font-medium text-ink transition-colors hover:bg-surface-hover"
+      className="inline-flex h-11 items-center gap-2 rounded-control border border-line bg-surface-raised pr-2.5 pl-3 text-caption font-medium text-ink transition-colors hover:bg-surface-hover sm:h-9"
     >
       <span>{label}</span>
       <X aria-hidden className="h-3.5 w-3.5 text-ink-muted" />

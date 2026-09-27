@@ -42,7 +42,7 @@ export function AvatarMenu({ displayName }: AvatarMenuProps) {
     <div className="relative" ref={menuRef}>
       <button
         onClick={() => setOpen(!open)}
-        className="flex h-7 w-7 items-center justify-center rounded-full bg-[var(--bg-tertiary)] text-xs font-medium text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-hover)]"
+        className="relative flex h-7 w-7 items-center justify-center rounded-full before:absolute before:-inset-2 before:content-[''] bg-[var(--bg-tertiary)] text-xs font-medium text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-hover)]"
         aria-label="User menu"
       >
         {getInitials(displayName)}

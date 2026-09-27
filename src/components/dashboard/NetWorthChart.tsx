@@ -71,8 +71,27 @@ function formatTimestampLabel(timestamp: number): string {
   });
 }
 
-function formatDateLabel(dateStr: string): string {
-  return formatTimestampLabel(dateTimestamp(dateStr));
+function formatDateLabel(dateStr: string, withYear = false): string {
+  return new Date(dateTimestamp(dateStr)).toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    ...(withYear ? { year: "numeric" } : {}),
+    timeZone: "UTC",
+  });
+}
+
+/** Consecutive reconstructed points that share a note, as one dated range each. */
+function groupReconstructionNotes(
+  points: NetWorthSnapshotRow[]
+): Array<{ from: string; to: string; note: string }> {
+  const groups: Array<{ from: string; to: string; note: string }> = [];
+  for (const point of points) {
+    const note = point.reconstructionNotes ?? "";
+    const last = groups.at(-1);
+    if (last && last.note === note) last.to = point.date;
+    else groups.push({ from: point.date, to: point.date, note });
+  }
+  return groups;
 }
 
 function groupBySegment(
@@ -216,6 +235,10 @@ export function NetWorthChart({
   const hasEvents = history.coverageEvents.length > 0;
   const hasUnknownCoverage = history.coverageEvents.some((e) => e.kind !== "captured_addition");
   const reconstructedPoints = history.snapshots.filter((point) => point.reconstructionNotes);
+  const noteGroups = groupReconstructionNotes(reconstructedPoints);
+  const firstDate = history.snapshots[0]?.date ?? "";
+  const lastDate = history.snapshots.at(-1)?.date ?? "";
+  const withYear = firstDate.slice(0, 4) !== lastDate.slice(0, 4);
   const lastSeries = chartModel.series.at(-1);
   const lastPoint = lastSeries?.points.at(-1);
   const eventTick = (domain[1] - domain[0]) * 0.12;
@@ -260,7 +283,12 @@ export function NetWorthChart({
 
       <div className="mt-3 h-[176px] sm:h-[232px]">
         <ResponsiveContainer width="100%" height="100%" initialDimension={{ width: 640, height: 232 }}>
-          <ComposedChart data={chartModel.data} margin={{ top: 8, right: 52, bottom: 0, left: 0 }}>
+          <ComposedChart
+            data={chartModel.data}
+            margin={{ top: 8, right: 52, bottom: 0, left: 0 }}
+            title={isHousehold ? "Household net worth over time" : "Net worth over time"}
+            desc="Use the left and right arrow keys to read values by date."
+          >
             <CartesianGrid stroke="var(--chart-grid)" vertical={false} />
             <XAxis
               dataKey="timestamp"
@@ -401,7 +429,7 @@ export function NetWorthChart({
 
       {showNotes && (
         <details className="group mt-3 text-xs text-ink-muted">
-          <summary className="cursor-pointer list-none select-none hover:text-ink-secondary [&::-webkit-details-marker]:hidden">
+          <summary className="cursor-pointer list-none py-3.5 select-none hover:text-ink-secondary sm:py-0 [&::-webkit-details-marker]:hidden">
             {reconstructedPoints.length > 0 ? "Dashed history is estimated from statements. " : ""}
             <span className="text-accent underline decoration-accent/40 underline-offset-2">About this chart</span>
           </summary>
@@ -409,9 +437,12 @@ export function NetWorthChart({
             {reconstructedPoints.length > 0 && (
               <p>Dashed historical values are reconstructed estimates. Sources and assumptions:</p>
             )}
-            {reconstructedPoints.map((point) => (
-              <p key={point.date}>
-                {formatDateLabel(point.date)} · {point.reconstructionNotes}
+            {noteGroups.map((group) => (
+              <p key={group.from}>
+                {group.from === group.to
+                  ? formatDateLabel(group.from, withYear)
+                  : `${formatDateLabel(group.from, withYear)} – ${formatDateLabel(group.to, withYear)}`}{" "}
+                · {group.note}
               </p>
             ))}
             {normalizedAvailable && mode === "normalized" && (
@@ -425,7 +456,7 @@ export function NetWorthChart({
             )}
             {history.coverageEvents.map((event, index) => (
               <p key={`description-${event.kind}-${event.date}-${index}`}>
-                {formatDateLabel(event.date)} · {event.label}
+                {formatDateLabel(event.date, withYear)} · {event.label}
                 {!isHousehold && event.kind === "captured_addition" && event.netWorthAdjustment !== null && (
                   <>
                     : {formatCurrency(event.netWorthAdjustment)} first-known balance normalized out
