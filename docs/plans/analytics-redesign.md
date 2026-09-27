@@ -35,7 +35,7 @@ The approved visual design is a private design canvas at https://claude.ai/artif
 - [x] (2026-09-27 23:40Z) Milestone 7: compared with the mock at 1440px and 390px in both fixture modes. Numbers match the mock exactly in mock mode, and remaining differences are the intended ones in `docs/design/analytics-redesign/README.md`. Fixes landed in 8af9416: 44px phone targets, an accessible chart name, grouped estimate notes, and dense-chart labels. Checked keyboard order and Enter toggling, the mint focus ring, hover readouts, household mode and the All range. Harness files committed under `docs/design/analytics-redesign/harness/`. 471 tests, `tsc`, lint (one pre-existing warning) and `npm run build` all pass.
 - [x] (2026-09-28 00:30Z) Pre-deploy verification against production data. Owner rows were exported read-only to scratch, built into API payloads by the same pure functions (in a temporary test, deleted), and rendered through a third harness mode. Hero $697,766 matches the Dashboard's $697,765.83. Category rows sum to the Spending tile ($40,727.35). The Restaurant items total equals its category total ($3,465.03, 41 transactions). This check exposed the Sep 5 normalization contradiction, fixed for the headline and default mode in the commit after 567b3a1.
 - [x] (2026-09-28 01:20Z) Independent pre-deploy review of the branch diff. It found no serious bugs in the math or the new route, and seven issues that are now fixed and tested: a stale net-worth card when switching My Finances/Household, a stale details list after refresh, a folded category claiming no transactions, a stale month chip after month rollover, a bar label missing withdrawals, focus lost on close/clear, and a future URL-length cap on Other (now an `exclude=` form). 488 tests pass.
-- [ ] Milestone 8: merge to main, deploy, verify the live site.
+- [x] (2026-09-28 01:45Z) Milestone 8: fast-forwarded `origin/main` from 42e6e91 to 61686a4 and ran `scripts/deploy.sh`; the image rebuilt and the health probe passed. Live checks from inside the container: health ok with db ok, `/login` 200, signed-out `/` 307, `/design-system` 404 in production, and the items route 401 without a valid session. Served CSS has `--bg-primary: #0a0d0c` and `--accent-mint: #34d399` (it was #0c0e11 with no mint before). The client bundle contains the new Analytics strings, and the app log has no errors since restart. The owner's signed-in page was not opened by this agent (no credentials); the same code was rendered with the owner's production data beforehand (see the pre-deploy verification entry).
 
 
 ## Surprises & Discoveries
@@ -188,7 +188,7 @@ What changed from the plan: the design system grew props to avoid class-override
 
 Lessons: rendering the real data before deploying caught a headline that would have reported a false 11% loss. Unit tests could not have caught it, because the flaw was in the data, not the code. In a design system without class merging, overrides must be props.
 
-Remaining: deploy and live verification (Milestone 8). Follow-up outside this plan: record a coverage removal event when a manual account is deleted, and correct the 2026-09-05 event with the owner's approval.
+Deployed 2026-09-28 at 61686a4 and verified live (Milestone 8). Follow-up outside this plan: record a coverage removal event when a manual account is deleted, and correct the 2026-09-05 event with the owner's approval.
 
 
 ## Context and Orientation
@@ -695,3 +695,5 @@ Components (all `"use client"`, in `src/components/dashboard/`):
 Revision note (2026-09-27): Initial version, written after researching the code, proving the database-free harness, and counting production history. No implementation yet.
 
 Revision note (2026-09-27, later the same day): The user approved the app-wide theme, asked for a baseline design system, asked that all pending work be committed first, and authorized running the plan end to end including deploy and mock-fidelity validation in a real browser. Milestone 1 now builds the design-system foundation (semantic tokens, primitives, gallery, guide, contrast test) and adopts it in the shell. Milestone 7 adds committed static renders of the mock and a side-by-side comparison. Milestone 8 no longer waits for approval and describes how production is verified without the owner's session. The staging rule that kept the category-rules edits out was superseded when the user asked to commit everything.
+
+Revision note (2026-09-28): Implementation, review fixes and deployment are complete. Recorded the production-data verification, the Sep 5 normalization finding with its safeguard, the pre-deploy review with its seven fixes, and the live checks. Outcomes & Retrospective is written. The only open items are the follow-ups named there.
