@@ -9,7 +9,7 @@ This document must be maintained in accordance with `docs/PLANS.md` at the repos
 
 OtterMint is a personal-finance dashboard (Next.js, React, Postgres, Plaid). Its Analytics destination currently stacks three cards that do not agree with each other: a net-worth card that duplicates the Dashboard, a net-worth line chart with its own 90-day / 1-year toggle, and a cash-flow card with its own month dropdown, a three-bars-per-month grouped chart and a nine-slice pie. Nothing leads, the controls describe different periods, the red and green bars are hard to tell apart for colorblind readers, and pie colors change when the month changes because they are assigned by rank.
 
-After this change, a signed-in user who opens Analytics sees one time-range control (3M, 6M, 1Y, All) that scopes everything below it. A net-worth hero shows the current total, an honest change figure labeled with the date it is measured from, and the assets/liabilities split, beside a single-line history chart. Four stat tiles (Income, Spending, Saved, Net cash flow) compare against the previous equal period whenever real history covers that period, with a 12-month sparkline. A cash-flow chart draws income rising above a baseline and spending plus saving hanging below it; each month column is a button that scopes the tiles and categories to that month. A ranked "Where it went" list shows spending by category with change versus the prior period. A details panel lists the transactions behind any stat tile or category. The whole app adopts a quieter green-tinted dark theme with a mint accent and a serif display face for titles, which also fixes muted text that currently fails the WCAG 4.5:1 contrast minimum.
+After this change, a signed-in user who opens Analytics sees one time-range control (3M, 6M, 1Y, All) that scopes everything below it. A net-worth hero shows the current total, an honest change figure labeled with the date it is measured from, and the assets/liabilities split, beside a single-line history chart. Four stat tiles (Income, Spending, Saved, Net cash flow) compare against the previous equal period whenever real history covers that period, with a 12-month sparkline. A cash-flow chart draws income rising above a baseline and spending plus saving hanging below it; each month column is a button that scopes the tiles and categories to that month. A ranked "Where it went" list shows spending by category with change versus the prior period. A details panel lists the transactions behind any stat tile or category. The whole app adopts a quieter green-tinted dark theme with a mint accent and a serif display face for titles, which also fixes muted text that currently fails the WCAG 4.5:1 contrast minimum. Underneath it sits a baseline design system: semantic Tailwind tokens for color, type, radius and elevation; a small set of shared UI primitives in `src/components/ui/`; a written guide in `docs/design-system.md`; a development-only gallery page at `/design-system`; and a test that fails if a text or chart token drops below its contrast minimum.
 
 To see it working without a database, run the dev server and the fixture harness described in Milestone 7 and open Analytics at 1440px and 390px widths. After deployment, sign in at https://ottermint.otterholt.net and open Analytics.
 
@@ -24,7 +24,9 @@ The approved visual design is a private design canvas at https://claude.ai/artif
 - [x] (2026-09-27 15:28Z) Counted production history for the owner's account, read-only and counts only (see Surprises).
 - [x] (2026-09-27 15:30Z) Recorded the baseline: 44 test files passed and 1 skipped; 365 tests passed and 41 skipped; `tsc` clean; lint shows one pre-existing warning.
 - [x] (2026-09-27 15:45Z) Wrote this ExecPlan.
-- [ ] Milestone 1: theme tokens, display font and shell accents.
+- [x] (2026-09-27 16:10Z) User approved the app-wide theme, added a baseline design system to scope, asked for all pending work to be committed first, and authorized running the plan end to end including deploy.
+- [x] (2026-09-27 16:20Z) Created branch `feat/analytics-redesign` from `origin/main` (42e6e91) and committed the pending work: the River category rule (4c59049), this plan with the records-backfill checklist (26f62bb), and an ignore rule for `.playwright-mcp/` (328125a). Working tree clean.
+- [ ] Milestone 1: design-system foundation (tokens, fonts, primitives, gallery, guide, contrast test) and shell adoption.
 - [ ] Milestone 2: pure analytics model and formatting helpers, test-first.
 - [ ] Milestone 3: spending line-items API route and the longer net-worth range.
 - [ ] Milestone 4: net-worth hero and restyled single-line chart.
@@ -129,8 +131,24 @@ The approved visual design is a private design canvas at https://claude.ai/artif
   Rationale: the dev machine has no populated database, and seeding Plaid-shaped data into a disposable Postgres is far more work than intercepting nine JSON endpoints.
   Date/Author: 2026-09-27, Claude.
 
-- Decision: Work on a new branch from `origin/main` inside the main checkout and stage files by explicit path.
-  Rationale: the working tree carries the owner's uncommitted edits to `src/lib/category-rules.ts` and `src/__tests__/category-rules.test.ts`, plus untracked `.playwright-mcp/` and `docs/plans/financial-records-backfill.md`. None of those belong to this work and none may be committed with it.
+- Decision (superseded the same day, see below): Work on a new branch from `origin/main` and keep the owner's uncommitted category-rules edits and untracked files out of this work's commits.
+  Rationale: at planning time those edits were unrelated work in progress.
+  Date/Author: 2026-09-27, Claude.
+
+- Decision: At the user's request, commit all pending work before starting, on `feat/analytics-redesign`: the River recurring-buy category rule and its tests, the records-backfill checklist, and this plan. Ignore `.playwright-mcp/` in `.gitignore` instead of committing it.
+  Rationale: the user asked to start from a clean tree with everything committed. `.playwright-mcp/` holds only browser-automation screenshots and console logs, which are tool artifacts rather than work. The River rule ships to production with this work; its tests pass.
+  Date/Author: 2026-09-27, Claude.
+
+- Decision: The app-wide theme is confirmed by the user, and the work now also establishes a baseline design system. It has four parts. First, a semantic token layer in the `@theme inline` block of `src/app/globals.css` gives Tailwind utilities such as `bg-surface`, `text-ink-muted`, `border-line`, `bg-accent`, `text-positive`, `rounded-card`, `text-hero` and `shadow-popover`, on top of the existing raw custom properties, which keep their names. Second, primitives live in `src/components/ui/`: `Button`, `Card` with `CardHeader`, `SegmentedControl`, `Chip`, `DeltaIndicator`, `LegendKey`, `EmptyState` and `Skeleton`. Third, `docs/design-system.md` is the written guide. Fourth, a development-only gallery renders at `/design-system`, and `src/__tests__/design-tokens.test.ts` guards contrast. Adoption in this plan covers the shell controls (the nav active state, `DashboardTabs`, `RefreshButton`, `PlaidLinkButton`, the `ManualAccountForm` submit button) and every new Analytics component. Other panels inherit the new token values but keep their markup; the guide records how to migrate them later.
+  Rationale: a baseline needs shared vocabulary, reusable parts, a place to see them and a guardrail, but rewriting every existing panel would multiply risk without changing what users see, since the token values already restyle them. Keeping the raw property names avoids touching more than 600 existing `var(--...)` usages.
+  Date/Author: 2026-09-27, Claude.
+
+- Decision: Render the approved mock boards as static HTML snapshots committed under `docs/design/analytics-redesign/`, and compare them with the implementation at the same viewport sizes in Milestone 7.
+  Rationale: the user asked for visual fidelity to be validated against the mock with a real browser. The canvas that hosts the mock is private and needs its own runtime, so a committed static render is the only durable, repeatable reference. The harness gains a fixture mode that reproduces the mock's sample data, so the two screenshots show comparable numbers.
+  Date/Author: 2026-09-27, Claude.
+
+- Decision: The user authorized running the plan end to end, including merging to `main` and deploying ("run it end to end ... do not consider yourself done until all acceptance criteria have been met").
+  Rationale: Milestone 8 previously waited for a go-ahead; this instruction is that go-ahead. Production checks that need the owner's signed-in session are done by running production rows (read-only, via the documented `ssh otterholt` psql path) through the same pure functions and rendering them in the local harness, plus a health and asset check of the live site. No credentials are requested or stored.
   Date/Author: 2026-09-27, Claude.
 
 
@@ -200,11 +218,66 @@ Layout of the Analytics content inside the existing `max-w-6xl` main column, top
 
 Marks. Lines are 2px with round joins. Bars are at most 24px wide (24px with six or fewer columns, 16px with twelve or fewer, 10px above that), with 4px rounded outer ends and square ends at the baseline, and a 2px gap between stacked segments. End dots have a radius of at least 4px and a 2px ring in the card color. Area fills are the series color at 10% opacity. Gridlines are 1px solid `--chart-grid`, never dashed. A value label appears only on the selected (or latest) month and at the end of the net-worth line, never on every point.
 
-### Milestone 1: theme tokens, display font and shell accents
+### Milestone 1: design-system foundation and shell adoption
 
-Goal: the app wears the new theme everywhere with no behavior change. In `src/app/globals.css`, replace the nine token values and add the new tokens exactly as listed above, and add `--font-serif: var(--font-instrument-serif), Georgia, serif;` to the `@theme inline` block. Tailwind v4 builds its standard `font-serif` utility from that variable, so no custom utility name is needed. In `src/app/layout.tsx`, import `Instrument_Serif` from `next/font/google` alongside the existing fonts, configure it with `variable: "--font-instrument-serif"`, `subsets: ["latin"]` and `weight: "400"`, and add its `.variable` class to `<body>`. In `src/app/page.tsx`, give both "ottermint" wordmarks (sidebar and mobile header) `font-serif text-2xl font-normal` in place of `text-lg font-semibold`, give the header page title `font-serif text-[26px] font-normal`, and in both navigation lists replace the active classes `bg-[var(--accent-blue-dim)]` with `bg-[var(--bg-hover)]` and the active icon's `text-[var(--accent-blue)]` with `text-[var(--accent-mint)]`. In `PlaidLinkButton.tsx` and `ManualAccountForm.tsx`, replace `bg-indigo-600 ... text-white hover:bg-indigo-500` with `bg-[var(--accent-mint)] text-[var(--bg-primary)] font-semibold hover:brightness-110`; dark ink on mint measures 10.15:1.
+Goal: the app wears the new theme everywhere, and a small, documented design system exists that the Analytics work then builds on. There is no behavior change.
 
-Result: every page is green-tinted, titles are serif, and the active nav item is neutral with a mint icon. Proof: the full test suite still passes unchanged (no test asserts these classes), `npx tsc --noEmit` is clean, `npm run build` succeeds (it downloads Instrument Serif at build time, as it already does for DM Sans), and a harness screenshot of any destination shows the new colors.
+Tokens. In `src/app/globals.css`, replace the nine token values and add the new raw tokens exactly as listed in the Visual specification. Then extend the `@theme inline` block with the semantic layer, which Tailwind v4 turns into utilities. The block keeps its existing entries, and each new entry points at a raw token:
+
+    --color-canvas: var(--bg-primary);            bg-canvas
+    --color-surface: var(--bg-secondary);         bg-surface
+    --color-surface-raised: var(--bg-tertiary);   bg-surface-raised
+    --color-surface-hover: var(--bg-hover);       bg-surface-hover
+    --color-line: var(--border);                  border-line
+    --color-line-subtle: var(--border-subtle);    border-line-subtle
+    --color-ink: var(--text-primary);             text-ink
+    --color-ink-secondary: var(--text-secondary); text-ink-secondary
+    --color-ink-muted: var(--text-muted);         text-ink-muted
+    --color-accent: var(--accent-mint);           bg-accent, text-accent
+    --color-accent-dim: var(--accent-mint-dim);
+    --color-on-accent: var(--bg-primary);         text-on-accent (ink on mint)
+    --color-positive: var(--delta-up);            text-positive
+    --color-negative: var(--delta-down);          text-negative
+    --color-warning: var(--accent-amber);
+    --color-series-income: var(--series-income);
+    --color-series-spending: var(--series-spending);
+    --color-series-saved: var(--series-saved);
+    --color-chart-grid: var(--chart-grid);
+    --color-chart-baseline: var(--chart-baseline);
+    --color-chart-muted: var(--chart-muted-line);
+    --font-serif: var(--font-instrument-serif), Georgia, serif;
+    --text-hero: 3.25rem;  (--line-height 1.05, --letter-spacing -0.025em, --font-weight 600)
+    --text-figure: 1.75rem; (--line-height 1.1, --letter-spacing -0.02em, --font-weight 600)
+    --text-display: 1.625rem; (--line-height 1.1)   page titles, serif
+    --text-title: 1.5rem;  (--line-height 1.15)     section titles, serif
+    --text-caption: 0.8125rem; (--line-height 1.4)  13px labels and subtitles
+    --text-micro: 0.6875rem; (--line-height 1.3)    11px axis ticks and legends
+    --radius-control: 10px;  --radius-tile: 14px;  --radius-card: 16px;
+    --shadow-popover: 0 8px 24px rgb(0 0 0 / 0.35);
+
+Tailwind v4 reads the sub-properties as `--text-hero--line-height: 1.05;` and so on. Tailwind's own `font-serif` utility picks up the redefined `--font-serif`. In the base styles, add a global `:focus-visible` rule (a 2px solid `var(--accent-mint)` outline with a 2px offset), `cursor: pointer` for enabled buttons, and a `prefers-reduced-motion: reduce` rule that disables `.animate-fade-in` and `.animate-pulse-subtle`. Update the comment above `--chart-cat-1` to say the palette was validated against `--bg-secondary` #111614.
+
+Fonts. In `src/app/layout.tsx`, import `Instrument_Serif` from `next/font/google` alongside the existing fonts, configure it with `variable: "--font-instrument-serif"`, `subsets: ["latin"]` and `weight: "400"`, and add its `.variable` class to `<body>`.
+
+Primitives, in `src/components/ui/`, each a small client-safe component using only the semantic utilities (signatures under Interfaces and Dependencies):
+
+- `Button`: primary (mint with dark ink), secondary (raised surface with a border) and ghost variants; `sm` (32px) and `md` (36px) sizes; an optional leading icon; `type="button"` by default. A `buttonClassName({ variant, size })` helper lets links share the look.
+- `Card` with `CardHeader`: the 16px-radius surface container with `md` and `lg` padding, plus a header with a serif title, an optional secondary subtitle and an actions slot.
+- `SegmentedControl`: a labeled group of `aria-pressed` buttons for a small set of mutually exclusive options. It has `sm` and `md` sizes and a `fullWidth` mode whose buttons are 44px tall on phones.
+- `Chip`: a dismissible filter chip, a single button with a close icon and an explicit accessible name.
+- `DeltaIndicator`: a direction triangle (a dash when flat) plus text, colored positive, negative or neutral, so meaning never rests on color alone.
+- `LegendKey`: a series key drawn as a square, a solid line, a dashed line or a dot, next to a label in text color.
+- `EmptyState` and `Skeleton`: the dashed empty message and the pulsing placeholder block.
+
+Gallery. `src/app/design-system/page.tsx` is a server component that calls `notFound()` when `process.env.NODE_ENV === "production"`, and otherwise renders `src/components/ui/DesignSystemGallery.tsx`, a client component showing every token swatch with its name, the type scale, every primitive in each variant and state, and the three series colors with their legend keys. The auth middleware still requires the session cookie, so the harness cookie reaches it.
+
+Guide. Write `docs/design-system.md`: principles (quiet surfaces, the data is the loudest thing on the page, one accent), the token tables (raw and semantic, with contrast figures), the type scale and when to use serif versus sans versus mono, radius and spacing conventions, each primitive's purpose and props, data-visualization rules (fixed series colors, a legend for two or more series, text never in series colors, solid hairline grids, selective labels, a delta always paired with an arrow), accessibility rules (4.5:1 text, 3:1 marks, 44px touch targets on phones, visible focus, real buttons), and a short migration note for panels still using raw `var(--...)` classes.
+
+Guardrail. `src/__tests__/design-tokens.test.ts` reads `src/app/globals.css`, extracts each `--name: #hex;` from `:root`, and asserts WCAG contrast. Text tokens (`--text-primary`, `--text-secondary`, `--text-muted`, `--delta-up`, `--delta-down`) must reach at least 4.5:1 on `--bg-primary`, `--bg-secondary`, `--bg-tertiary` and `--bg-hover`. The mint accent and the three series colors (resolved through `--chart-cat-*`) must reach at least 3:1 on `--bg-secondary`. `--bg-primary` on `--accent-mint` must reach at least 4.5:1. The contrast function is the standard WCAG relative-luminance formula, written in the test. `src/__tests__/ui-primitives.test.tsx` covers the button variants, types and disabled state, `SegmentedControl` changing and reporting `aria-pressed`, `Chip` dismissal and its accessible name, and `DeltaIndicator` rendering the right arrow and tone for up, down and flat.
+
+Shell adoption. In `src/app/page.tsx`, give both "ottermint" wordmarks (sidebar and mobile header) `font-serif text-2xl font-normal` in place of `text-lg font-semibold`, give the header page title `font-serif text-display font-normal`, and in both navigation lists replace the active `bg-[var(--accent-blue-dim)]` with `bg-surface-hover` and the active icon's `text-[var(--accent-blue)]` with `text-accent`. Rebuild `DashboardTabs` on `SegmentedControl`, keeping its labels "My Finances" and "Household" and its exported `DashboardTab` type. Render `RefreshButton`'s button as `Button` with the secondary variant and small size, keeping its text, its spinner and the "Updated … ago" label. Render `PlaidLinkButton` and the `ManualAccountForm` submit button as primary `Button`s, keeping their text and behavior (the Plaid test finds the button by role only). Dark ink on mint measures 10.15:1.
+
+Result: every page is green-tinted, titles are serif, the active nav item is neutral with a mint icon, and `/design-system` shows the whole kit. Proof: the full test suite passes, including the two new test files; `npx tsc --noEmit` is clean; `npm run build` succeeds (it downloads Instrument Serif at build time, as it already does for DM Sans); and harness screenshots of `/design-system` and the Dashboard show the new theme. Commit the tokens and fonts, then the primitives, gallery and guide, then the shell adoption, as separate commits.
 
 ### Milestone 2: pure analytics model and formatting helpers, test-first
 
@@ -288,26 +361,21 @@ Result: the suite passes, and in the harness each tile and category opens a popu
 
 ### Milestone 7: visual, accessibility and hygiene pass
 
-Goal: the page looks like the design at desktop and phone widths and meets the accessibility rules. Start the dev server and run the harness from Artifacts and Notes at 1440 by 1000, then at 390 by 844. Wait 5 seconds before each screenshot. Compare against the Visual specification. Check that nothing overflows horizontally at 390px, that no label is clipped by its bar, that the chart container includes its x-axis labels without an inner scrollbar, and that every tile, column, category row, range button and chip is reachable with Tab and toggles with Enter or Space with a visible 2px mint focus outline (add `focus-visible:outline` classes where missing). Run the palette validator from the data-visualization guidance, or recompute contrast, for any color you had to change. Then run the full checks listed under Concrete Steps. Record screenshots and any fixes in Surprises & Discoveries, and never commit screenshots.
+Goal: the page looks like the design at desktop and phone widths and meets the accessibility rules. First, produce the reference: render the two approved mock boards to static HTML (the design canvas files use a small template language of `{{ }}` holes plus `<sc-for>` and `<sc-if>` loops and conditions over values from the board's `renderVals()`; expand them once with a jsdom script and save the resulting self-contained markup) as `docs/design/analytics-redesign/desktop.html` (1440 by 1700) and `docs/design/analytics-redesign/phone.html` (390 by 2000), and commit them with a short README naming the source canvas and the known, intended deviations listed in the Decision Log. Then start the dev server and run the harness from Artifacts and Notes in its `mock` fixture mode at 1440 by 1000 and at 390 by 844, screenshot both the reference files (opened from disk) and the implementation full page, and compare them side by side: section order, proportions, spacing rhythm, type faces and sizes, colors, chart shapes and label placement. Fix every unintended difference and re-screenshot until the only differences are the intended ones. Then repeat in the `production` fixture mode to check clipping and the no-comparison states. Wait 5 seconds before each screenshot. Compare against the Visual specification. Check that nothing overflows horizontally at 390px, that no label is clipped by its bar, that the chart container includes its x-axis labels without an inner scrollbar, and that every tile, column, category row, range button and chip is reachable with Tab and toggles with Enter or Space with a visible 2px mint focus outline (add `focus-visible:outline` classes where missing). Run the palette validator from the data-visualization guidance, or recompute contrast, for any color you had to change. Then run the full checks listed under Concrete Steps. Record screenshots and any fixes in Surprises & Discoveries, and never commit screenshots.
 
 ### Milestone 8: merge, deploy and verify in production
 
-Goal: the owner sees the redesign on real data. Merging to `main` and deploying are outward-facing, so ask the user for a go-ahead first. With approval, fast-forward `origin/main` to the branch as the repository's convention requires (no pull request; the remote uses the owner's personal GitHub identity), run `scripts/deploy.sh`, and confirm its health probe. No migration runs. Then sign in at https://ottermint.otterholt.net as the owner and walk the Validation and Acceptance production checks. Record the evidence (figures and dates, never merchant names) in Outcomes & Retrospective and commit that update to the plan.
+Goal: the owner sees the redesign on real data. The user authorized merging and deploying on 2026-09-27 as part of running this plan end to end. Fast-forward `origin/main` to the branch as the repository's convention requires (no pull request; the remote uses the owner's personal GitHub identity), run `scripts/deploy.sh`, and confirm its health probe. No migration runs. Then verify: the live health probe, the live CSS containing the new tokens, and the production-data checks in Validation and Acceptance. Where a check needs the owner's signed-in session, which this agent does not have, run the owner's production rows (read-only, via `ssh otterholt` and psql as in `docs/DEPLOYMENT.md`) through the same pure functions the API uses and render the result in the local harness. Keep those rows in the scratch directory, never in the repository or in commits. Record the evidence (figures and dates, never merchant names) in Outcomes & Retrospective and commit that update to the plan.
 
 
 ## Concrete Steps
 
 All commands run from `/Users/justin/code/personal/OtterMint` unless stated.
 
-Before starting, confirm the tree and create the branch. The two category-rules files and the untracked paths below are the owner's and must stay uncommitted.
+The branch `feat/analytics-redesign` already exists (created from `origin/main` at 42e6e91) with all earlier pending work committed. Confirm before starting:
 
-    git fetch origin
-    git status --short
-      M src/__tests__/category-rules.test.ts
-      M src/lib/category-rules.ts
-     ?? .playwright-mcp/
-     ?? docs/plans/financial-records-backfill.md
-    git switch -c feat/analytics-redesign origin/main
+    git switch feat/analytics-redesign
+    git status --short        (prints nothing)
 
 After every edit batch, and at the end of every milestone:
 
@@ -326,10 +394,10 @@ Run a production build at the end of Milestones 1, 5 and 7 (it needs network acc
 
     npm run build
 
-Commit at the end of each milestone by explicit path, never with `git add -A` or `git add .`. Example for Milestone 1:
+Commit at least once per milestone, staging by explicit path so stray files never ride along. Example for the first Milestone 1 commit:
 
-    git add src/app/globals.css src/app/layout.tsx src/app/page.tsx src/components/plaid/PlaidLinkButton.tsx src/components/manual/ManualAccountForm.tsx docs/plans/analytics-redesign.md
-    git commit -m "feat(theme): green-tinted tokens, serif display face, mint accents"
+    git add src/app/globals.css src/app/layout.tsx docs/plans/analytics-redesign.md
+    git commit -m "feat(design-system): green-tinted tokens, semantic theme layer, serif display face"
 
 End commit messages with the attribution line the working session specifies. Update the Progress section in the same commit.
 
@@ -342,7 +410,7 @@ To run the harness (Milestones 1, 4, 5, 6 and 7), start the dev server in one te
 
 Then run the harness function from Artifacts and Notes with a Playwright browser. Using the Playwright browser tool, pass the function body inline, or save it as `.playwright-mcp/analytics-harness.js` (inside the repository, untracked, never committed). Resize to 390 by 844 and reload for the phone check. Stop the server with Ctrl-C, or `lsof -ti tcp:3000 | xargs kill`, when finished.
 
-Milestone 8 (only after the user approves):
+Milestone 8 (authorized by the user on 2026-09-27):
 
     git push origin feat/analytics-redesign:main
     git fetch origin && git status -sb    # branch tip must equal origin/main
@@ -561,6 +629,22 @@ In `src/app/api/analytics/cashflow/items/route.ts`, export:
     export type CashflowItemsResponse = { items: CashflowLineItem[]; count: number; total: string };
     export async function GET(request: NextRequest): Promise<NextResponse>;
 
+Design-system primitives (in `src/components/ui/`, each its own file, named exports):
+
+    export type ButtonVariant = "primary" | "secondary" | "ghost";
+    export type ButtonSize = "sm" | "md";
+    export function buttonClassName(opts?: { variant?: ButtonVariant; size?: ButtonSize; className?: string }): string;
+    export function Button(props: React.ButtonHTMLAttributes<HTMLButtonElement> & { variant?: ButtonVariant; size?: ButtonSize; icon?: React.ReactNode }): JSX.Element;
+    export function Card(props: React.HTMLAttributes<HTMLElement> & { as?: "section" | "div"; padding?: "none" | "md" | "lg" }): JSX.Element;
+    export function CardHeader(props: { title: React.ReactNode; subtitle?: React.ReactNode; actions?: React.ReactNode; headingLevel?: 2 | 3 }): JSX.Element;
+    export function SegmentedControl<T extends string>(props: { options: ReadonlyArray<{ value: T; label: string }>; value: T;
+      onChange: (value: T) => void; ariaLabel: string; size?: "sm" | "md"; fullWidth?: boolean }): JSX.Element;
+    export function Chip(props: { label: string; onDismiss: () => void; dismissLabel: string }): JSX.Element;
+    export function DeltaIndicator(props: { direction: "up" | "down" | "flat"; tone: "positive" | "negative" | "neutral"; children: React.ReactNode; size?: "sm" | "md" }): JSX.Element;
+    export function LegendKey(props: { color: string; shape: "square" | "line" | "dashed-line" | "dot"; children: React.ReactNode }): JSX.Element;
+    export function EmptyState(props: { children: React.ReactNode; className?: string }): JSX.Element;
+    export function Skeleton(props: { className?: string }): JSX.Element;
+
 Components (all `"use client"`, in `src/components/dashboard/`):
 
     AnalyticsView({ accounts, manualAccounts, groupId?, refreshKey? })
@@ -575,3 +659,5 @@ Components (all `"use client"`, in `src/components/dashboard/`):
 
 
 Revision note (2026-09-27): Initial version, written after researching the code, proving the database-free harness, and counting production history. No implementation yet.
+
+Revision note (2026-09-27, later the same day): The user approved the app-wide theme, asked for a baseline design system, asked that all pending work be committed first, and authorized running the plan end to end including deploy and mock-fidelity validation in a real browser. Milestone 1 now builds the design-system foundation (semantic tokens, primitives, gallery, guide, contrast test) and adopts it in the shell. Milestone 7 adds committed static renders of the mock and a side-by-side comparison. Milestone 8 no longer waits for approval and describes how production is verified without the owner's session. The staging rule that kept the category-rules edits out was superseded when the user asked to commit everything.
