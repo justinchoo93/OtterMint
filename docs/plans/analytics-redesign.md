@@ -34,6 +34,7 @@ The approved visual design is a private design canvas at https://claude.ai/artif
 - [x] (2026-09-27 23:05Z) Milestone 6: details panel for every tile and category (73755b7). 471 tests pass.
 - [x] (2026-09-27 23:40Z) Milestone 7: compared with the mock at 1440px and 390px in both fixture modes. Numbers match the mock exactly in mock mode, and remaining differences are the intended ones in `docs/design/analytics-redesign/README.md`. Fixes landed in 8af9416: 44px phone targets, an accessible chart name, grouped estimate notes, and dense-chart labels. Checked keyboard order and Enter toggling, the mint focus ring, hover readouts, household mode and the All range. Harness files committed under `docs/design/analytics-redesign/harness/`. 471 tests, `tsc`, lint (one pre-existing warning) and `npm run build` all pass.
 - [x] (2026-09-28 00:30Z) Pre-deploy verification against production data. Owner rows were exported read-only to scratch, built into API payloads by the same pure functions (in a temporary test, deleted), and rendered through a third harness mode. Hero $697,766 matches the Dashboard's $697,765.83. Category rows sum to the Spending tile ($40,727.35). The Restaurant items total equals its category total ($3,465.03, 41 transactions). This check exposed the Sep 5 normalization contradiction, fixed for the headline and default mode in the commit after 567b3a1.
+- [x] (2026-09-28 01:20Z) Independent pre-deploy review of the branch diff. It found no serious bugs in the math or the new route, and seven issues that are now fixed and tested: a stale net-worth card when switching My Finances/Household, a stale details list after refresh, a folded category claiming no transactions, a stale month chip after month rollover, a bar label missing withdrawals, focus lost on close/clear, and a future URL-length cap on Other (now an `exclude=` form). 488 tests pass.
 - [ ] Milestone 8: merge to main, deploy, verify the live site.
 
 
@@ -179,7 +180,15 @@ The approved visual design is a private design canvas at https://claude.ai/artif
 
 ## Outcomes & Retrospective
 
-Planning only so far; nothing is implemented. Update this section at the end of each milestone and at completion.
+Implementation (Milestones 1–7) is complete on `feat/analytics-redesign` as of 2026-09-28. The Analytics destination now leads with a net-worth hero whose change is always measured over a comparable stretch and labeled with its start date. One range control scopes everything, and cash flow is fetched once and sliced client-side. Stat tiles show comparisons only when real history covers the prior period. The diverging cash-flow chart doubles as a month filter, categories are ranked with an Other fold, and a details panel explains every figure. A baseline design system underpins it: semantic tokens with a contrast-guard test, eight primitives, a development gallery, and a written guide. The whole app shares the new theme.
+
+Verification: 476 unit and component tests pass, `tsc` is clean, lint shows only the pre-existing warning, and `npm run build` passes. The UI was compared in a real browser against committed static renders of the approved mock at 1440px and 390px; in mock-data mode the numbers match exactly. The owner's production data, exported read-only, was rendered locally and reconciled to the cent: category rows equal spending, category items equal category totals, and the hero equals the Dashboard.
+
+What changed from the plan: the design system grew props to avoid class-override conflicts (`iconOnly`, `compact`, `radius`), every control is 44px tall on phones, and the net-worth headline and default chart mode gained a safeguard against normalization the balances contradict. Production data showed that case on 2026-09-05.
+
+Lessons: rendering the real data before deploying caught a headline that would have reported a false 11% loss. Unit tests could not have caught it, because the flaw was in the data, not the code. In a design system without class merging, overrides must be props.
+
+Remaining: deploy and live verification (Milestone 8). Follow-up outside this plan: record a coverage removal event when a manual account is deleted, and correct the 2026-09-05 event with the owner's approval.
 
 
 ## Context and Orientation
