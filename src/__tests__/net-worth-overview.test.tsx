@@ -140,6 +140,24 @@ describe("NetWorthOverview", () => {
     expect(screen.getByText("since Jul 5")).toBeInTheDocument();
   });
 
+  it("opens in Reported and says why when the balances contradict an account change", async () => {
+    const lifted = (date: string, raw: number) =>
+      point(date, raw, { quality: "flat_normalized", coverageSegment: 7, comparisonSegment: 6, adjustedNetWorth: (raw + 152000).toFixed(2) });
+    stubHistory([
+      lifted("2026-09-01", 649580),
+      lifted("2026-09-02", 650610),
+      point("2026-09-05", 659080, { coverageSegment: 8, comparisonSegment: 6 }),
+      point("2026-09-26", 697766, { coverageSegment: 8, comparisonSegment: 6 }),
+    ]);
+    render(<NetWorthOverview accounts={ACCOUNTS} manualAccounts={[]} days={87} />);
+    const reported = await screen.findByRole("button", { name: "Reported" });
+    expect(reported).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByText(/Normalized values may be wrong around Sep 5:/)).toBeInTheDocument();
+    expect(screen.getByText("since Sep 5")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Normalized" }));
+    expect(screen.getByRole("button", { name: "Normalized" })).toHaveAttribute("aria-pressed", "true");
+  });
+
   it("shows an error line when history fails to load", async () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: false, status: 500 }));
     vi.spyOn(console, "error").mockImplementation(() => {});

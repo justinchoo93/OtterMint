@@ -38,6 +38,8 @@ interface NetWorthChartProps {
   mode: ChartMode;
   normalizedAvailable: boolean;
   onModeChange: (mode: ChartMode) => void;
+  /** Account changes whose normalization the balances contradict. */
+  contradictedDates?: string[];
   isHousehold?: boolean;
 }
 
@@ -78,6 +80,12 @@ function formatDateLabel(dateStr: string, withYear = false): string {
     ...(withYear ? { year: "numeric" } : {}),
     timeZone: "UTC",
   });
+}
+
+/** "Aug 13", "Aug 13 and Sep 5", "Jul 4, Aug 13 and Sep 5". */
+function listDates(labels: string[]): string {
+  if (labels.length <= 1) return labels.join("");
+  return `${labels.slice(0, -1).join(", ")} and ${labels[labels.length - 1]}`;
 }
 
 /** Consecutive reconstructed points that share a note, as one dated range each. */
@@ -220,6 +228,7 @@ export function NetWorthChart({
   mode,
   normalizedAvailable,
   onModeChange,
+  contradictedDates = [],
   isHousehold = false,
 }: NetWorthChartProps) {
   const chartModel = useMemo(() => buildChartModel(history.snapshots, mode), [history.snapshots, mode]);
@@ -445,6 +454,14 @@ export function NetWorthChart({
                 · {group.note}
               </p>
             ))}
+            {contradictedDates.length > 0 && (
+              <p>
+                Normalized values may be wrong around{" "}
+                {listDates(contradictedDates.map((d) => formatDateLabel(d, withYear)))}: an account change recorded
+                then does not match the balances (for example, a manual account re-created without the old one
+                being removed), so this chart opens in Reported.
+              </p>
+            )}
             {normalizedAvailable && mode === "normalized" && (
               <p>
                 Earlier values use first known balances for comparison; they are not

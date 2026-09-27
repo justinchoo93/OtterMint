@@ -8,6 +8,7 @@ import {
   netWorthDaysForRange,
   netWorthDomain,
   netWorthScale,
+  normalizationContradictions,
   periodDelta,
   rankCategories,
   resolvePeriod,
@@ -325,6 +326,49 @@ describe("comparableChange", () => {
     expect(comparableChange([], "reported")).toBeNull();
   });
 
+  it("stops at an account change whose recorded adjustment never showed up in the balance", () => {
+    // Production shape (Sep 5, 2026): a manual asset re-created at 152,000 was
+    // recorded as a 152,000 addition, but the account it replaced (151,000) was
+    // never recorded as removed, so raw net worth barely moved while every
+    // earlier adjusted point was lifted by 152,000.
+    const lifted = (date: string, raw: number) =>
+      point(date, raw, { quality: "flat_normalized", coverageSegment: 7, comparisonSegment: 6, adjustedNetWorth: (raw + 152000).toFixed(2) });
+    const series = [
+      lifted("2026-07-23", 646717),
+      lifted("2026-09-02", 650610),
+      point("2026-09-05", 659080, { coverageSegment: 8, comparisonSegment: 6 }),
+      point("2026-09-27", 697766, { coverageSegment: 8, comparisonSegment: 6 }),
+    ];
+    const change = comparableChange(series, "normalized")!;
+    expect(change.fromDate).toBe("2026-09-05");
+    expect(change.amount).toBeCloseTo(38686);
+  });
+
+  it("measures across an account change whose adjustment matches the balance jump", () => {
+    const series = [
+      point("2026-08-01", 100000, { quality: "flat_normalized", coverageSegment: 0, comparisonSegment: 0, adjustedNetWorth: "150000.00" }),
+      point("2026-08-10", 101000, { quality: "flat_normalized", coverageSegment: 0, comparisonSegment: 0, adjustedNetWorth: "151000.00" }),
+      point("2026-08-11", 151500, { coverageSegment: 1, comparisonSegment: 0 }),
+      point("2026-09-01", 153000, { coverageSegment: 1, comparisonSegment: 0 }),
+    ];
+    const change = comparableChange(series, "normalized")!;
+    expect(change.fromDate).toBe("2026-08-01");
+    expect(change.amount).toBe(3000);
+  });
+
+  it("lists the account changes whose normalization the balances contradict", () => {
+    const lifted = (date: string, raw: number) =>
+      point(date, raw, { quality: "flat_normalized", coverageSegment: 7, comparisonSegment: 6, adjustedNetWorth: (raw + 152000).toFixed(2) });
+    expect(
+      normalizationContradictions([
+        lifted("2026-09-02", 650610),
+        point("2026-09-05", 659080, { coverageSegment: 8, comparisonSegment: 6 }),
+        point("2026-09-06", 659500, { coverageSegment: 8, comparisonSegment: 6 }),
+      ])
+    ).toEqual(["2026-09-05"]);
+    expect(normalizationContradictions([point("2026-07-01", 1000), point("2026-07-02", 1010)])).toEqual([]);
+  });
+
   it("has no percentage from a zero start", () => {
     expect(comparableChange([point("2026-07-01", 0), point("2026-07-02", 10)], "reported")!.pct).toBeNull();
   });
@@ -342,6 +386,9 @@ describe("netWorthDomain", () => {
     const { domain, ticks } = netWorthScale([371000, 397000]);
     expect(domain).toEqual([360000, 400000]);
     expect(ticks).toEqual([360000, 370000, 380000, 390000, 400000]);
+  });
+  it("does not pad a non-negative series below zero", () => {
+    expect(netWorthScale([0, 400000, 700000]).domain[0]).toBe(0);
   });
   it("handles a flat or empty series", () => {
     const [lo, hi] = netWorthDomain([1000, 1000]);

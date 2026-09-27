@@ -377,9 +377,46 @@ export interface ComparableChange {
 }
 
 /**
+ * Across an account-change edge inside one comparison segment, normalization
+ * lifts earlier points by the recorded adjustment, so the adjusted series
+ * should move only by ordinary day-to-day change. When the adjusted series
+ * instead jumps by more than half the adjustment (and more than 1% of net
+ * worth), the recorded adjustment never showed up in the balance, e.g. a
+ * re-created manual account whose predecessor's removal was not recorded,
+ * and measuring across the edge would report a change that did not happen.
+ */
+function normalizationHolds(before: NetWorthSnapshotRow, after: NetWorthSnapshotRow): boolean {
+  if (before.coverageSegment === after.coverageSegment) return true;
+  const rawBefore = Number.parseFloat(before.netWorth);
+  const rawAfter = Number.parseFloat(after.netWorth);
+  const adjBefore = Number.parseFloat(before.adjustedNetWorth as string);
+  const adjAfter = Number.parseFloat(after.adjustedNetWorth as string);
+  const adjustment = adjBefore - rawBefore - (adjAfter - rawAfter);
+  const adjustedJump = Math.abs(adjAfter - adjBefore);
+  return adjustedJump <= Math.max(Math.abs(adjustment) * 0.5, Math.abs(adjAfter) * 0.01);
+}
+
+/**
+ * Dates of account changes whose normalization the balances contradict (see
+ * normalizationHolds). The chart opens in Reported mode when there are any.
+ */
+export function normalizationContradictions(snapshots: NetWorthSnapshotRow[]): string[] {
+  const dates: string[] = [];
+  for (let i = 1; i < snapshots.length; i++) {
+    const before = snapshots[i - 1];
+    const after = snapshots[i];
+    if (before.comparisonSegment !== after.comparisonSegment) continue;
+    if (before.adjustedNetWorth == null || after.adjustedNetWorth == null) continue;
+    if (!normalizationHolds(before, after)) dates.push(after.date);
+  }
+  return dates;
+}
+
+/**
  * Change within the most recent comparable stretch: same comparison segment
  * with adjusted values in Normalized mode, same coverage segment with raw
- * values in Reported mode. Never measures across an unknown coverage change.
+ * values in Reported mode. Never measures across an unknown coverage change,
+ * nor across an account change whose normalization does not hold.
  */
 export function comparableChange(
   snapshots: NetWorthSnapshotRow[],
@@ -397,6 +434,7 @@ export function comparableChange(
   while (start > 0) {
     const previous = snapshots[start - 1];
     if (segmentOf(previous) !== segmentOf(last) || valueOf(previous) == null) break;
+    if (mode === "normalized" && !normalizationHolds(previous, snapshots[start])) break;
     start--;
   }
   if (start === lastIndex) return null;
@@ -413,7 +451,7 @@ export function comparableChange(
   };
 }
 
-/** Padded, nicely rounded y-scale that never forces zero in, with its gridline ticks. */
+/** Padded, nicely rounded y-scale that never forces zero in (nor pads below it), with its gridline ticks. */
 export function netWorthScale(values: number[]): { domain: [number, number]; ticks: number[] } {
   const finite = values.filter((v) => Number.isFinite(v));
   if (finite.length === 0) return { domain: [0, 1], ticks: [0, 1] };
@@ -421,7 +459,8 @@ export function netWorthScale(values: number[]): { domain: [number, number]; tic
   const max = Math.max(...finite);
   const span = max - min;
   const pad = span > 0 ? span * 0.06 : Math.max(Math.abs(max) * 0.01, 1);
-  const lo = min - pad;
+  // Padding never pushes a non-negative series below zero.
+  const lo = min >= 0 ? Math.max(0, min - pad) : min - pad;
   const hi = max + pad;
   const step = niceStep(hi - lo, 4);
   const first = Math.floor(lo / step);
