@@ -32,7 +32,7 @@ The approved visual design is a private design canvas at https://claude.ai/artif
 - [x] (2026-09-27 22:25Z) Milestone 4: net-worth hero and restyled chart (5882403). The approved mock is committed as static renders under `docs/design/analytics-redesign/` (b201dd1, 1dda08d), and it is being compared in the browser as each part lands.
 - [x] (2026-09-27 22:50Z) Milestone 5: range control, stat tiles, diverging cash-flow chart, ranked categories; `CashflowPanel` removed (19200ed). `npm run build` passes.
 - [x] (2026-09-27 23:05Z) Milestone 6: details panel for every tile and category (73755b7). 471 tests pass.
-- [ ] Milestone 7: visual, accessibility and hygiene pass with the harness at desktop and phone widths.
+- [x] (2026-09-27 23:40Z) Milestone 7: compared with the mock at 1440px and 390px in both fixture modes. Numbers match the mock exactly in mock mode, and remaining differences are the intended ones in `docs/design/analytics-redesign/README.md`. Fixes landed in 8af9416: 44px phone targets, an accessible chart name, grouped estimate notes, and dense-chart labels. Checked keyboard order and Enter toggling, the mint focus ring, hover readouts, household mode and the All range. Harness files committed under `docs/design/analytics-redesign/harness/`. 471 tests, `tsc`, lint (one pre-existing warning) and `npm run build` all pass.
 - [ ] Milestone 8: merge to main, deploy with the user's go-ahead, verify against production data.
 
 
@@ -73,6 +73,11 @@ The approved visual design is a private design canvas at https://claude.ai/artif
   Evidence: the rendered close button measured `svg: [6, 16]` before the fix and `[16, 16]` after.
 
 - Observation: a stretch of `flat_normalized` points is drawn dashed and without the area wash, because an estimated series gets no area. That leaves a visible notch in the wash before an account-connection date. This is the established honesty rule, not a layout bug.
+
+- Observation: Tailwind v4's `transition-colors` also animates `outline-color`, so a focus ring read or screenshotted right after focusing looks near-white. It settles to mint after 150ms.
+  Evidence: `outlineColor` read `rgb(235, 241, 238)` immediately after focus, then `rgb(52, 211, 153)` after 500ms.
+
+- Observation: the headed browser the Playwright tool drives can be changed from outside a check. One check found the page on Dashboard with the 1Y range selected and an Investments request logged. Every browser check now starts by reloading and navigating, and runs start to finish in a single call.
 
 - Observation: the local `main` branch is stale at 513a880, while `origin/main` equals the current branch tip 42e6e91. Start work from `origin/main`, not local `main`.
 
@@ -475,7 +480,7 @@ Palette validation of the cash-flow series on the new card surface:
       [PASS] Normal-vision floor    worst adjacent #d95926↔#199e70 ΔE 26.5 (normal)
       [PASS] Contrast vs surface    all 3 >= 3:1
 
-The database-free harness. It is a function taking a Playwright `page`. It sets a fake session cookie (the middleware only checks its UUID shape), answers every `/api/*` request from fixtures, opens the page and clicks Analytics. It avoids the `URL` global, because the Playwright tool's sandbox lacks it. Fixture months start in January 2026 like production, the May savings are negative on purpose, and the items route returns two restaurant rows.
+The committed files `docs/design/analytics-redesign/harness/prod-fixtures.js` and `mock-fixtures.js` are the canonical, current harnesses; their README gives the steps. The version below is the original sketch, kept for context. The database-free harness is a function taking a Playwright `page`. It sets a fake session cookie (the middleware only checks its UUID shape), answers every `/api/*` request from fixtures, opens the page and clicks Analytics. It avoids the `URL` global, because the Playwright tool's sandbox lacks it. Fixture months start in January 2026 like production, the May savings are negative on purpose, and the items route returns two restaurant rows.
 
     async (page) => {
       const BASE = 'http://localhost:3000';

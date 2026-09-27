@@ -14,6 +14,8 @@ const eslintConfig = defineConfig([
     "next-env.d.ts",
     // Browser-automation artifacts (gitignored).
     ".playwright-mcp/**",
+    // Playwright page functions for the database-free UI harness.
+    "docs/design/**/harness/**",
   ]),
 ]);
 
