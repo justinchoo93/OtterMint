@@ -178,6 +178,16 @@ The approved visual design is a private design canvas at https://claude.ai/artif
   Rationale: the owner's real data showed the headline could report a false double-digit loss. Correcting the recorded coverage event would change production data, and recording manual-account removals would change the coverage model; both are outside this redesign and need their own decision. The safeguard keeps the new headline honest meanwhile. Follow-up: record a removal event when a manual account is deleted, and correct the Sep 5 event with the owner's approval.
   Date/Author: 2026-09-28, Claude.
 
+- Decision: At the owner's request (2026-09-28: "it was a human error"), correct the Sep 5 coverage event rather than keep working around it. Event id 2 (manual_account 2, effective 2026-09-05) now has `asset_adjustment` 0.00, recording the re-created manual 401K as a continuation of the account it replaced. The alternatives were worse. Deleting the event would turn Sep 5 into an unknown coverage boundary that splits the line and blanks investment attribution. A +1,000 adjustment would book a real balance update as coverage instead of growth. The contradiction check was also refined in df99778 to judge assets and liabilities separately, because comparing net worth had flagged the genuine Aug 13 credit-card connection when investments rose the same day.
+  Rationale: the owner confirmed the deletion and re-creation was a mistake, so the true account set never changed. Applied as a single guarded UPDATE, rehearsed first in a rolled-back transaction (UPDATE 1, value restored).
+  Undo (run in `ottermint-db-1` as postgres):
+
+      UPDATE user_net_worth_coverage_events SET asset_adjustment = 152000.00
+       WHERE id = 2 AND source_type = 'manual_account' AND source_id = '2'
+         AND effective_date = '2026-09-05' AND asset_adjustment = 0.00;
+
+  Date/Author: 2026-09-28, Claude.
+
 ## Outcomes & Retrospective
 
 Implementation (Milestones 1–7) is complete on `feat/analytics-redesign` as of 2026-09-28. The Analytics destination now leads with a net-worth hero whose change is always measured over a comparable stretch and labeled with its start date. One range control scopes everything, and cash flow is fetched once and sliced client-side. Stat tiles show comparisons only when real history covers the prior period. The diverging cash-flow chart doubles as a month filter, categories are ranked with an Other fold, and a details panel explains every figure. A baseline design system underpins it: semantic tokens with a contrast-guard test, eight primitives, a development gallery, and a written guide. The whole app shares the new theme.
@@ -188,7 +198,7 @@ What changed from the plan: the design system grew props to avoid class-override
 
 Lessons: rendering the real data before deploying caught a headline that would have reported a false 11% loss. Unit tests could not have caught it, because the flaw was in the data, not the code. In a design system without class merging, overrides must be props.
 
-Deployed 2026-09-28 at 61686a4 and verified live (Milestone 8). Follow-up outside this plan: record a coverage removal event when a manual account is deleted, and correct the 2026-09-05 event with the owner's approval.
+Deployed 2026-09-28 at 61686a4 and verified live (Milestone 8). The Sep 5 coverage event was then corrected at the owner's request, and the refined contradiction check was deployed (df99778). A fresh read-only check shows the 6M chart opening in Normalized with no contradictions, and the hero reading +$62,066 (+9.8%) since Jul 23. The investments attribution's coverage steps over 90 days dropped from 152,000.00 to 0.00, so market P&L is no longer understated by the phantom addition and the annualized return can show again. Follow-up outside this plan: record a coverage removal event when a manual account is deleted (or steer balance updates to Edit rather than delete-and-re-add), and stop counting manual-account and liability events as investment coverage steps in `computeAttribution` (any future manual asset addition would again distort investment gains by its amount).
 
 
 ## Context and Orientation
@@ -697,3 +707,5 @@ Revision note (2026-09-27): Initial version, written after researching the code,
 Revision note (2026-09-27, later the same day): The user approved the app-wide theme, asked for a baseline design system, asked that all pending work be committed first, and authorized running the plan end to end including deploy and mock-fidelity validation in a real browser. Milestone 1 now builds the design-system foundation (semantic tokens, primitives, gallery, guide, contrast test) and adopts it in the shell. Milestone 7 adds committed static renders of the mock and a side-by-side comparison. Milestone 8 no longer waits for approval and describes how production is verified without the owner's session. The staging rule that kept the category-rules edits out was superseded when the user asked to commit everything.
 
 Revision note (2026-09-28): Implementation, review fixes and deployment are complete. Recorded the production-data verification, the Sep 5 normalization finding with its safeguard, the pre-deploy review with its seven fixes, and the live checks. Outcomes & Retrospective is written. The only open items are the follow-ups named there.
+
+Revision note (2026-09-28, later): The owner confirmed the Sep 5 manual-account re-creation was human error. Corrected the event in production (guarded, rehearsed, undo recorded above), and refined the contradiction check to judge each side of the ledger. The owner's data now shows no contradictions. Follow-ups updated.
