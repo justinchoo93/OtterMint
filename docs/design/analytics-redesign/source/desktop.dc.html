@@ -1,0 +1,741 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>OtterMint Analytics</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&amp;family=Instrument+Serif:ital@0;1&amp;family=JetBrains+Mono:wght@400;500;600&amp;display=swap">
+<style>
+body{margin:0;background:#0A0D0C;color:#EDF1EF;font-family:'DM Sans',system-ui,-apple-system,sans-serif;-webkit-font-smoothing:antialiased}
+a{color:#34D399}a:hover{color:#6EE7B7}
+button{font:inherit;color:inherit;background:none;border:0;padding:0;margin:0;cursor:pointer;text-align:left}
+button:focus-visible,a:focus-visible{outline:2px solid #34D399;outline-offset:2px}
+.mono{font-family:'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,monospace;font-variant-numeric:tabular-nums}
+.nav-item:hover{background:#171D1A;color:#EDF1EF}
+.ghost:hover{background:#1C2320;color:#EDF1EF}
+.tile:hover{border-color:#313C36}
+.cf-col:hover{background:#171D1A}
+.cat-row:hover{background:#171D1A}
+</style>
+</helmet>
+<div style="width: 1440px; height: 1700px; box-sizing: border-box; display: flex; background: #0A0D0C; color: #EDF1EF; font-family: 'DM Sans', system-ui, sans-serif; font-size: 14px; line-height: 1.4; overflow: hidden">
+
+  <aside style="width: 224px; flex-shrink: 0; box-sizing: border-box; padding: 24px 16px; border-right: 1px solid #1B221E; display: flex; flex-direction: column; gap: 28px">
+    <a href="#" style="display: flex; align-items: center; gap: 10px; padding: 0 8px; color: #EDF1EF; text-decoration: none">
+      <span style="width: 28px; height: 28px; border-radius: 9px; background: {{ accent }}; display: flex; align-items: center; justify-content: center; color: #0A0D0C; font-family: {{ titleFont }}; font-style: italic; font-size: 19px; line-height: 1">o</span>
+      <span style="font-family: {{ titleFont }}; font-size: 23px; letter-spacing: -0.01em; line-height: 1">ottermint</span>
+    </a>
+    <div style="display: flex; flex-direction: column; gap: 2px">
+      <a class="nav-item" href="#" style="display: flex; align-items: center; gap: 10px; height: 40px; padding: 0 12px; border-radius: 10px; color: #A3ADA8; text-decoration: none; font-weight: 500">
+        <svg width="18" height="18"><g transform="scale(0.75)" style="fill: none; stroke: currentColor; stroke-width: 1.75; stroke-linecap: round; stroke-linejoin: round"><path d="M3 3h7v7H3zM14 3h7v7h-7zM3 14h7v7H3zM14 14h7v7h-7z"/></g></svg>
+        <span>Dashboard</span>
+      </a>
+      <a class="nav-item" href="#" style="display: flex; align-items: center; gap: 10px; height: 40px; padding: 0 12px; border-radius: 10px; color: #A3ADA8; text-decoration: none; font-weight: 500">
+        <svg width="18" height="18"><g transform="scale(0.75)" style="fill: none; stroke: currentColor; stroke-width: 1.75; stroke-linecap: round; stroke-linejoin: round"><path d="M2 6.5A2.5 2.5 0 0 1 4.5 4h15A2.5 2.5 0 0 1 22 6.5v11a2.5 2.5 0 0 1-2.5 2.5h-15A2.5 2.5 0 0 1 2 17.5zM2 10h20"/></g></svg>
+        <span>Accounts</span>
+      </a>
+      <a class="nav-item" href="#" style="display: flex; align-items: center; gap: 10px; height: 40px; padding: 0 12px; border-radius: 10px; color: #A3ADA8; text-decoration: none; font-weight: 500">
+        <svg width="18" height="18"><g transform="scale(0.75)" style="fill: none; stroke: currentColor; stroke-width: 1.75; stroke-linecap: round; stroke-linejoin: round"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></g></svg>
+        <span>Transactions</span>
+      </a>
+      <a class="nav-item" href="#" style="display: flex; align-items: center; gap: 10px; height: 40px; padding: 0 12px; border-radius: 10px; color: #A3ADA8; text-decoration: none; font-weight: 500">
+        <svg width="18" height="18"><g transform="scale(0.75)" style="fill: none; stroke: currentColor; stroke-width: 1.75; stroke-linecap: round; stroke-linejoin: round"><path d="M3 8.5A1.5 1.5 0 0 1 4.5 7h15A1.5 1.5 0 0 1 21 8.5v10a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 18.5zM8 7V5.5A1.5 1.5 0 0 1 9.5 4h5A1.5 1.5 0 0 1 16 5.5V7"/></g></svg>
+        <span>Investments</span>
+      </a>
+      <a class="nav-item" href="#" aria-current="page" style="display: flex; align-items: center; gap: 10px; height: 40px; padding: 0 12px; border-radius: 10px; background: #1C2320; color: #EDF1EF; text-decoration: none; font-weight: 500">
+        <svg width="18" height="18" style="color: {{ accent }}"><g transform="scale(0.75)" style="fill: none; stroke: currentColor; stroke-width: 1.75; stroke-linecap: round; stroke-linejoin: round"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></g></svg>
+        <span>Analytics</span>
+      </a>
+    </div>
+    <div style="margin-top: auto; display: flex; flex-direction: column; gap: 2px">
+      <a class="nav-item" href="#" style="display: flex; align-items: center; gap: 10px; height: 40px; padding: 0 12px; border-radius: 10px; color: #A3ADA8; text-decoration: none; font-weight: 500">
+        <svg width="18" height="18"><g transform="scale(0.75)" style="fill: none; stroke: currentColor; stroke-width: 1.75; stroke-linecap: round; stroke-linejoin: round"><circle cx="12" cy="12" r="3.5"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></g></svg>
+        <span>Settings</span>
+      </a>
+      <div style="display: flex; align-items: center; gap: 10px; height: 44px; padding: 0 12px; color: #A3ADA8">
+        <span style="width: 26px; height: 26px; border-radius: 50%; background: #242C28; display: flex; align-items: center; justify-content: center">
+          <svg width="14" height="14"><g transform="scale(0.5833)" style="fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></g></svg>
+        </span>
+        <span style="font-size: 13px">Personal plan</span>
+      </div>
+    </div>
+  </aside>
+
+  <main style="flex: 1; min-width: 0; box-sizing: border-box; padding: 32px 40px 40px; display: flex; flex-direction: column; gap: 24px">
+
+    <header style="display: flex; justify-content: space-between; align-items: flex-end; gap: 24px">
+      <div style="display: flex; flex-direction: column; gap: 8px">
+        <h1 style="margin: 0; font-family: {{ titleFont }}; font-weight: 400; font-size: {{ h1Size }}px; line-height: 1; letter-spacing: -0.01em">Analytics</h1>
+        <p style="margin: 0; color: #A3ADA8; font-size: 13px">Synced 4 minutes ago · 9 accounts</p>
+      </div>
+      <div style="display: flex; align-items: center; gap: 10px">
+        <div style="display: flex; padding: 3px; gap: 2px; background: #111614; border: 1px solid #242C28; border-radius: 10px">
+          <button aria-pressed="true" style="height: 30px; padding: 0 12px; border-radius: 7px; background: #1C2320; color: #EDF1EF; font-size: 13px; font-weight: 500">My finances</button>
+          <button aria-pressed="false" style="height: 30px; padding: 0 12px; border-radius: 7px; color: #A3ADA8; font-size: 13px; font-weight: 500">Household</button>
+        </div>
+        <button class="ghost" aria-label="Refresh accounts" style="width: 36px; height: 36px; border-radius: 10px; border: 1px solid #242C28; display: flex; align-items: center; justify-content: center; color: #A3ADA8">
+          <svg width="16" height="16"><g transform="scale(0.6667)" style="fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round"><path d="M21 12a9 9 0 1 1-2.64-6.36M21 3v6h-6"/></g></svg>
+        </button>
+        <button style="height: 36px; padding: 0 14px 0 12px; border-radius: 10px; background: {{ accent }}; color: #0A0D0C; font-weight: 600; display: flex; align-items: center; gap: 6px">
+          <svg width="16" height="16"><g transform="scale(0.6667)" style="fill: none; stroke: currentColor; stroke-width: 2.25; stroke-linecap: round"><path d="M12 5v14M5 12h14"/></g></svg>
+          <span>Link account</span>
+        </button>
+      </div>
+    </header>
+
+    <div style="display: flex; align-items: center; gap: 12px">
+      <div style="display: flex; padding: 3px; gap: 2px; background: #111614; border: 1px solid #242C28; border-radius: 10px">
+        <sc-for list="{{ ranges }}" as="r" hint-placeholder-count="4">
+          <button onClick="{{ r.pick }}" aria-pressed="{{ r.active }}" style="height: 30px; padding: 0 14px; border-radius: 7px; background: {{ r.bg }}; color: {{ r.fg }}; font-size: 13px; font-weight: 500">{{ r.label }}</button>
+        </sc-for>
+      </div>
+      <sc-if value="{{ monthSelected }}" hint-placeholder-val="{{ false }}">
+        <button onClick="{{ clearMonth }}" style="height: 36px; padding: 0 10px 0 12px; display: flex; align-items: center; gap: 8px; border-radius: 10px; border: 1px solid #242C28; background: #171D1A; font-size: 13px; font-weight: 500">
+          <span>{{ monthChip }}</span>
+          <svg width="14" height="14" style="color: #85908A"><g transform="scale(0.5833)" style="fill: none; stroke: currentColor; stroke-width: 2.25; stroke-linecap: round"><path d="M6 6l12 12M18 6L6 18"/></g></svg>
+        </button>
+      </sc-if>
+      <span style="color: #85908A; font-size: 13px">{{ compareLabel }}</span>
+    </div>
+
+    <section style="background: #111614; border: 1px solid #242C28; border-radius: 16px; padding: 28px 32px; box-sizing: border-box; display: flex; gap: 32px">
+      <div style="width: 300px; flex-shrink: 0; display: flex; flex-direction: column">
+        <span style="font-size: 13px; font-weight: 500; color: #A3ADA8">Net worth</span>
+        <span style="margin-top: 8px; font-size: 52px; font-weight: 600; line-height: 1.05; letter-spacing: -0.025em">{{ nwHero }}</span>
+        <div style="margin-top: 12px; display: flex; align-items: center; gap: 8px; font-size: 14px">
+          <span style="display: flex; align-items: center; gap: 5px; font-weight: 600; color: {{ nwDeltaColor }}">
+            <svg width="10" height="8"><path d="{{ nwDeltaIcon }}" style="fill: currentColor"/></svg>
+            <span>{{ nwDelta }}</span>
+          </span>
+          <span style="color: #A3ADA8">{{ nwDeltaSub }}</span>
+        </div>
+        <div style="margin-top: 26px; padding-top: 18px; border-top: 1px solid #1B221E; display: flex; flex-direction: column; gap: 10px">
+          <div style="display: flex; justify-content: space-between; align-items: center">
+            <span style="display: flex; align-items: center; gap: 8px; color: #A3ADA8"><span style="width: 8px; height: 8px; border-radius: 2px; background: #199e70"></span><span>Assets</span></span>
+            <span style="font-weight: 600">{{ assets }}</span>
+          </div>
+          <div style="display: flex; justify-content: space-between; align-items: center">
+            <span style="display: flex; align-items: center; gap: 8px; color: #A3ADA8"><span style="width: 8px; height: 8px; border-radius: 2px; background: #d95926"></span><span>Liabilities</span></span>
+            <span style="font-weight: 600">{{ liabilities }}</span>
+          </div>
+          <div style="display: flex; gap: 2px; height: 6px; margin-top: 2px">
+            <span style="width: {{ assetsPct }}%; background: #199e70; border-radius: 3px 0 0 3px"></span>
+            <span style="flex: 1; background: #d95926; border-radius: 0 3px 3px 0"></span>
+          </div>
+          <span style="font-size: 12px; color: #85908A; line-height: 1.45">Liabilities are {{ liabPct }}% of assets. Two accounts have estimated history.</span>
+        </div>
+      </div>
+      <div style="flex: 1; min-width: 0; display: flex; flex-direction: column">
+        <div style="display: flex; justify-content: space-between; align-items: center">
+          <div style="display: flex; align-items: center; gap: 16px; font-size: 12px; color: #A3ADA8">
+            <span style="display: flex; align-items: center; gap: 6px"><svg width="18" height="2"><path d="M0 1H18" style="stroke: {{ accent }}; stroke-width: 2"/></svg><span>Observed</span></span>
+            <sc-if value="{{ hasEst }}" hint-placeholder-val="{{ true }}">
+              <span style="display: flex; align-items: center; gap: 6px"><svg width="18" height="2"><path d="M0 1H18" style="stroke: {{ accent }}; stroke-width: 2; stroke-dasharray: 4 3"/></svg><span>Estimated</span></span>
+            </sc-if>
+            <span style="display: flex; align-items: center; gap: 6px"><span style="width: 7px; height: 7px; border-radius: 50%; background: #85908A"></span><span>Account added</span></span>
+          </div>
+          <div style="display: flex; padding: 2px; gap: 2px; background: #171D1A; border: 1px solid #242C28; border-radius: 8px">
+            <button aria-pressed="true" style="height: 24px; padding: 0 10px; border-radius: 6px; background: #242C28; color: #EDF1EF; font-size: 12px; font-weight: 500">Normalized</button>
+            <button aria-pressed="false" style="height: 24px; padding: 0 10px; border-radius: 6px; color: #A3ADA8; font-size: 12px; font-weight: 500">Reported</button>
+          </div>
+        </div>
+        <div style="position: relative; width: 740px; height: 232px; margin-top: 12px">
+          <sc-for list="{{ nwTicks }}" as="t" hint-placeholder-count="5">
+            <div style="position: absolute; left: 0; right: 0; top: {{ t.top }}px; height: 0">
+              <span class="mono" style="position: absolute; left: 0; top: -7px; font-size: 11px; color: #85908A">{{ t.label }}</span>
+              <div style="position: absolute; left: 44px; right: 60px; top: 0; height: 1px; background: #1E2622"></div>
+            </div>
+          </sc-for>
+          <svg width="740" height="232" style="position: absolute; left: 0; top: 0; overflow: visible">
+            <path d="{{ nwArea }}" style="fill: {{ accent }}; opacity: 0.1"/>
+            <path d="{{ nwEstPath }}" style="fill: none; stroke: {{ accent }}; stroke-width: 2; stroke-dasharray: 5 5; stroke-linecap: round; stroke-linejoin: round"/>
+            <path d="{{ nwObsPath }}" style="fill: none; stroke: {{ accent }}; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round"/>
+            <line x1="{{ covX }}" x2="{{ covX }}" y1="{{ plotBottom }}" y2="{{ covY2 }}" style="stroke: #85908A; stroke-width: 1; opacity: {{ covOpacity }}"/>
+            <circle cx="{{ covX }}" cy="{{ plotBottom }}" r="3.5" style="fill: #85908A; stroke: #111614; stroke-width: 2; opacity: {{ covOpacity }}"/>
+            <line x1="{{ hovX }}" x2="{{ hovX }}" y1="14" y2="{{ plotBottom }}" style="stroke: #3A453F; stroke-width: 1"/>
+            <circle cx="{{ hovX }}" cy="{{ hovY }}" r="5" style="fill: {{ accent }}; stroke: #111614; stroke-width: 2"/>
+            <circle cx="{{ endX }}" cy="{{ endY }}" r="4" style="fill: {{ accent }}; stroke: #111614; stroke-width: 2"/>
+          </svg>
+          <span style="position: absolute; left: {{ endLabelLeft }}px; top: {{ endLabelTop }}px; font-size: 12px; font-weight: 600; white-space: nowrap">{{ endLabel }}</span>
+          <sc-if value="{{ covShow }}" hint-placeholder-val="{{ true }}">
+            <span style="position: absolute; left: {{ covLabelLeft }}px; top: {{ covLabelTop }}px; font-size: 11px; color: #85908A; white-space: nowrap">Added Fidelity 401(k)</span>
+          </sc-if>
+          <div style="position: absolute; left: {{ tipLeft }}px; top: {{ tipTop }}px; width: 132px; box-sizing: border-box; padding: 8px 10px; background: #171D1A; border: 1px solid #2A332E; border-radius: 10px; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35); display: flex; flex-direction: column; gap: 2px">
+            <span style="font-size: 11px; color: #A3ADA8">{{ hovDate }}</span>
+            <span style="font-size: 15px; font-weight: 600">{{ hovValue }}</span>
+            <span style="font-size: 11px; color: #85908A">Observed · Normalized</span>
+          </div>
+        </div>
+        <div class="mono" style="display: flex; justify-content: space-between; padding: 6px 60px 0 44px; font-size: 11px; color: #85908A">
+          <sc-for list="{{ nwLabels }}" as="l" hint-placeholder-count="6">
+            <span>{{ l.text }}</span>
+          </sc-for>
+        </div>
+        <p style="margin: 12px 0 0; font-size: 12px; color: #85908A">Dashed history is reconstructed from statements. <a href="#">How estimates work</a></p>
+      </div>
+    </section>
+
+    <div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px">
+      <sc-for list="{{ kpis }}" as="k" hint-placeholder-count="4">
+        <button class="tile" onClick="{{ k.pick }}" aria-pressed="{{ k.active }}" style="display: flex; justify-content: space-between; align-items: flex-end; gap: 12px; padding: 18px 20px; background: #111614; border: 1px solid {{ k.border }}; border-radius: 14px; min-height: 124px; box-sizing: border-box">
+          <span style="display: flex; flex-direction: column; gap: 6px; min-width: 0">
+            <span style="font-size: 13px; font-weight: 500; color: #A3ADA8">{{ k.label }}</span>
+            <span style="font-size: 28px; font-weight: 600; line-height: 1.1; letter-spacing: -0.02em">{{ k.value }}</span>
+            <span style="display: flex; align-items: center; gap: 6px; font-size: 12px; color: #85908A; white-space: nowrap">
+              <span style="display: flex; align-items: center; gap: 3px; font-weight: 600; color: {{ k.deltaColor }}"><svg width="10" height="8"><path d="{{ k.deltaIcon }}" style="fill: currentColor"/></svg><span>{{ k.delta }}</span></span>
+              <span>{{ k.deltaSub }}</span>
+            </span>
+          </span>
+          <svg width="96" height="36" style="flex-shrink: 0; overflow: visible">
+            <path d="{{ k.spark }}" style="fill: none; stroke: #3A453F; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round"/>
+            <circle cx="{{ k.sparkX }}" cy="{{ k.sparkY }}" r="3" style="fill: {{ accent }}; stroke: #111614; stroke-width: 2"/>
+          </svg>
+        </button>
+      </sc-for>
+    </div>
+
+    <div style="display: grid; grid-template-columns: minmax(0, 7fr) minmax(0, 5fr); gap: 24px">
+      <section style="background: #111614; border: 1px solid #242C28; border-radius: 16px; padding: 24px 28px; box-sizing: border-box; display: flex; flex-direction: column">
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 16px">
+          <div style="display: flex; flex-direction: column; gap: 4px">
+            <h2 style="margin: 0; font-family: {{ titleFont }}; font-weight: 400; font-size: {{ h2Size }}px; line-height: 1.1">Cash flow</h2>
+            <span style="font-size: 13px; color: #A3ADA8">{{ cfSub }}</span>
+          </div>
+          <div style="display: flex; gap: 14px; font-size: 12px; color: #A3ADA8; padding-top: 4px">
+            <span style="display: flex; align-items: center; gap: 6px"><span style="width: 10px; height: 10px; border-radius: 2px; background: #199e70"></span><span>Income</span></span>
+            <span style="display: flex; align-items: center; gap: 6px"><span style="width: 10px; height: 10px; border-radius: 2px; background: #d95926"></span><span>Spending</span></span>
+            <span style="display: flex; align-items: center; gap: 6px"><span style="width: 10px; height: 10px; border-radius: 2px; background: #3987e5"></span><span>Saved</span></span>
+          </div>
+        </div>
+        <div style="position: relative; height: 340px; margin-top: 18px">
+          <sc-for list="{{ cfTicks }}" as="t" hint-placeholder-count="5">
+            <div style="position: absolute; left: 0; right: 0; top: {{ t.top }}px; height: 0">
+              <span class="mono" style="position: absolute; left: 0; top: -7px; font-size: 11px; color: #85908A">{{ t.label }}</span>
+              <div style="position: absolute; left: 44px; right: 0; top: 0; height: 1px; background: {{ t.color }}"></div>
+            </div>
+          </sc-for>
+          <div style="position: absolute; left: 44px; right: 0; top: 0; bottom: 0; display: flex">
+            <sc-for list="{{ cfMonths }}" as="m" hint-placeholder-count="6">
+              <button class="cf-col" onClick="{{ m.pick }}" aria-pressed="{{ m.active }}" aria-label="{{ m.aria }}" style="position: relative; flex: 1; min-width: 0; height: 100%; border-radius: 8px; background: {{ m.bg }}">
+                <span style="position: absolute; left: 50%; margin-left: {{ m.barOffset }}px; width: {{ m.barW }}px; bottom: 168px; height: {{ m.incH }}px; background: #199e70; border-radius: 4px 4px 0 0"></span>
+                <span style="position: absolute; left: 50%; margin-left: {{ m.barOffset }}px; width: {{ m.barW }}px; top: 173px; height: {{ m.spH }}px; background: #d95926"></span>
+                <span style="position: absolute; left: 50%; margin-left: {{ m.barOffset }}px; width: {{ m.barW }}px; top: {{ m.svTop }}px; height: {{ m.svH }}px; background: #3987e5; border-radius: 0 0 4px 4px"></span>
+                <sc-if value="{{ m.showLabels }}" hint-placeholder-val="{{ false }}">
+                  <span style="position: absolute; left: 0; right: 0; top: {{ m.incLabelTop }}px; text-align: center; font-size: 11px; font-weight: 600; white-space: nowrap">{{ m.incLabel }}</span>
+                  <span style="position: absolute; left: 0; right: 0; top: {{ m.outLabelTop }}px; text-align: center; font-size: 11px; font-weight: 600; white-space: nowrap">{{ m.outLabel }}</span>
+                </sc-if>
+              </button>
+            </sc-for>
+          </div>
+        </div>
+        <div style="display: flex; margin-left: 44px; padding-top: 8px">
+          <sc-for list="{{ cfMonths }}" as="m" hint-placeholder-count="6">
+            <span class="mono" style="flex: 1; min-width: 0; text-align: center; font-size: 11px; color: {{ m.labelColor }}; font-weight: {{ m.labelWeight }}; white-space: nowrap">{{ m.label }}</span>
+          </sc-for>
+        </div>
+      </section>
+
+      <section style="background: #111614; border: 1px solid #242C28; border-radius: 16px; padding: 24px 28px; box-sizing: border-box; display: flex; flex-direction: column">
+        <div style="display: flex; flex-direction: column; gap: 4px">
+          <h2 style="margin: 0; font-family: {{ titleFont }}; font-weight: 400; font-size: {{ h2Size }}px; line-height: 1.1">Where it went</h2>
+          <span style="font-size: 13px; color: #A3ADA8">{{ catSub }}</span>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 2px; margin-top: 14px">
+          <sc-for list="{{ cats }}" as="c" hint-placeholder-count="9">
+            <button class="cat-row" onClick="{{ c.pick }}" aria-pressed="{{ c.active }}" style="display: grid; grid-template-columns: 10px minmax(0, 1fr) 84px 52px; gap: 12px; align-items: center; padding: 6px 10px; border-radius: 10px; background: {{ c.bg }}; min-height: 40px; box-sizing: border-box">
+              <span style="width: 10px; height: 10px; border-radius: 50%; background: {{ c.color }}"></span>
+              <span style="display: flex; flex-direction: column; gap: 5px; min-width: 0">
+                <span style="font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{ c.name }}</span>
+                <span style="display: block; height: 4px; border-radius: 2px; background: #1E2622"><span style="display: block; height: 4px; width: {{ c.pct }}%; border-radius: 2px; background: {{ c.color }}"></span></span>
+              </span>
+              <span class="mono" style="font-size: 13px; text-align: right">{{ c.amount }}</span>
+              <span style="font-size: 12px; font-weight: 600; text-align: right; color: {{ c.deltaColor }}">{{ c.delta }}</span>
+            </button>
+          </sc-for>
+        </div>
+        <div style="margin-top: auto; padding-top: 12px; display: flex; justify-content: space-between; font-size: 12px; color: #85908A">
+          <span>{{ catFooter }}</span>
+          <a href="#">All categories</a>
+        </div>
+      </section>
+    </div>
+
+    <section id="details" style="background: #111614; border: 1px solid #242C28; border-radius: 16px; padding: 24px 28px; box-sizing: border-box; height: 420px; display: flex; flex-direction: column">
+      <sc-if value="{{ hasDrill }}" hint-placeholder-val="{{ true }}">
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 16px">
+          <div style="display: flex; flex-direction: column; gap: 4px">
+            <h2 style="margin: 0; font-family: {{ titleFont }}; font-weight: 400; font-size: {{ h2Size }}px; line-height: 1.1">{{ drillTitle }}</h2>
+            <span style="font-size: 13px; color: #A3ADA8">{{ drillSub }}</span>
+          </div>
+          <div style="display: flex; align-items: center; gap: 28px">
+            <span style="display: flex; flex-direction: column; gap: 2px"><span style="font-size: 12px; color: #85908A">Total</span><span style="font-size: 20px; font-weight: 600; line-height: 1.1">{{ drillTotal }}</span></span>
+            <span style="display: flex; flex-direction: column; gap: 2px"><span style="font-size: 12px; color: #85908A">Transactions</span><span style="font-size: 20px; font-weight: 600; line-height: 1.1">{{ drillCount }}</span></span>
+            <span style="display: flex; flex-direction: column; gap: 2px"><span style="font-size: 12px; color: #85908A">{{ drillStat3Label }}</span><span style="font-size: 20px; font-weight: 600; line-height: 1.1">{{ drillStat3 }}</span></span>
+            <button class="ghost" aria-label="Close details" onClick="{{ closeDrill }}" style="width: 32px; height: 32px; border-radius: 8px; border: 1px solid #242C28; display: flex; align-items: center; justify-content: center; color: #A3ADA8">
+              <svg width="14" height="14"><g transform="scale(0.5833)" style="fill: none; stroke: currentColor; stroke-width: 2.25; stroke-linecap: round"><path d="M6 6l12 12M18 6L6 18"/></g></svg>
+            </button>
+          </div>
+        </div>
+        <div style="margin-top: 16px; display: flex; flex-direction: column">
+          <div style="display: grid; grid-template-columns: 96px minmax(0, 1fr) 180px 200px 120px; gap: 16px; padding: 0 10px 8px; font-size: 12px; font-weight: 500; color: #85908A; border-bottom: 1px solid #1B221E">
+            <span>{{ drillH1 }}</span><span>{{ drillH2 }}</span><span>{{ drillH3 }}</span><span>{{ drillH4 }}</span><span style="text-align: right">{{ drillH5 }}</span>
+          </div>
+          <sc-for list="{{ drillRows }}" as="r" hint-placeholder-count="6">
+            <div style="display: grid; grid-template-columns: 96px minmax(0, 1fr) 180px 200px 120px; gap: 16px; padding: 0 10px; height: 37px; align-items: center; border-bottom: 1px solid #1B221E; font-size: 13px">
+              <span class="mono" style="font-size: 12px; color: #85908A">{{ r.c1 }}</span>
+              <span style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{ r.c2 }}</span>
+              <span style="color: #A3ADA8">{{ r.c3 }}</span>
+              <span style="color: #A3ADA8">{{ r.c4 }}</span>
+              <span class="mono" style="text-align: right; color: {{ r.c5Color }}">{{ r.c5 }}</span>
+            </div>
+          </sc-for>
+        </div>
+        <div style="margin-top: auto; display: flex; justify-content: space-between; font-size: 12px; color: #85908A">
+          <span>{{ drillFooter }}</span>
+          <a href="#">Open in Transactions</a>
+        </div>
+      </sc-if>
+      <sc-if value="{{ noDrill }}" hint-placeholder-val="{{ false }}">
+        <div style="flex: 1; border: 1px dashed #242C28; border-radius: 12px; display: flex; align-items: center; justify-content: center; text-align: center; color: #85908A; font-size: 13px; padding: 24px">Select a month, a category, or a stat above to see the transactions behind it.</div>
+      </sc-if>
+    </section>
+
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#34D399","options":["#34D399","#3987e5","#9085e9","#c98500"],"section":"Theme"},"serifTitles":{"editor":"boolean","default":true,"section":"Theme"},"$preview":{"width":1440,"height":1700}}'>
+const C = {
+  ground: '#0A0D0C', surface: '#111614', raised: '#171D1A', hover: '#1C2320', border: '#242C28',
+  grid: '#1E2622', base: '#2E3833', text: '#EDF1EF', text2: '#A3ADA8', text3: '#85908A',
+  up: '#34D399', down: '#F0836F', income: '#199e70', spending: '#d95926', saved: '#3987e5'
+};
+const TRI_UP = 'M5 1l4 6H1z';
+const TRI_DOWN = 'M5 7L1 1h8z';
+const MONTH_NAMES = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+const RANGES = [
+  { id: '3M', label: '3M', months: 3, weeks: 13 },
+  { id: '6M', label: '6M', months: 6, weeks: 26 },
+  { id: '1Y', label: '1Y', months: 12, weeks: 52 },
+  { id: 'All', label: 'All', months: 24, weeks: 104 }
+];
+// Category colors are fixed per category (never by rank), from the app's validated chart palette.
+const CATS = [
+  { key: 'restaurants', name: 'Restaurants', share: 0.17, color: '#3987e5' },
+  { key: 'groceries', name: 'Groceries', share: 0.15, color: '#d95926' },
+  { key: 'rent', name: 'Rent', share: 0.30, color: '#199e70' },
+  { key: 'utilities', name: 'Utilities', share: 0.06, color: '#c98500' },
+  { key: 'transport', name: 'Transportation', share: 0.07, color: '#d55181' },
+  { key: 'shopping', name: 'Online marketplaces', share: 0.09, color: '#008300' },
+  { key: 'entertainment', name: 'Entertainment', share: 0.05, color: '#9085e9' },
+  { key: 'insurance', name: 'Insurance', share: 0.05, color: '#e66767' },
+  { key: 'other', name: 'Other', share: 0.06, color: '#7A857F' }
+];
+const MERCHANTS = {
+  restaurants: ['Oddfellows Cafe', 'Tacos El Sol', 'Din Tai Fung', 'Blue Bottle Coffee', 'Sushi Kappo', 'Ramen House', 'Molly Moon\'s'],
+  groceries: ['Trader Joe\'s', 'Costco Wholesale', 'Safeway', 'H Mart', 'Whole Foods', 'Farmers market', 'Uwajimaya'],
+  rent: ['Rent payment'],
+  utilities: ['City Light & Power', 'Northwest Gas', 'Water utility', 'Xfinity', 'Verizon Wireless'],
+  transport: ['Shell', 'Lyft', 'Transit pass reload', 'Chevron', 'Uber', 'Street parking', 'Toll pass'],
+  shopping: ['Amazon', 'Amazon Marketplace', 'Etsy', 'eBay', 'Target.com', 'Amazon'],
+  entertainment: ['Netflix', 'Spotify', 'AMC Theatres', 'Steam', 'Nintendo eShop', 'Symphony tickets'],
+  insurance: ['State Farm', 'Health premium', 'Renters insurance'],
+  other: ['Venmo', 'Cash withdrawal', 'USPS', 'Zelle payment', 'Apple.com', 'Rover']
+};
+const CARDS = ['Sapphire ···0193', 'Amex Gold ···3007', 'Checking ···4821'];
+const CHECKING = 'Checking ···4821';
+const LIABILITIES = 125740;
+const COVERAGE_T = Date.UTC(2026, 5, 15);
+const EST_BEFORE_T = Date.UTC(2026, 3, 1);
+
+function lcg(seed) {
+  let s = seed >>> 0;
+  return function () { s = (Math.imul(s, 1664525) + 1013904223) >>> 0; return s / 4294967296; };
+}
+function money(n) {
+  const a = Math.abs(Math.round(n));
+  return (n < 0 ? '−' : '') + '$' + a.toLocaleString('en-US');
+}
+function money2(n) {
+  const a = Math.abs(n);
+  return (n < 0 ? '−' : '') + '$' + a.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+function signedMoney(n) { return (n >= 0 ? '+' : '−') + '$' + Math.abs(Math.round(n)).toLocaleString('en-US'); }
+function moneyK(n) {
+  const a = Math.abs(n);
+  const s = a >= 1000000 ? '$' + (a / 1000000).toFixed(2) + 'M' : a >= 1000 ? '$' + Math.round(a / 1000) + 'k' : '$' + Math.round(a);
+  return (n < 0 ? '−' : '') + s;
+}
+function pct1(n) { return (n >= 0 ? '+' : '−') + Math.abs(n).toFixed(1) + '%'; }
+function pct0(n) { return (n >= 0 ? '+' : '−') + Math.abs(Math.round(n)) + '%'; }
+function pctDelta(a, b) { return b ? (a - b) / Math.abs(b) * 100 : 0; }
+function niceStep(span, target) {
+  const raw = span / target;
+  const pow = Math.pow(10, Math.floor(Math.log10(raw)));
+  const fs = [1, 2, 2.5, 5, 10];
+  for (let i = 0; i < fs.length; i++) { if (fs[i] * pow >= raw) return fs[i] * pow; }
+  return 10 * pow;
+}
+function spanLabel(months) {
+  const a = months[0], b = months[months.length - 1];
+  if (months.length === 1) return b.long;
+  return a.y === b.y ? a.label + '–' + b.label + ' ' + b.y : a.label + ' ' + a.y + '–' + b.label + ' ' + b.y;
+}
+function dateLabel(t) {
+  const d = new Date(t);
+  return MONTH_NAMES[d.getUTCMonth()] + ' ' + d.getUTCDate() + ', ' + d.getUTCFullYear();
+}
+
+// 48 months of sample cash flow ending Sep 2026 (the current, partial month).
+function buildMonths() {
+  const rnd = lcg(7);
+  const out = [];
+  for (let i = 0; i < 48; i++) {
+    const y = 2022 + Math.floor((9 + i) / 12);
+    const m = (9 + i) % 12;
+    const growth = 1 + i * 0.006;
+    let income = Math.round((8900 + (rnd() - 0.5) * 900) * growth);
+    if (m === 5 || m === 11) income += 3200;
+    const spending = Math.round((5400 + (rnd() - 0.5) * 1400) * growth + (m === 11 ? 900 : 0));
+    const saved = Math.round((1500 + (rnd() - 0.5) * 700) * growth);
+    const cats = {};
+    let sum = 0;
+    for (let c = 0; c < CATS.length; c++) {
+      const cat = CATS[c];
+      const noise = cat.key === 'rent' ? 1 : 1 + (rnd() - 0.5) * 0.5;
+      cats[cat.key] = spending * cat.share * noise;
+      sum += cats[cat.key];
+    }
+    for (let c = 0; c < CATS.length; c++) cats[CATS[c].key] = Math.round(cats[CATS[c].key] * spending / sum);
+    const txCount = 90 + Math.round(rnd() * 60);
+    out.push({ y: y, m: m, income: income, spending: spending, saved: saved, cats: cats, txCount: txCount, partial: i === 47, label: MONTH_NAMES[m], long: MONTH_NAMES[m] + ' ' + y });
+  }
+  const last = out[47];
+  last.income = Math.round(last.income * 0.9);
+  last.spending = Math.round(last.spending * 0.85);
+  last.saved = Math.round(last.saved * 0.6);
+  last.txCount = Math.round(last.txCount * 0.85);
+  for (let c = 0; c < CATS.length; c++) last.cats[CATS[c].key] = Math.round(last.cats[CATS[c].key] * 0.85);
+  return out;
+}
+// Weekly net worth for two years ending 2026-09-26; points before Apr 2026 are reconstructed.
+function buildNetWorth() {
+  const rnd = lcg(11);
+  const pts = [];
+  const end = Date.UTC(2026, 8, 26);
+  const start = end - 104 * 7 * 86400000;
+  let v = 318000;
+  for (let i = 0; i <= 104; i++) {
+    const t = start + i * 7 * 86400000;
+    v += 900 + (rnd() - 0.48) * 7000;
+    pts.push({ t: t, v: Math.round(v), est: t < EST_BEFORE_T });
+  }
+  return pts;
+}
+const MONTHS = buildMonths();
+const NW = buildNetWorth();
+
+function sparkOf(arr) {
+  let mn = Infinity, mx = -Infinity;
+  for (let i = 0; i < arr.length; i++) { if (arr[i] < mn) mn = arr[i]; if (arr[i] > mx) mx = arr[i]; }
+  const rng = mx - mn || 1;
+  let d = '', lx = 0, ly = 0;
+  for (let i = 0; i < arr.length; i++) {
+    lx = 2 + (i / (arr.length - 1)) * 92;
+    ly = 3 + ((mx - arr[i]) / rng) * 28;
+    d += (i ? ' L' : 'M') + lx.toFixed(1) + ' ' + ly.toFixed(1);
+  }
+  return { d: d, x: lx.toFixed(1), y: ly.toFixed(1) };
+}
+function txRows(seed, merchants, month, avg, n, catName, accounts, plus) {
+  const rnd = lcg(seed);
+  const maxDay = month.partial ? 26 : 28;
+  const rows = [];
+  for (let i = 0; i < n; i++) {
+    const day = Math.max(1, maxDay - i * 4 - Math.floor(rnd() * 3));
+    const amt = avg * (0.55 + rnd() * 1.4);
+    rows.push({
+      c1: month.label + ' ' + day,
+      c2: merchants[i % merchants.length],
+      c3: catName,
+      c4: accounts[Math.floor(rnd() * accounts.length)],
+      c5: (plus ? '+' : '') + money2(amt),
+      c5Color: plus ? C.up : C.text
+    });
+  }
+  return rows;
+}
+
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { range: '6M', month: null, cat: 'restaurants', kpi: null };
+  }
+  renderVals() {
+    const st = this.state || {};
+    const accent = this.props.accent || '#34D399';
+    const serif = this.props.serifTitles !== false;
+    const titleFont = serif ? "'Instrument Serif', Georgia, serif" : "'DM Sans', system-ui, sans-serif";
+    const h1Size = serif ? 38 : 30;
+    const h2Size = serif ? 24 : 19;
+    const self = this;
+
+    const rangeId = st.range || '6M';
+    let range = RANGES[1];
+    for (let i = 0; i < RANGES.length; i++) if (RANGES[i].id === rangeId) range = RANGES[i];
+    const N = range.months;
+    const winStart = MONTHS.length - N;
+    const win = MONTHS.slice(winStart);
+    const sel = (typeof st.month === 'number' && st.month >= 0 && st.month < N) ? st.month : null;
+    const cur = sel === null ? win : [win[sel]];
+    const prv = sel === null ? MONTHS.slice(winStart - N, winStart) : [MONTHS[winStart + sel - 1]];
+    const kpiSel = st.kpi || null;
+    const catSel = st.cat || null;
+    const sum = function (arr, f) { let s = 0; for (let i = 0; i < arr.length; i++) s += f(arr[i]); return s; };
+    const periodLabel = sel === null ? spanLabel(win) : win[sel].long + (win[sel].partial ? ' · month to date' : '');
+    const priorShort = sel === null ? 'vs prior ' + N + ' mo' : 'vs ' + prv[0].label;
+    const priorLong = sel === null ? 'vs the previous ' + N + ' months' : 'vs ' + prv[0].long;
+
+    const ranges = RANGES.map(function (r) {
+      const active = r.id === rangeId;
+      return { label: r.label, active: active, bg: active ? C.hover : 'transparent', fg: active ? C.text : C.text2,
+        pick: function () { self.setState({ range: r.id, month: null }); } };
+    });
+
+    // Net worth hero chart geometry (740 x 232 box).
+    const G = { w: 740, h: 232, left: 44, right: 60, top: 14, bottom: 12 };
+    const plotW = G.w - G.left - G.right, plotH = G.h - G.top - G.bottom, plotBottom = G.top + plotH;
+    const nwPts = NW.slice(NW.length - 1 - range.weeks);
+    let vmin = Infinity, vmax = -Infinity;
+    for (let i = 0; i < nwPts.length; i++) { if (nwPts[i].v < vmin) vmin = nwPts[i].v; if (nwPts[i].v > vmax) vmax = nwPts[i].v; }
+    const vspan = vmax - vmin || 1;
+    const step = niceStep(vspan, 4);
+    const lo = Math.floor((vmin - vspan * 0.06) / step) * step;
+    const hi = Math.ceil((vmax + vspan * 0.06) / step) * step;
+    const xf = function (i) { return G.left + (i / (nwPts.length - 1)) * plotW; };
+    const yf = function (v) { return G.top + ((hi - v) / (hi - lo)) * plotH; };
+    const nwTicks = [];
+    for (let t = lo; t <= hi + 1e-6; t += step) nwTicks.push({ top: yf(t).toFixed(1), label: moneyK(t) });
+    let lastEst = -1;
+    for (let i = 0; i < nwPts.length; i++) if (nwPts[i].est) lastEst = i;
+    const seg = function (from, to) {
+      let d = '';
+      for (let i = from; i < to; i++) d += (d ? ' L' : 'M') + xf(i).toFixed(1) + ' ' + yf(nwPts[i].v).toFixed(1);
+      return d;
+    };
+    const obsStart = lastEst + 1;
+    const nwEstPath = lastEst >= 0 ? seg(0, Math.min(lastEst + 2, nwPts.length)) : '';
+    const nwObsPath = obsStart < nwPts.length ? seg(obsStart, nwPts.length) : '';
+    const nwArea = nwObsPath ? nwObsPath + ' L' + xf(nwPts.length - 1).toFixed(1) + ' ' + plotBottom + ' L' + xf(obsStart).toFixed(1) + ' ' + plotBottom + ' Z' : '';
+    const hasEst = lastEst >= 0;
+    const lastPt = nwPts[nwPts.length - 1], firstPt = nwPts[0];
+    const hovI = Math.round((nwPts.length - 1) * 0.66);
+    const hovX = xf(hovI), hovY = yf(nwPts[hovI].v);
+    const tipLeft = hovX > G.w - 170 ? hovX - 146 : hovX + 14;
+    const tipTop = Math.max(0, hovY - 66);
+    const endX = xf(nwPts.length - 1), endY = yf(lastPt.v);
+    let covIdx = -1;
+    for (let i = 0; i < nwPts.length; i++) { if (nwPts[i].t >= COVERAGE_T) { covIdx = i; break; } }
+    const covShow = covIdx > 0;
+    const covX = covShow ? xf(covIdx) : -100;
+    const diff = lastPt.v - firstPt.v;
+    const assets = lastPt.v + LIABILITIES;
+
+    const nwLabels = N <= 12
+      ? win.map(function (m) { return { text: m.label }; })
+      : win.filter(function (m, i) { return i % 3 === 0; }).map(function (m) { return { text: m.label + ' ’' + String(m.y).slice(2) }; });
+
+    // KPI tiles for the current selection, compared with the prior equal period.
+    const inc = sum(cur, function (m) { return m.income; }), sp = sum(cur, function (m) { return m.spending; }), sv = sum(cur, function (m) { return m.saved; });
+    const pInc = sum(prv, function (m) { return m.income; }), pSp = sum(prv, function (m) { return m.spending; }), pSv = sum(prv, function (m) { return m.saved; });
+    const net = inc - sp, pNet = pInc - pSp;
+    const rate = inc ? net / inc * 100 : 0;
+    const last12 = MONTHS.slice(-12);
+    const mkKpi = function (id, label, value, cur, prev, upGood, deltaSub, sparkArr) {
+      const d = pctDelta(cur, prev);
+      const good = upGood ? d >= 0 : d <= 0;
+      const s = sparkOf(sparkArr);
+      const active = kpiSel === id;
+      return { id: id, label: label, value: value, delta: pct1(d), deltaSub: deltaSub, deltaColor: good ? C.up : C.down,
+        deltaIcon: d >= 0 ? TRI_UP : TRI_DOWN, spark: s.d, sparkX: s.x, sparkY: s.y, active: active, border: active ? accent : C.border,
+        pick: function () { self.setState({ kpi: active ? null : id, cat: null }); } };
+    };
+    const kpis = [
+      mkKpi('income', 'Income', money(inc), inc, pInc, true, priorShort, last12.map(function (m) { return m.income; })),
+      mkKpi('spending', 'Spending', money(sp), sp, pSp, false, priorShort, last12.map(function (m) { return m.spending; })),
+      mkKpi('saved', 'Saved', money(sv), sv, pSv, true, priorShort, last12.map(function (m) { return m.saved; })),
+      mkKpi('net', 'Net cash flow', money(net), net, pNet, true, priorShort + ' · ' + Math.round(rate) + '% kept', last12.map(function (m) { return m.income - m.spending; }))
+    ];
+
+    // Cash flow chart: income above the baseline, spending + saved stacked below (340px plot, baseline at 172).
+    const PH = 340, BASE = 172, PAD = 14;
+    let maxInc = 0, maxOut = 0;
+    for (let i = 0; i < win.length; i++) { if (win[i].income > maxInc) maxInc = win[i].income; if (win[i].spending + win[i].saved > maxOut) maxOut = win[i].spending + win[i].saved; }
+    const ppd = Math.min((BASE - PAD) / maxInc, (PH - BASE - PAD) / maxOut);
+    const barW = N <= 6 ? 24 : N <= 12 ? 16 : 10;
+    const labelIdx = sel === null ? N - 1 : sel;
+    const cfMonths = win.map(function (m, i) {
+      const active = sel === i;
+      const incH = m.income * ppd;
+      const spH = m.spending * ppd;
+      const svTop = BASE + 1 + spH + 2;
+      const svH = Math.max(m.saved * ppd - 2, 0);
+      return {
+        label: N === 24 ? (i % 3 === 0 ? m.label + ' ’' + String(m.y).slice(2) : '') : m.label,
+        labelColor: active ? C.text : C.text3, labelWeight: active ? 600 : 400,
+        active: active, bg: active ? C.hover : 'transparent',
+        barW: barW, barOffset: -barW / 2,
+        incH: incH.toFixed(1), spH: spH.toFixed(1), svTop: svTop.toFixed(1), svH: svH.toFixed(1),
+        showLabels: i === labelIdx,
+        incLabel: signedMoney(m.income), outLabel: '−' + money(m.spending + m.saved),
+        incLabelTop: (BASE - incH - 18).toFixed(1), outLabelTop: (svTop + svH + 4).toFixed(1),
+        aria: m.long + ': income ' + money(m.income) + ', spending ' + money(m.spending) + ', saved ' + money(m.saved),
+        pick: function () { self.setState({ month: active ? null : i }); }
+      };
+    });
+    const cfStep = niceStep(Math.max(maxInc, maxOut), 3);
+    const cfTicks = [];
+    for (let k = -6; k <= 6; k++) {
+      const y = BASE - k * cfStep * ppd;
+      if (y < PAD - 2 || y > PH - PAD + 2) continue;
+      cfTicks.push({ top: y.toFixed(1), label: k === 0 ? '0' : moneyK(k * cfStep), color: k === 0 ? C.base : C.grid });
+    }
+    const cfSub = 'Income above the line, spending and saving below · ' + spanLabel(win);
+
+    // Spending by category: fixed color per category, ranked by amount, Other pinned last.
+    const rows = CATS.map(function (c) {
+      return { c: c, amt: sum(cur, function (m) { return m.cats[c.key]; }), pamt: sum(prv, function (m) { return m.cats[c.key]; }) };
+    });
+    const ranked = rows.filter(function (r) { return r.c.key !== 'other'; }).sort(function (a, b) { return b.amt - a.amt; })
+      .concat(rows.filter(function (r) { return r.c.key === 'other'; }));
+    let maxAmt = 1;
+    for (let i = 0; i < ranked.length; i++) if (ranked[i].amt > maxAmt) maxAmt = ranked[i].amt;
+    const cats = ranked.map(function (r) {
+      const d = pctDelta(r.amt, r.pamt);
+      const active = catSel === r.c.key;
+      return { name: r.c.name, color: r.c.color, amount: money(r.amt), pct: Math.round(r.amt / maxAmt * 100),
+        delta: r.pamt ? pct0(d) : '—', deltaColor: d > 0 ? C.down : C.up, active: active, bg: active ? C.hover : 'transparent',
+        pick: function () { self.setState({ cat: active ? null : r.c.key, kpi: null }); } };
+    });
+    const txTotal = sum(cur, function (m) { return m.txCount; });
+    const catSub = 'Spending by category · ' + periodLabel;
+    const catFooter = money(sp) + ' across ' + txTotal + ' transactions';
+
+    // Details panel for the selected category or stat.
+    const hasDrill = !!(catSel || kpiSel);
+    const rowMonth = sel === null ? win[N - 1] : win[sel];
+    let drillTitle = '', drillSub = '', drillTotal = '', drillCount = '', drillStat3Label = '', drillStat3 = '', drillFooter = '', drillRows = [];
+    let drillH1 = 'Date', drillH2 = 'Merchant', drillH3 = 'Category', drillH4 = 'Account', drillH5 = 'Amount';
+    if (catSel) {
+      let cat = CATS[0];
+      for (let i = 0; i < CATS.length; i++) if (CATS[i].key === catSel) cat = CATS[i];
+      const total = sum(cur, function (m) { return m.cats[cat.key]; });
+      const ptotal = sum(prv, function (m) { return m.cats[cat.key]; });
+      const count = Math.max(1, Math.round(txTotal * cat.share));
+      const avg = total / count;
+      drillTitle = cat.name;
+      drillSub = periodLabel + ' · ' + pct0(pctDelta(total, ptotal)) + ' ' + priorLong;
+      drillTotal = money(total);
+      drillCount = String(count);
+      drillStat3Label = 'Average';
+      drillStat3 = money2(avg);
+      drillRows = cat.key === 'rent'
+        ? [{ c1: rowMonth.label + ' 1', c2: 'Rent payment', c3: 'Rent', c4: CHECKING, c5: money2(rowMonth.cats.rent), c5Color: C.text }]
+        : txRows(31 + CATS.indexOf(cat) * 7 + rowMonth.m, MERCHANTS[cat.key], rowMonth, avg, 6, cat.name, cat.key === 'utilities' || cat.key === 'insurance' ? [CHECKING] : CARDS, false);
+      drillFooter = 'Showing the latest ' + drillRows.length + ' of ' + count + ' transactions';
+    } else if (kpiSel === 'income') {
+      const pay = rowMonth.income * 0.47;
+      drillTitle = 'Income';
+      drillSub = periodLabel + ' · ' + pct0(pctDelta(inc, pInc)) + ' ' + priorLong;
+      drillTotal = money(inc);
+      drillCount = String(cur.length * 4);
+      drillStat3Label = 'Largest';
+      drillStat3 = money2(pay);
+      drillRows = [
+        { c1: rowMonth.label + ' ' + (rowMonth.partial ? 26 : 30), c2: 'Direct deposit · Payroll', c3: 'Income · Wages', c4: CHECKING, c5: '+' + money2(pay), c5Color: C.up },
+        { c1: rowMonth.label + ' 18', c2: 'Dividend · Brokerage', c3: 'Income · Dividends', c4: 'Brokerage ···7710', c5: '+' + money2(rowMonth.income * 0.02), c5Color: C.up },
+        { c1: rowMonth.label + ' 15', c2: 'Direct deposit · Payroll', c3: 'Income · Wages', c4: CHECKING, c5: '+' + money2(pay), c5Color: C.up },
+        { c1: rowMonth.label + ' 1', c2: 'Interest · High-yield savings', c3: 'Income · Interest', c4: 'Savings ···2290', c5: '+' + money2(rowMonth.income * 0.04), c5Color: C.up }
+      ];
+      drillFooter = 'Showing ' + rowMonth.long + ' · ' + drillCount + ' deposits in the period';
+    } else if (kpiSel === 'saved') {
+      drillTitle = 'Saved';
+      drillSub = periodLabel + ' · ' + pct0(pctDelta(sv, pSv)) + ' ' + priorLong;
+      drillTotal = money(sv);
+      drillCount = String(cur.length * 3);
+      drillStat3Label = 'Of income';
+      drillStat3 = Math.round(inc ? sv / inc * 100 : 0) + '%';
+      drillRows = [
+        { c1: rowMonth.label + ' 16', c2: 'Transfer to brokerage', c3: 'Transfer · Investment', c4: CHECKING, c5: money2(rowMonth.saved * 0.55), c5Color: C.text },
+        { c1: rowMonth.label + ' 16', c2: 'Roth IRA contribution', c3: 'Transfer · Retirement', c4: CHECKING, c5: money2(rowMonth.saved * 0.3), c5Color: C.text },
+        { c1: rowMonth.label + ' 2', c2: 'Transfer to high-yield savings', c3: 'Transfer · Savings', c4: CHECKING, c5: money2(rowMonth.saved * 0.15), c5Color: C.text }
+      ];
+      drillFooter = 'Showing ' + rowMonth.long + ' · ' + drillCount + ' transfers in the period';
+    } else if (kpiSel === 'spending') {
+      drillTitle = 'Spending';
+      drillSub = periodLabel + ' · ' + pct0(pctDelta(sp, pSp)) + ' ' + priorLong;
+      drillTotal = money(sp);
+      drillCount = String(txTotal);
+      drillStat3Label = 'Per day';
+      drillStat3 = money2(sp / (cur.length * 30));
+      drillRows = [{ c1: rowMonth.label + ' 1', c2: 'Rent payment', c3: 'Rent', c4: CHECKING, c5: money2(rowMonth.cats.rent), c5Color: C.text }]
+        .concat(txRows(5 + rowMonth.m, ['Costco Wholesale', 'Amazon', 'State Farm', 'Din Tai Fung', 'City Light & Power'], rowMonth, rowMonth.spending * 0.03, 5, 'Largest purchases', CARDS, false));
+      drillRows[1].c3 = 'Groceries'; drillRows[2].c3 = 'Online marketplaces'; drillRows[3].c3 = 'Insurance'; drillRows[4].c3 = 'Restaurants'; drillRows[5].c3 = 'Utilities';
+      drillFooter = 'Showing the 6 largest of ' + txTotal + ' transactions';
+    } else if (kpiSel === 'net') {
+      drillTitle = 'Net cash flow';
+      drillSub = periodLabel + ' · ' + Math.round(rate) + '% of income kept';
+      drillTotal = money(net);
+      drillCount = String(cur.length) + (cur.length === 1 ? ' month' : ' months');
+      drillStat3Label = 'Kept';
+      drillStat3 = Math.round(rate) + '%';
+      drillH1 = 'Month'; drillH2 = 'Income'; drillH3 = 'Spending'; drillH4 = 'Saved'; drillH5 = 'Net';
+      drillRows = win.slice(Math.max(0, N - 6)).reverse().map(function (m) {
+        const n = m.income - m.spending;
+        return { c1: m.label + ' ' + m.y, c2: money(m.income), c3: money(m.spending), c4: money(m.saved), c5: signedMoney(n), c5Color: n >= 0 ? C.up : C.down };
+      });
+      drillFooter = N > 6 ? 'Showing the latest 6 of ' + N + ' months' : 'All ' + N + ' months in range';
+    }
+
+    return {
+      accent: accent, titleFont: titleFont, h1Size: h1Size, h2Size: h2Size,
+      ranges: ranges,
+      monthSelected: sel !== null,
+      monthChip: sel === null ? '' : win[sel].long + (win[sel].partial ? ' · month to date' : ''),
+      clearMonth: function () { self.setState({ month: null }); },
+      compareLabel: sel === null ? 'Compared with the previous ' + N + ' months' : 'Compared with ' + prv[0].long,
+      nwHero: money(lastPt.v),
+      nwDelta: signedMoney(diff) + ' (' + pct1(pctDelta(lastPt.v, firstPt.v)) + ')',
+      nwDeltaSub: 'over ' + N + ' months',
+      nwDeltaColor: diff >= 0 ? C.up : C.down,
+      nwDeltaIcon: diff >= 0 ? TRI_UP : TRI_DOWN,
+      assets: money(assets), liabilities: money(LIABILITIES),
+      assetsPct: (assets / (assets + LIABILITIES) * 100).toFixed(1),
+      liabPct: Math.round(LIABILITIES / assets * 100),
+      hasEst: hasEst,
+      nwTicks: nwTicks, nwArea: nwArea, nwEstPath: nwEstPath, nwObsPath: nwObsPath,
+      plotBottom: plotBottom,
+      covX: covX.toFixed(1), covY2: plotBottom - 14, covOpacity: covShow ? 1 : 0, covShow: covShow,
+      covLabelLeft: (covX + 8).toFixed(1), covLabelTop: plotBottom - 26,
+      hovX: hovX.toFixed(1), hovY: hovY.toFixed(1), tipLeft: tipLeft.toFixed(1), tipTop: tipTop.toFixed(1),
+      hovDate: dateLabel(nwPts[hovI].t), hovValue: money(nwPts[hovI].v),
+      endX: endX.toFixed(1), endY: endY.toFixed(1), endLabel: moneyK(lastPt.v),
+      endLabelLeft: (endX + 10).toFixed(1), endLabelTop: (endY - 9).toFixed(1),
+      nwLabels: nwLabels,
+      kpis: kpis,
+      cfSub: cfSub, cfTicks: cfTicks, cfMonths: cfMonths,
+      catSub: catSub, cats: cats, catFooter: catFooter,
+      hasDrill: hasDrill, noDrill: !hasDrill,
+      drillTitle: drillTitle, drillSub: drillSub, drillTotal: drillTotal, drillCount: drillCount,
+      drillStat3Label: drillStat3Label, drillStat3: drillStat3, drillFooter: drillFooter, drillRows: drillRows,
+      drillH1: drillH1, drillH2: drillH2, drillH3: drillH3, drillH4: drillH4, drillH5: drillH5,
+      closeDrill: function () { self.setState({ cat: null, kpi: null }); }
+    };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,385 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Analytics redesign · phone mock</title>
+<!-- Static render of the approved design canvas board; see README.md. -->
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&amp;family=Instrument+Serif:ital@0;1&amp;family=JetBrains+Mono:wght@400;500;600&amp;display=swap">
+<style>
+body{margin:0;background:#0A0D0C;color:#EDF1EF;font-family:'DM Sans',system-ui,-apple-system,sans-serif;-webkit-font-smoothing:antialiased}
+a{color:#34D399}a:hover{color:#6EE7B7}
+button{font:inherit;color:inherit;background:none;border:0;padding:0;margin:0;cursor:pointer;text-align:left}
+button:focus-visible,a:focus-visible{outline:2px solid #34D399;outline-offset:2px}
+.mono{font-family:'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,monospace;font-variant-numeric:tabular-nums}
+</style>
+</head>
+<body>
+<div style="width: 390px; height: 2000px; box-sizing: border-box; position: relative; display: flex; flex-direction: column; background: #0A0D0C; color: #EDF1EF; font-family: 'DM Sans', system-ui, sans-serif; font-size: 14px; line-height: 1.4; overflow: hidden">
+
+  <header style="display: flex; justify-content: space-between; align-items: center; padding: 20px 16px 0">
+    <div style="display: flex; flex-direction: column; gap: 4px">
+      <h1 style="margin: 0; font-family: 'Instrument Serif', Georgia, serif; font-weight: 400; font-size: 30px; line-height: 1; letter-spacing: -0.01em">Analytics</h1>
+      <span style="color: #A3ADA8; font-size: 12px">Synced 4 minutes ago · 9 accounts</span>
+    </div>
+    <button aria-label="Account menu" style="width: 44px; height: 44px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #A3ADA8">
+      <span style="width: 32px; height: 32px; border-radius: 50%; background: #242C28; display: flex; align-items: center; justify-content: center">
+        <svg width="16" height="16"><g transform="scale(0.6667)" style="fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round"><circle cx="12" cy="8" r="4"></circle><path d="M4 21a8 8 0 0 1 16 0"></path></g></svg>
+      </span>
+    </button>
+  </header>
+
+  <div style="display: flex; margin: 16px 16px 0; padding: 3px; gap: 2px; background: #111614; border: 1px solid #242C28; border-radius: 12px">
+    <button aria-pressed="false" style="flex: 1; height: 38px; border-radius: 9px; color: #A3ADA8; font-size: 13px; font-weight: 500; text-align: center">3M</button>
+    <button aria-pressed="true" style="flex: 1; height: 38px; border-radius: 9px; background: #1C2320; color: #EDF1EF; font-size: 13px; font-weight: 500; text-align: center">6M</button>
+    <button aria-pressed="false" style="flex: 1; height: 38px; border-radius: 9px; color: #A3ADA8; font-size: 13px; font-weight: 500; text-align: center">1Y</button>
+    <button aria-pressed="false" style="flex: 1; height: 38px; border-radius: 9px; color: #A3ADA8; font-size: 13px; font-weight: 500; text-align: center">All</button>
+  </div>
+
+  <section style="margin: 16px 16px 0; background: #111614; border: 1px solid #242C28; border-radius: 16px; padding: 20px; box-sizing: border-box; display: flex; flex-direction: column">
+    <span style="font-size: 13px; font-weight: 500; color: #A3ADA8">Net worth</span>
+    <span style="margin-top: 6px; font-size: 40px; font-weight: 600; line-height: 1.05; letter-spacing: -0.025em">$396,516</span>
+    <div style="margin-top: 8px; display: flex; align-items: center; gap: 8px; font-size: 13px; flex-wrap: wrap">
+      <span style="display: flex; align-items: center; gap: 5px; font-weight: 600; color: #34D399">
+        <svg width="10" height="8"><path d="M5 1l4 6H1z" style="fill: currentColor"></path></svg>
+        <span>+$27,555 (+7.5%)</span>
+      </span>
+      <span style="color: #A3ADA8">over 6 months</span>
+    </div>
+    <div style="margin-top: 16px; display: flex; align-items: center; gap: 14px; font-size: 11px; color: #A3ADA8">
+      <span style="display: flex; align-items: center; gap: 6px"><svg width="16" height="2"><path d="M0 1H16" style="stroke: #34D399; stroke-width: 2"></path></svg><span>Observed</span></span>
+      <span style="display: flex; align-items: center; gap: 6px"><svg width="16" height="2"><path d="M0 1H16" style="stroke: #34D399; stroke-width: 2; stroke-dasharray: 4 3"></path></svg><span>Estimated</span></span>
+      <span style="display: flex; align-items: center; gap: 6px"><span style="width: 7px; height: 7px; border-radius: 50%; background: #85908A"></span><span>Account added</span></span>
+    </div>
+    <div style="position: relative; width: 318px; height: 176px; margin-top: 8px">
+      
+        <div style="position: absolute; left: 0; right: 0; top: 166.0px; height: 0">
+          <span class="mono" style="position: absolute; left: 0; top: -6px; font-size: 10px; color: #85908A">$360k</span>
+          <div style="position: absolute; left: 36px; right: 44px; top: 0; height: 1px; background: #1E2622"></div>
+        </div>
+      
+        <div style="position: absolute; left: 0; right: 0; top: 89.0px; height: 0">
+          <span class="mono" style="position: absolute; left: 0; top: -6px; font-size: 10px; color: #85908A">$380k</span>
+          <div style="position: absolute; left: 36px; right: 44px; top: 0; height: 1px; background: #1E2622"></div>
+        </div>
+      
+        <div style="position: absolute; left: 0; right: 0; top: 12.0px; height: 0">
+          <span class="mono" style="position: absolute; left: 0; top: -6px; font-size: 10px; color: #85908A">$400k</span>
+          <div style="position: absolute; left: 36px; right: 44px; top: 0; height: 1px; background: #1E2622"></div>
+        </div>
+      
+      <svg width="318" height="176" style="position: absolute; left: 0; top: 0; overflow: visible">
+        <path d="M45.2 140.2 L54.3 142.8 L63.5 142.3 L72.6 130.3 L81.8 130.6 L90.9 131.5 L100.1 114.6 L109.2 109.3 L118.4 99.8 L127.5 86.5 L136.7 95.1 L145.8 87.1 L155.0 86.3 L164.2 91.4 L173.3 90.4 L182.5 75.8 L191.6 72.1 L200.8 55.8 L209.9 48.7 L219.1 33.6 L228.2 36.9 L237.4 30.0 L246.5 27.2 L255.7 33.7 L264.8 24.8 L274.0 25.4 L274.0 166 L45.2 166 Z" style="fill: #34D399; opacity: 0.1"></path>
+        <path d="M36.0 131.5 L45.2 140.2" style="fill: none; stroke: #34D399; stroke-width: 2; stroke-dasharray: 5 5; stroke-linecap: round; stroke-linejoin: round"></path>
+        <path d="M45.2 140.2 L54.3 142.8 L63.5 142.3 L72.6 130.3 L81.8 130.6 L90.9 131.5 L100.1 114.6 L109.2 109.3 L118.4 99.8 L127.5 86.5 L136.7 95.1 L145.8 87.1 L155.0 86.3 L164.2 91.4 L173.3 90.4 L182.5 75.8 L191.6 72.1 L200.8 55.8 L209.9 48.7 L219.1 33.6 L228.2 36.9 L237.4 30.0 L246.5 27.2 L255.7 33.7 L264.8 24.8 L274.0 25.4" style="fill: none; stroke: #34D399; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round"></path>
+        <line x1="145.8" x2="145.8" y1="166" y2="154" style="stroke: #85908A; stroke-width: 1"></line>
+        <circle cx="145.8" cy="166" r="3.5" style="fill: #85908A; stroke: #111614; stroke-width: 2"></circle>
+        <circle cx="274.0" cy="25.4" r="4" style="fill: #34D399; stroke: #111614; stroke-width: 2"></circle>
+      </svg>
+      <span style="position: absolute; left: 283.0px; top: 17.4px; font-size: 11px; font-weight: 600; white-space: nowrap">$397k</span>
+    </div>
+    <div class="mono" style="display: flex; justify-content: space-between; padding: 6px 44px 0 36px; font-size: 10px; color: #85908A">
+      
+        <span>Apr</span>
+      
+        <span>May</span>
+      
+        <span>Jun</span>
+      
+        <span>Jul</span>
+      
+        <span>Aug</span>
+      
+        <span>Sep</span>
+      
+    </div>
+    <div style="margin-top: 16px; padding-top: 14px; border-top: 1px solid #1B221E; display: flex; flex-direction: column; gap: 8px">
+      <div style="display: flex; justify-content: space-between; align-items: center; font-size: 13px">
+        <span style="display: flex; align-items: center; gap: 8px; color: #A3ADA8"><span style="width: 8px; height: 8px; border-radius: 2px; background: #199e70"></span><span>Assets</span></span>
+        <span style="font-weight: 600">$522,256</span>
+      </div>
+      <div style="display: flex; justify-content: space-between; align-items: center; font-size: 13px">
+        <span style="display: flex; align-items: center; gap: 8px; color: #A3ADA8"><span style="width: 8px; height: 8px; border-radius: 2px; background: #d95926"></span><span>Liabilities</span></span>
+        <span style="font-weight: 600">$125,740</span>
+      </div>
+      <div style="display: flex; gap: 2px; height: 6px; margin-top: 2px">
+        <span style="width: 80.6%; background: #199e70; border-radius: 3px 0 0 3px"></span>
+        <span style="flex: 1; background: #d95926; border-radius: 0 3px 3px 0"></span>
+      </div>
+      <span style="font-size: 12px; color: #85908A; line-height: 1.45">Dashed history is reconstructed from statements. <a href="#">How estimates work</a></span>
+    </div>
+  </section>
+
+  <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin: 16px 16px 0">
+    
+      <button aria-pressed="false" style="display: flex; flex-direction: column; gap: 6px; padding: 14px 16px; background: #111614; border: 1px solid #242C28; border-radius: 14px; min-height: 118px; box-sizing: border-box">
+        <span style="font-size: 12px; font-weight: 500; color: #A3ADA8">Income</span>
+        <span style="font-size: 24px; font-weight: 600; line-height: 1.1; letter-spacing: -0.02em">$69,958</span>
+        <span style="display: flex; align-items: center; gap: 5px; font-size: 11px; color: #85908A; white-space: nowrap">
+          <span style="display: flex; align-items: center; gap: 3px; font-weight: 600; color: #34D399"><svg width="10" height="8"><path d="M5 1l4 6H1z" style="fill: currentColor"></path></svg><span>+0.6%</span></span>
+          <span>vs prior 6 mo</span>
+        </span>
+        <svg width="135" height="24" style="margin-top: 2px; overflow: visible">
+          <path d="M2.0 17.7 L13.9 16.3 L25.8 5.3 L37.7 18.6 L49.6 17.5 L61.5 18.2 L73.5 18.0 L85.4 17.9 L97.3 3.0 L109.2 14.7 L121.1 17.2 L133.0 21.0" style="fill: none; stroke: #3A453F; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round"></path>
+          <circle cx="133.0" cy="21.0" r="3" style="fill: #34D399; stroke: #111614; stroke-width: 2"></circle>
+        </svg>
+      </button>
+    
+      <button aria-pressed="false" style="display: flex; flex-direction: column; gap: 6px; padding: 14px 16px; background: #111614; border: 1px solid #242C28; border-radius: 14px; min-height: 118px; box-sizing: border-box">
+        <span style="font-size: 12px; font-weight: 500; color: #A3ADA8">Spending</span>
+        <span style="font-size: 24px; font-weight: 600; line-height: 1.1; letter-spacing: -0.02em">$39,345</span>
+        <span style="display: flex; align-items: center; gap: 5px; font-size: 11px; color: #85908A; white-space: nowrap">
+          <span style="display: flex; align-items: center; gap: 3px; font-weight: 600; color: #F0836F"><svg width="10" height="8"><path d="M5 1l4 6H1z" style="fill: currentColor"></path></svg><span>+2.8%</span></span>
+          <span>vs prior 6 mo</span>
+        </span>
+        <svg width="135" height="24" style="margin-top: 2px; overflow: visible">
+          <path d="M2.0 12.9 L13.9 11.4 L25.8 7.0 L37.7 14.2 L49.6 11.2 L61.5 9.8 L73.5 5.5 L85.4 3.0 L97.3 10.7 L109.2 12.6 L121.1 4.5 L133.0 21.0" style="fill: none; stroke: #3A453F; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round"></path>
+          <circle cx="133.0" cy="21.0" r="3" style="fill: #34D399; stroke: #111614; stroke-width: 2"></circle>
+        </svg>
+      </button>
+    
+      <button aria-pressed="false" style="display: flex; flex-direction: column; gap: 6px; padding: 14px 16px; background: #111614; border: 1px solid #242C28; border-radius: 14px; min-height: 118px; box-sizing: border-box">
+        <span style="font-size: 12px; font-weight: 500; color: #A3ADA8">Saved</span>
+        <span style="font-size: 24px; font-weight: 600; line-height: 1.1; letter-spacing: -0.02em">$9,777</span>
+        <span style="display: flex; align-items: center; gap: 5px; font-size: 11px; color: #85908A; white-space: nowrap">
+          <span style="display: flex; align-items: center; gap: 3px; font-weight: 600; color: #F0836F"><svg width="10" height="8"><path d="M5 7L1 1h8z" style="fill: currentColor"></path></svg><span>−17.0%</span></span>
+          <span>vs prior 6 mo</span>
+        </span>
+        <svg width="135" height="24" style="margin-top: 2px; overflow: visible">
+          <path d="M2.0 9.4 L13.9 3.4 L25.8 19.3 L37.7 4.4 L49.6 3.0 L61.5 7.9 L73.5 19.1 L85.4 17.5 L97.3 10.6 L109.2 17.8 L121.1 5.6 L133.0 21.0" style="fill: none; stroke: #3A453F; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round"></path>
+          <circle cx="133.0" cy="21.0" r="3" style="fill: #34D399; stroke: #111614; stroke-width: 2"></circle>
+        </svg>
+      </button>
+    
+      <button aria-pressed="false" style="display: flex; flex-direction: column; gap: 6px; padding: 14px 16px; background: #111614; border: 1px solid #242C28; border-radius: 14px; min-height: 118px; box-sizing: border-box">
+        <span style="font-size: 12px; font-weight: 500; color: #A3ADA8">Net cash flow</span>
+        <span style="font-size: 24px; font-weight: 600; line-height: 1.1; letter-spacing: -0.02em">$30,613</span>
+        <span style="display: flex; align-items: center; gap: 5px; font-size: 11px; color: #85908A; white-space: nowrap">
+          <span style="display: flex; align-items: center; gap: 3px; font-weight: 600; color: #F0836F"><svg width="10" height="8"><path d="M5 7L1 1h8z" style="fill: currentColor"></path></svg><span>−2.2%</span></span>
+          <span>vs prior 6 mo</span>
+        </span>
+        <svg width="135" height="24" style="margin-top: 2px; overflow: visible">
+          <path d="M2.0 16.1 L13.9 15.4 L25.8 7.0 L37.7 16.2 L49.6 16.7 L61.5 18.0 L73.5 19.9 L85.4 21.0 L97.3 3.0 L109.2 13.3 L121.1 19.6 L133.0 15.3" style="fill: none; stroke: #3A453F; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round"></path>
+          <circle cx="133.0" cy="15.3" r="3" style="fill: #34D399; stroke: #111614; stroke-width: 2"></circle>
+        </svg>
+      </button>
+    
+  </div>
+
+  <section style="margin: 16px 16px 0; background: #111614; border: 1px solid #242C28; border-radius: 16px; padding: 20px; box-sizing: border-box; display: flex; flex-direction: column">
+    <h2 style="margin: 0; font-family: 'Instrument Serif', Georgia, serif; font-weight: 400; font-size: 22px; line-height: 1.1">Cash flow</h2>
+    <span style="margin-top: 4px; font-size: 12px; color: #A3ADA8">Income above the line, spending and saving below · Apr–Sep 2026</span>
+    <div style="margin-top: 12px; display: flex; gap: 12px; font-size: 11px; color: #A3ADA8">
+      <span style="display: flex; align-items: center; gap: 6px"><span style="width: 10px; height: 10px; border-radius: 2px; background: #199e70"></span><span>Income</span></span>
+      <span style="display: flex; align-items: center; gap: 6px"><span style="width: 10px; height: 10px; border-radius: 2px; background: #d95926"></span><span>Spending</span></span>
+      <span style="display: flex; align-items: center; gap: 6px"><span style="width: 10px; height: 10px; border-radius: 2px; background: #3987e5"></span><span>Saved</span></span>
+    </div>
+    <div style="position: relative; height: 220px; margin-top: 14px">
+      
+        <div style="position: absolute; left: 0; right: 0; top: 180.6px; height: 0">
+          <span class="mono" style="position: absolute; left: 0; top: -6px; font-size: 10px; color: #85908A">−$10k</span>
+          <div style="position: absolute; left: 36px; right: 0; top: 0; height: 1px; background: #1E2622"></div>
+        </div>
+      
+        <div style="position: absolute; left: 0; right: 0; top: 112.0px; height: 0">
+          <span class="mono" style="position: absolute; left: 0; top: -6px; font-size: 10px; color: #85908A">0</span>
+          <div style="position: absolute; left: 36px; right: 0; top: 0; height: 1px; background: #2E3833"></div>
+        </div>
+      
+        <div style="position: absolute; left: 0; right: 0; top: 43.4px; height: 0">
+          <span class="mono" style="position: absolute; left: 0; top: -6px; font-size: 10px; color: #85908A">$10k</span>
+          <div style="position: absolute; left: 36px; right: 0; top: 0; height: 1px; background: #1E2622"></div>
+        </div>
+      
+      <div style="position: absolute; left: 36px; right: 0; top: 0; bottom: 0; display: flex">
+        
+          <button aria-pressed="false" aria-label="Apr 2026: income $11,028, spending $7,043, saved $1,454" style="position: relative; flex: 1; min-width: 0; height: 100%; border-radius: 8px">
+            <span style="position: absolute; left: 50%; margin-left: -9px; width: 18px; bottom: 108px; height: 75.7px; background: #199e70; border-radius: 4px 4px 0 0"></span>
+            <span style="position: absolute; left: 50%; margin-left: -9px; width: 18px; top: 113px; height: 48.3px; background: #d95926"></span>
+            <span style="position: absolute; left: 50%; margin-left: -9px; width: 18px; top: 163.3px; height: 8.0px; background: #3987e5; border-radius: 0 0 4px 4px"></span>
+            
+          </button>
+        
+          <button aria-pressed="false" aria-label="May 2026: income $11,049, spending $7,341, saved $1,530" style="position: relative; flex: 1; min-width: 0; height: 100%; border-radius: 8px">
+            <span style="position: absolute; left: 50%; margin-left: -9px; width: 18px; bottom: 108px; height: 75.8px; background: #199e70; border-radius: 4px 4px 0 0"></span>
+            <span style="position: absolute; left: 50%; margin-left: -9px; width: 18px; top: 113px; height: 50.4px; background: #d95926"></span>
+            <span style="position: absolute; left: 50%; margin-left: -9px; width: 18px; top: 165.4px; height: 8.5px; background: #3987e5; border-radius: 0 0 4px 4px"></span>
+            
+          </button>
+        
+          <button aria-pressed="false" aria-label="Jun 2026: income $14,572, spending $6,425, saved $1,840" style="position: relative; flex: 1; min-width: 0; height: 100%; border-radius: 8px">
+            <span style="position: absolute; left: 50%; margin-left: -9px; width: 18px; bottom: 108px; height: 100.0px; background: #199e70; border-radius: 4px 4px 0 0"></span>
+            <span style="position: absolute; left: 50%; margin-left: -9px; width: 18px; top: 113px; height: 44.1px; background: #d95926"></span>
+            <span style="position: absolute; left: 50%; margin-left: -9px; width: 18px; top: 159.1px; height: 10.6px; background: #3987e5; border-radius: 0 0 4px 4px"></span>
+            
+          </button>
+        
+          <button aria-pressed="false" aria-label="Jul 2026: income $11,797, spending $6,188, saved $1,514" style="position: relative; flex: 1; min-width: 0; height: 100%; border-radius: 8px">
+            <span style="position: absolute; left: 50%; margin-left: -9px; width: 18px; bottom: 108px; height: 81.0px; background: #199e70; border-radius: 4px 4px 0 0"></span>
+            <span style="position: absolute; left: 50%; margin-left: -9px; width: 18px; top: 113px; height: 42.5px; background: #d95926"></span>
+            <span style="position: absolute; left: 50%; margin-left: -9px; width: 18px; top: 157.5px; height: 8.4px; background: #3987e5; border-radius: 0 0 4px 4px"></span>
+            
+          </button>
+        
+          <button aria-pressed="false" aria-label="Aug 2026: income $11,203, spending $7,158, saved $2,070" style="position: relative; flex: 1; min-width: 0; height: 100%; border-radius: 8px">
+            <span style="position: absolute; left: 50%; margin-left: -9px; width: 18px; bottom: 108px; height: 76.9px; background: #199e70; border-radius: 4px 4px 0 0"></span>
+            <span style="position: absolute; left: 50%; margin-left: -9px; width: 18px; top: 113px; height: 49.1px; background: #d95926"></span>
+            <span style="position: absolute; left: 50%; margin-left: -9px; width: 18px; top: 164.1px; height: 12.2px; background: #3987e5; border-radius: 0 0 4px 4px"></span>
+            
+          </button>
+        
+          <button aria-pressed="false" aria-label="Sep 2026: income $10,309, spending $5,190, saved $1,369" style="position: relative; flex: 1; min-width: 0; height: 100%; border-radius: 8px">
+            <span style="position: absolute; left: 50%; margin-left: -9px; width: 18px; bottom: 108px; height: 70.7px; background: #199e70; border-radius: 4px 4px 0 0"></span>
+            <span style="position: absolute; left: 50%; margin-left: -9px; width: 18px; top: 113px; height: 35.6px; background: #d95926"></span>
+            <span style="position: absolute; left: 50%; margin-left: -9px; width: 18px; top: 150.6px; height: 7.4px; background: #3987e5; border-radius: 0 0 4px 4px"></span>
+            
+              <span style="position: absolute; left: -10px; right: -10px; top: 25.3px; text-align: center; font-size: 10px; font-weight: 600; white-space: nowrap">+$10,309</span>
+              <span style="position: absolute; left: -10px; right: -10px; top: 161.0px; text-align: center; font-size: 10px; font-weight: 600; white-space: nowrap">−$6,559</span>
+            
+          </button>
+        
+      </div>
+    </div>
+    <div style="display: flex; margin-left: 36px; padding-top: 6px">
+      
+        <span class="mono" style="flex: 1; min-width: 0; text-align: center; font-size: 10px; color: #85908A">Apr</span>
+      
+        <span class="mono" style="flex: 1; min-width: 0; text-align: center; font-size: 10px; color: #85908A">May</span>
+      
+        <span class="mono" style="flex: 1; min-width: 0; text-align: center; font-size: 10px; color: #85908A">Jun</span>
+      
+        <span class="mono" style="flex: 1; min-width: 0; text-align: center; font-size: 10px; color: #85908A">Jul</span>
+      
+        <span class="mono" style="flex: 1; min-width: 0; text-align: center; font-size: 10px; color: #85908A">Aug</span>
+      
+        <span class="mono" style="flex: 1; min-width: 0; text-align: center; font-size: 10px; color: #85908A">Sep</span>
+      
+    </div>
+  </section>
+
+  <section style="margin: 16px 16px 0; background: #111614; border: 1px solid #242C28; border-radius: 16px; padding: 20px; box-sizing: border-box; display: flex; flex-direction: column">
+    <h2 style="margin: 0; font-family: 'Instrument Serif', Georgia, serif; font-weight: 400; font-size: 22px; line-height: 1.1">Where it went</h2>
+    <span style="margin-top: 4px; font-size: 12px; color: #A3ADA8">Spending by category · Apr–Sep 2026</span>
+    <div style="display: flex; flex-direction: column; gap: 2px; margin-top: 12px">
+      
+        <button aria-pressed="false" style="display: grid; grid-template-columns: 10px minmax(0, 1fr) 72px 44px; gap: 10px; align-items: center; padding: 6px 8px; border-radius: 10px; min-height: 46px; box-sizing: border-box">
+          <span style="width: 10px; height: 10px; border-radius: 50%; background: #199e70"></span>
+          <span style="display: flex; flex-direction: column; gap: 5px; min-width: 0">
+            <span style="font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">Rent</span>
+            <span style="display: block; height: 4px; border-radius: 2px; background: #1E2622"><span style="display: block; height: 4px; width: 100%; border-radius: 2px; background: #199e70"></span></span>
+          </span>
+          <span class="mono" style="font-size: 12px; text-align: right">$11,664</span>
+          <span style="font-size: 11px; font-weight: 600; text-align: right; color: #F0836F">+3%</span>
+        </button>
+      
+        <button aria-pressed="false" style="display: grid; grid-template-columns: 10px minmax(0, 1fr) 72px 44px; gap: 10px; align-items: center; padding: 6px 8px; border-radius: 10px; min-height: 46px; box-sizing: border-box">
+          <span style="width: 10px; height: 10px; border-radius: 50%; background: #3987e5"></span>
+          <span style="display: flex; flex-direction: column; gap: 5px; min-width: 0">
+            <span style="font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">Restaurants</span>
+            <span style="display: block; height: 4px; border-radius: 2px; background: #1E2622"><span style="display: block; height: 4px; width: 62%; border-radius: 2px; background: #3987e5"></span></span>
+          </span>
+          <span class="mono" style="font-size: 12px; text-align: right">$7,222</span>
+          <span style="font-size: 11px; font-weight: 600; text-align: right; color: #F0836F">+14%</span>
+        </button>
+      
+        <button aria-pressed="false" style="display: grid; grid-template-columns: 10px minmax(0, 1fr) 72px 44px; gap: 10px; align-items: center; padding: 6px 8px; border-radius: 10px; min-height: 46px; box-sizing: border-box">
+          <span style="width: 10px; height: 10px; border-radius: 50%; background: #d95926"></span>
+          <span style="display: flex; flex-direction: column; gap: 5px; min-width: 0">
+            <span style="font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">Groceries</span>
+            <span style="display: block; height: 4px; border-radius: 2px; background: #1E2622"><span style="display: block; height: 4px; width: 49%; border-radius: 2px; background: #d95926"></span></span>
+          </span>
+          <span class="mono" style="font-size: 12px; text-align: right">$5,710</span>
+          <span style="font-size: 11px; font-weight: 600; text-align: right; color: #34D399">−3%</span>
+        </button>
+      
+        <button aria-pressed="false" style="display: grid; grid-template-columns: 10px minmax(0, 1fr) 72px 44px; gap: 10px; align-items: center; padding: 6px 8px; border-radius: 10px; min-height: 46px; box-sizing: border-box">
+          <span style="width: 10px; height: 10px; border-radius: 50%; background: #008300"></span>
+          <span style="display: flex; flex-direction: column; gap: 5px; min-width: 0">
+            <span style="font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">Online marketplaces</span>
+            <span style="display: block; height: 4px; border-radius: 2px; background: #1E2622"><span style="display: block; height: 4px; width: 30%; border-radius: 2px; background: #008300"></span></span>
+          </span>
+          <span class="mono" style="font-size: 12px; text-align: right">$3,518</span>
+          <span style="font-size: 11px; font-weight: 600; text-align: right; color: #F0836F">+13%</span>
+        </button>
+      
+        <button aria-pressed="false" style="display: grid; grid-template-columns: 10px minmax(0, 1fr) 72px 44px; gap: 10px; align-items: center; padding: 6px 8px; border-radius: 10px; min-height: 46px; box-sizing: border-box">
+          <span style="width: 10px; height: 10px; border-radius: 50%; background: #d55181"></span>
+          <span style="display: flex; flex-direction: column; gap: 5px; min-width: 0">
+            <span style="font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">Transportation</span>
+            <span style="display: block; height: 4px; border-radius: 2px; background: #1E2622"><span style="display: block; height: 4px; width: 23%; border-radius: 2px; background: #d55181"></span></span>
+          </span>
+          <span class="mono" style="font-size: 12px; text-align: right">$2,681</span>
+          <span style="font-size: 11px; font-weight: 600; text-align: right; color: #34D399">−1%</span>
+        </button>
+      
+        <button aria-pressed="false" style="display: grid; grid-template-columns: 10px minmax(0, 1fr) 72px 44px; gap: 10px; align-items: center; padding: 6px 8px; border-radius: 10px; min-height: 46px; box-sizing: border-box">
+          <span style="width: 10px; height: 10px; border-radius: 50%; background: #c98500"></span>
+          <span style="display: flex; flex-direction: column; gap: 5px; min-width: 0">
+            <span style="font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">Utilities</span>
+            <span style="display: block; height: 4px; border-radius: 2px; background: #1E2622"><span style="display: block; height: 4px; width: 19%; border-radius: 2px; background: #c98500"></span></span>
+          </span>
+          <span class="mono" style="font-size: 12px; text-align: right">$2,217</span>
+          <span style="font-size: 11px; font-weight: 600; text-align: right; color: #34D399">−8%</span>
+        </button>
+      
+        <button aria-pressed="false" style="display: grid; grid-template-columns: 10px minmax(0, 1fr) 72px 44px; gap: 10px; align-items: center; padding: 6px 8px; border-radius: 10px; min-height: 46px; box-sizing: border-box">
+          <span style="width: 10px; height: 10px; border-radius: 50%; background: #9085e9"></span>
+          <span style="display: flex; flex-direction: column; gap: 5px; min-width: 0">
+            <span style="font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">Entertainment</span>
+            <span style="display: block; height: 4px; border-radius: 2px; background: #1E2622"><span style="display: block; height: 4px; width: 17%; border-radius: 2px; background: #9085e9"></span></span>
+          </span>
+          <span class="mono" style="font-size: 12px; text-align: right">$1,993</span>
+          <span style="font-size: 11px; font-weight: 600; text-align: right; color: #F0836F">+4%</span>
+        </button>
+      
+        <button aria-pressed="false" style="display: grid; grid-template-columns: 10px minmax(0, 1fr) 72px 44px; gap: 10px; align-items: center; padding: 6px 8px; border-radius: 10px; min-height: 46px; box-sizing: border-box">
+          <span style="width: 10px; height: 10px; border-radius: 50%; background: #e66767"></span>
+          <span style="display: flex; flex-direction: column; gap: 5px; min-width: 0">
+            <span style="font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">Insurance</span>
+            <span style="display: block; height: 4px; border-radius: 2px; background: #1E2622"><span style="display: block; height: 4px; width: 16%; border-radius: 2px; background: #e66767"></span></span>
+          </span>
+          <span class="mono" style="font-size: 12px; text-align: right">$1,924</span>
+          <span style="font-size: 11px; font-weight: 600; text-align: right; color: #34D399">−7%</span>
+        </button>
+      
+        <button aria-pressed="false" style="display: grid; grid-template-columns: 10px minmax(0, 1fr) 72px 44px; gap: 10px; align-items: center; padding: 6px 8px; border-radius: 10px; min-height: 46px; box-sizing: border-box">
+          <span style="width: 10px; height: 10px; border-radius: 50%; background: #7A857F"></span>
+          <span style="display: flex; flex-direction: column; gap: 5px; min-width: 0">
+            <span style="font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">Other</span>
+            <span style="display: block; height: 4px; border-radius: 2px; background: #1E2622"><span style="display: block; height: 4px; width: 21%; border-radius: 2px; background: #7A857F"></span></span>
+          </span>
+          <span class="mono" style="font-size: 12px; text-align: right">$2,417</span>
+          <span style="font-size: 11px; font-weight: 600; text-align: right; color: #34D399">−1%</span>
+        </button>
+      
+    </div>
+    <div style="padding-top: 10px; display: flex; justify-content: space-between; font-size: 12px; color: #85908A">
+      <span>$39,345 across 718 transactions</span>
+      <a href="#">All categories</a>
+    </div>
+  </section>
+
+  <nav style="position: absolute; left: 0; right: 0; bottom: 0; height: 78px; box-sizing: border-box; padding: 8px 8px 20px; border-top: 1px solid #1B221E; background: #0A0D0C; display: flex">
+    <a href="#" style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; color: #85908A; text-decoration: none; font-size: 10px; font-weight: 500; border-radius: 10px">
+      <svg width="20" height="20"><g transform="scale(0.8333)" style="fill: none; stroke: currentColor; stroke-width: 1.75; stroke-linecap: round; stroke-linejoin: round"><path d="M3 3h7v7H3zM14 3h7v7h-7zM3 14h7v7H3zM14 14h7v7h-7z"></path></g></svg>
+      <span>Dashboard</span>
+    </a>
+    <a href="#" style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; color: #85908A; text-decoration: none; font-size: 10px; font-weight: 500; border-radius: 10px">
+      <svg width="20" height="20"><g transform="scale(0.8333)" style="fill: none; stroke: currentColor; stroke-width: 1.75; stroke-linecap: round; stroke-linejoin: round"><path d="M2 6.5A2.5 2.5 0 0 1 4.5 4h15A2.5 2.5 0 0 1 22 6.5v11a2.5 2.5 0 0 1-2.5 2.5h-15A2.5 2.5 0 0 1 2 17.5zM2 10h20"></path></g></svg>
+      <span>Accounts</span>
+    </a>
+    <a href="#" style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; color: #85908A; text-decoration: none; font-size: 10px; font-weight: 500; border-radius: 10px">
+      <svg width="20" height="20"><g transform="scale(0.8333)" style="fill: none; stroke: currentColor; stroke-width: 1.75; stroke-linecap: round; stroke-linejoin: round"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"></path></g></svg>
+      <span>Transactions</span>
+    </a>
+    <a href="#" style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; color: #85908A; text-decoration: none; font-size: 10px; font-weight: 500; border-radius: 10px">
+      <svg width="20" height="20"><g transform="scale(0.8333)" style="fill: none; stroke: currentColor; stroke-width: 1.75; stroke-linecap: round; stroke-linejoin: round"><path d="M3 8.5A1.5 1.5 0 0 1 4.5 7h15A1.5 1.5 0 0 1 21 8.5v10a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 18.5zM8 7V5.5A1.5 1.5 0 0 1 9.5 4h5A1.5 1.5 0 0 1 16 5.5V7"></path></g></svg>
+      <span>Investments</span>
+    </a>
+    <a href="#" aria-current="page" style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; color: #34D399; text-decoration: none; font-size: 10px; font-weight: 600; border-radius: 10px">
+      <svg width="20" height="20"><g transform="scale(0.8333)" style="fill: none; stroke: currentColor; stroke-width: 1.75; stroke-linecap: round; stroke-linejoin: round"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"></path></g></svg>
+      <span>Analytics</span>
+    </a>
+  </nav>
+</div>
+</body>
+</html>

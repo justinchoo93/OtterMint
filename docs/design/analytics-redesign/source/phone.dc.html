@@ -1,0 +1,415 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>OtterMint Analytics on phone</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&amp;family=Instrument+Serif:ital@0;1&amp;family=JetBrains+Mono:wght@400;500;600&amp;display=swap">
+<style>
+body{margin:0;background:#0A0D0C;color:#EDF1EF;font-family:'DM Sans',system-ui,-apple-system,sans-serif;-webkit-font-smoothing:antialiased}
+a{color:#34D399}a:hover{color:#6EE7B7}
+button{font:inherit;color:inherit;background:none;border:0;padding:0;margin:0;cursor:pointer;text-align:left}
+button:focus-visible,a:focus-visible{outline:2px solid #34D399;outline-offset:2px}
+.mono{font-family:'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,monospace;font-variant-numeric:tabular-nums}
+</style>
+</helmet>
+<div style="width: 390px; height: 2000px; box-sizing: border-box; position: relative; display: flex; flex-direction: column; background: #0A0D0C; color: #EDF1EF; font-family: 'DM Sans', system-ui, sans-serif; font-size: 14px; line-height: 1.4; overflow: hidden">
+
+  <header style="display: flex; justify-content: space-between; align-items: center; padding: 20px 16px 0">
+    <div style="display: flex; flex-direction: column; gap: 4px">
+      <h1 style="margin: 0; font-family: {{ titleFont }}; font-weight: 400; font-size: 30px; line-height: 1; letter-spacing: -0.01em">Analytics</h1>
+      <span style="color: #A3ADA8; font-size: 12px">Synced 4 minutes ago · 9 accounts</span>
+    </div>
+    <button aria-label="Account menu" style="width: 44px; height: 44px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #A3ADA8">
+      <span style="width: 32px; height: 32px; border-radius: 50%; background: #242C28; display: flex; align-items: center; justify-content: center">
+        <svg width="16" height="16"><g transform="scale(0.6667)" style="fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></g></svg>
+      </span>
+    </button>
+  </header>
+
+  <div style="display: flex; margin: 16px 16px 0; padding: 3px; gap: 2px; background: #111614; border: 1px solid #242C28; border-radius: 12px">
+    <button aria-pressed="false" style="flex: 1; height: 38px; border-radius: 9px; color: #A3ADA8; font-size: 13px; font-weight: 500; text-align: center">3M</button>
+    <button aria-pressed="true" style="flex: 1; height: 38px; border-radius: 9px; background: #1C2320; color: #EDF1EF; font-size: 13px; font-weight: 500; text-align: center">6M</button>
+    <button aria-pressed="false" style="flex: 1; height: 38px; border-radius: 9px; color: #A3ADA8; font-size: 13px; font-weight: 500; text-align: center">1Y</button>
+    <button aria-pressed="false" style="flex: 1; height: 38px; border-radius: 9px; color: #A3ADA8; font-size: 13px; font-weight: 500; text-align: center">All</button>
+  </div>
+
+  <section style="margin: 16px 16px 0; background: #111614; border: 1px solid #242C28; border-radius: 16px; padding: 20px; box-sizing: border-box; display: flex; flex-direction: column">
+    <span style="font-size: 13px; font-weight: 500; color: #A3ADA8">Net worth</span>
+    <span style="margin-top: 6px; font-size: 40px; font-weight: 600; line-height: 1.05; letter-spacing: -0.025em">{{ nwHero }}</span>
+    <div style="margin-top: 8px; display: flex; align-items: center; gap: 8px; font-size: 13px; flex-wrap: wrap">
+      <span style="display: flex; align-items: center; gap: 5px; font-weight: 600; color: {{ nwDeltaColor }}">
+        <svg width="10" height="8"><path d="{{ nwDeltaIcon }}" style="fill: currentColor"/></svg>
+        <span>{{ nwDelta }}</span>
+      </span>
+      <span style="color: #A3ADA8">over 6 months</span>
+    </div>
+    <div style="margin-top: 16px; display: flex; align-items: center; gap: 14px; font-size: 11px; color: #A3ADA8">
+      <span style="display: flex; align-items: center; gap: 6px"><svg width="16" height="2"><path d="M0 1H16" style="stroke: {{ accent }}; stroke-width: 2"/></svg><span>Observed</span></span>
+      <span style="display: flex; align-items: center; gap: 6px"><svg width="16" height="2"><path d="M0 1H16" style="stroke: {{ accent }}; stroke-width: 2; stroke-dasharray: 4 3"/></svg><span>Estimated</span></span>
+      <span style="display: flex; align-items: center; gap: 6px"><span style="width: 7px; height: 7px; border-radius: 50%; background: #85908A"></span><span>Account added</span></span>
+    </div>
+    <div style="position: relative; width: 318px; height: 176px; margin-top: 8px">
+      <sc-for list="{{ nwTicks }}" as="t" hint-placeholder-count="4">
+        <div style="position: absolute; left: 0; right: 0; top: {{ t.top }}px; height: 0">
+          <span class="mono" style="position: absolute; left: 0; top: -6px; font-size: 10px; color: #85908A">{{ t.label }}</span>
+          <div style="position: absolute; left: 36px; right: 44px; top: 0; height: 1px; background: #1E2622"></div>
+        </div>
+      </sc-for>
+      <svg width="318" height="176" style="position: absolute; left: 0; top: 0; overflow: visible">
+        <path d="{{ nwArea }}" style="fill: {{ accent }}; opacity: 0.1"/>
+        <path d="{{ nwEstPath }}" style="fill: none; stroke: {{ accent }}; stroke-width: 2; stroke-dasharray: 5 5; stroke-linecap: round; stroke-linejoin: round"/>
+        <path d="{{ nwObsPath }}" style="fill: none; stroke: {{ accent }}; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round"/>
+        <line x1="{{ covX }}" x2="{{ covX }}" y1="{{ plotBottom }}" y2="{{ covY2 }}" style="stroke: #85908A; stroke-width: 1"/>
+        <circle cx="{{ covX }}" cy="{{ plotBottom }}" r="3.5" style="fill: #85908A; stroke: #111614; stroke-width: 2"/>
+        <circle cx="{{ endX }}" cy="{{ endY }}" r="4" style="fill: {{ accent }}; stroke: #111614; stroke-width: 2"/>
+      </svg>
+      <span style="position: absolute; left: {{ endLabelLeft }}px; top: {{ endLabelTop }}px; font-size: 11px; font-weight: 600; white-space: nowrap">{{ endLabel }}</span>
+    </div>
+    <div class="mono" style="display: flex; justify-content: space-between; padding: 6px 44px 0 36px; font-size: 10px; color: #85908A">
+      <sc-for list="{{ nwLabels }}" as="l" hint-placeholder-count="6">
+        <span>{{ l.text }}</span>
+      </sc-for>
+    </div>
+    <div style="margin-top: 16px; padding-top: 14px; border-top: 1px solid #1B221E; display: flex; flex-direction: column; gap: 8px">
+      <div style="display: flex; justify-content: space-between; align-items: center; font-size: 13px">
+        <span style="display: flex; align-items: center; gap: 8px; color: #A3ADA8"><span style="width: 8px; height: 8px; border-radius: 2px; background: #199e70"></span><span>Assets</span></span>
+        <span style="font-weight: 600">{{ assets }}</span>
+      </div>
+      <div style="display: flex; justify-content: space-between; align-items: center; font-size: 13px">
+        <span style="display: flex; align-items: center; gap: 8px; color: #A3ADA8"><span style="width: 8px; height: 8px; border-radius: 2px; background: #d95926"></span><span>Liabilities</span></span>
+        <span style="font-weight: 600">{{ liabilities }}</span>
+      </div>
+      <div style="display: flex; gap: 2px; height: 6px; margin-top: 2px">
+        <span style="width: {{ assetsPct }}%; background: #199e70; border-radius: 3px 0 0 3px"></span>
+        <span style="flex: 1; background: #d95926; border-radius: 0 3px 3px 0"></span>
+      </div>
+      <span style="font-size: 12px; color: #85908A; line-height: 1.45">Dashed history is reconstructed from statements. <a href="#">How estimates work</a></span>
+    </div>
+  </section>
+
+  <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin: 16px 16px 0">
+    <sc-for list="{{ kpis }}" as="k" hint-placeholder-count="4">
+      <button aria-pressed="false" style="display: flex; flex-direction: column; gap: 6px; padding: 14px 16px; background: #111614; border: 1px solid #242C28; border-radius: 14px; min-height: 118px; box-sizing: border-box">
+        <span style="font-size: 12px; font-weight: 500; color: #A3ADA8">{{ k.label }}</span>
+        <span style="font-size: 24px; font-weight: 600; line-height: 1.1; letter-spacing: -0.02em">{{ k.value }}</span>
+        <span style="display: flex; align-items: center; gap: 5px; font-size: 11px; color: #85908A; white-space: nowrap">
+          <span style="display: flex; align-items: center; gap: 3px; font-weight: 600; color: {{ k.deltaColor }}"><svg width="10" height="8"><path d="{{ k.deltaIcon }}" style="fill: currentColor"/></svg><span>{{ k.delta }}</span></span>
+          <span>vs prior 6 mo</span>
+        </span>
+        <svg width="135" height="24" style="margin-top: 2px; overflow: visible">
+          <path d="{{ k.spark }}" style="fill: none; stroke: #3A453F; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round"/>
+          <circle cx="{{ k.sparkX }}" cy="{{ k.sparkY }}" r="3" style="fill: {{ accent }}; stroke: #111614; stroke-width: 2"/>
+        </svg>
+      </button>
+    </sc-for>
+  </div>
+
+  <section style="margin: 16px 16px 0; background: #111614; border: 1px solid #242C28; border-radius: 16px; padding: 20px; box-sizing: border-box; display: flex; flex-direction: column">
+    <h2 style="margin: 0; font-family: {{ titleFont }}; font-weight: 400; font-size: 22px; line-height: 1.1">Cash flow</h2>
+    <span style="margin-top: 4px; font-size: 12px; color: #A3ADA8">Income above the line, spending and saving below · Apr–Sep 2026</span>
+    <div style="margin-top: 12px; display: flex; gap: 12px; font-size: 11px; color: #A3ADA8">
+      <span style="display: flex; align-items: center; gap: 6px"><span style="width: 10px; height: 10px; border-radius: 2px; background: #199e70"></span><span>Income</span></span>
+      <span style="display: flex; align-items: center; gap: 6px"><span style="width: 10px; height: 10px; border-radius: 2px; background: #d95926"></span><span>Spending</span></span>
+      <span style="display: flex; align-items: center; gap: 6px"><span style="width: 10px; height: 10px; border-radius: 2px; background: #3987e5"></span><span>Saved</span></span>
+    </div>
+    <div style="position: relative; height: 220px; margin-top: 14px">
+      <sc-for list="{{ cfTicks }}" as="t" hint-placeholder-count="5">
+        <div style="position: absolute; left: 0; right: 0; top: {{ t.top }}px; height: 0">
+          <span class="mono" style="position: absolute; left: 0; top: -6px; font-size: 10px; color: #85908A">{{ t.label }}</span>
+          <div style="position: absolute; left: 36px; right: 0; top: 0; height: 1px; background: {{ t.color }}"></div>
+        </div>
+      </sc-for>
+      <div style="position: absolute; left: 36px; right: 0; top: 0; bottom: 0; display: flex">
+        <sc-for list="{{ cfMonths }}" as="m" hint-placeholder-count="6">
+          <button aria-pressed="false" aria-label="{{ m.aria }}" style="position: relative; flex: 1; min-width: 0; height: 100%; border-radius: 8px">
+            <span style="position: absolute; left: 50%; margin-left: -9px; width: 18px; bottom: 108px; height: {{ m.incH }}px; background: #199e70; border-radius: 4px 4px 0 0"></span>
+            <span style="position: absolute; left: 50%; margin-left: -9px; width: 18px; top: 113px; height: {{ m.spH }}px; background: #d95926"></span>
+            <span style="position: absolute; left: 50%; margin-left: -9px; width: 18px; top: {{ m.svTop }}px; height: {{ m.svH }}px; background: #3987e5; border-radius: 0 0 4px 4px"></span>
+            <sc-if value="{{ m.showLabels }}" hint-placeholder-val="{{ false }}">
+              <span style="position: absolute; left: -10px; right: -10px; top: {{ m.incLabelTop }}px; text-align: center; font-size: 10px; font-weight: 600; white-space: nowrap">{{ m.incLabel }}</span>
+              <span style="position: absolute; left: -10px; right: -10px; top: {{ m.outLabelTop }}px; text-align: center; font-size: 10px; font-weight: 600; white-space: nowrap">{{ m.outLabel }}</span>
+            </sc-if>
+          </button>
+        </sc-for>
+      </div>
+    </div>
+    <div style="display: flex; margin-left: 36px; padding-top: 6px">
+      <sc-for list="{{ cfMonths }}" as="m" hint-placeholder-count="6">
+        <span class="mono" style="flex: 1; min-width: 0; text-align: center; font-size: 10px; color: #85908A">{{ m.label }}</span>
+      </sc-for>
+    </div>
+  </section>
+
+  <section style="margin: 16px 16px 0; background: #111614; border: 1px solid #242C28; border-radius: 16px; padding: 20px; box-sizing: border-box; display: flex; flex-direction: column">
+    <h2 style="margin: 0; font-family: {{ titleFont }}; font-weight: 400; font-size: 22px; line-height: 1.1">Where it went</h2>
+    <span style="margin-top: 4px; font-size: 12px; color: #A3ADA8">Spending by category · Apr–Sep 2026</span>
+    <div style="display: flex; flex-direction: column; gap: 2px; margin-top: 12px">
+      <sc-for list="{{ cats }}" as="c" hint-placeholder-count="9">
+        <button aria-pressed="false" style="display: grid; grid-template-columns: 10px minmax(0, 1fr) 72px 44px; gap: 10px; align-items: center; padding: 6px 8px; border-radius: 10px; min-height: 46px; box-sizing: border-box">
+          <span style="width: 10px; height: 10px; border-radius: 50%; background: {{ c.color }}"></span>
+          <span style="display: flex; flex-direction: column; gap: 5px; min-width: 0">
+            <span style="font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{ c.name }}</span>
+            <span style="display: block; height: 4px; border-radius: 2px; background: #1E2622"><span style="display: block; height: 4px; width: {{ c.pct }}%; border-radius: 2px; background: {{ c.color }}"></span></span>
+          </span>
+          <span class="mono" style="font-size: 12px; text-align: right">{{ c.amount }}</span>
+          <span style="font-size: 11px; font-weight: 600; text-align: right; color: {{ c.deltaColor }}">{{ c.delta }}</span>
+        </button>
+      </sc-for>
+    </div>
+    <div style="padding-top: 10px; display: flex; justify-content: space-between; font-size: 12px; color: #85908A">
+      <span>{{ catFooter }}</span>
+      <a href="#">All categories</a>
+    </div>
+  </section>
+
+  <nav style="position: absolute; left: 0; right: 0; bottom: 0; height: 78px; box-sizing: border-box; padding: 8px 8px 20px; border-top: 1px solid #1B221E; background: #0A0D0C; display: flex">
+    <a href="#" style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; color: #85908A; text-decoration: none; font-size: 10px; font-weight: 500; border-radius: 10px">
+      <svg width="20" height="20"><g transform="scale(0.8333)" style="fill: none; stroke: currentColor; stroke-width: 1.75; stroke-linecap: round; stroke-linejoin: round"><path d="M3 3h7v7H3zM14 3h7v7h-7zM3 14h7v7H3zM14 14h7v7h-7z"/></g></svg>
+      <span>Dashboard</span>
+    </a>
+    <a href="#" style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; color: #85908A; text-decoration: none; font-size: 10px; font-weight: 500; border-radius: 10px">
+      <svg width="20" height="20"><g transform="scale(0.8333)" style="fill: none; stroke: currentColor; stroke-width: 1.75; stroke-linecap: round; stroke-linejoin: round"><path d="M2 6.5A2.5 2.5 0 0 1 4.5 4h15A2.5 2.5 0 0 1 22 6.5v11a2.5 2.5 0 0 1-2.5 2.5h-15A2.5 2.5 0 0 1 2 17.5zM2 10h20"/></g></svg>
+      <span>Accounts</span>
+    </a>
+    <a href="#" style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; color: #85908A; text-decoration: none; font-size: 10px; font-weight: 500; border-radius: 10px">
+      <svg width="20" height="20"><g transform="scale(0.8333)" style="fill: none; stroke: currentColor; stroke-width: 1.75; stroke-linecap: round; stroke-linejoin: round"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></g></svg>
+      <span>Transactions</span>
+    </a>
+    <a href="#" style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; color: #85908A; text-decoration: none; font-size: 10px; font-weight: 500; border-radius: 10px">
+      <svg width="20" height="20"><g transform="scale(0.8333)" style="fill: none; stroke: currentColor; stroke-width: 1.75; stroke-linecap: round; stroke-linejoin: round"><path d="M3 8.5A1.5 1.5 0 0 1 4.5 7h15A1.5 1.5 0 0 1 21 8.5v10a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 18.5zM8 7V5.5A1.5 1.5 0 0 1 9.5 4h5A1.5 1.5 0 0 1 16 5.5V7"/></g></svg>
+      <span>Investments</span>
+    </a>
+    <a href="#" aria-current="page" style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; color: {{ accent }}; text-decoration: none; font-size: 10px; font-weight: 600; border-radius: 10px">
+      <svg width="20" height="20"><g transform="scale(0.8333)" style="fill: none; stroke: currentColor; stroke-width: 1.75; stroke-linecap: round; stroke-linejoin: round"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></g></svg>
+      <span>Analytics</span>
+    </a>
+  </nav>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#34D399","options":["#34D399","#3987e5","#9085e9","#c98500"],"section":"Theme"},"serifTitles":{"editor":"boolean","default":true,"section":"Theme"},"$preview":{"width":390,"height":2000}}'>
+const C = { grid: '#1E2622', base: '#2E3833', text: '#EDF1EF', text3: '#85908A', up: '#34D399', down: '#F0836F' };
+const TRI_UP = 'M5 1l4 6H1z';
+const TRI_DOWN = 'M5 7L1 1h8z';
+const MONTH_NAMES = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+const CATS = [
+  { key: 'restaurants', name: 'Restaurants', share: 0.17, color: '#3987e5' },
+  { key: 'groceries', name: 'Groceries', share: 0.15, color: '#d95926' },
+  { key: 'rent', name: 'Rent', share: 0.30, color: '#199e70' },
+  { key: 'utilities', name: 'Utilities', share: 0.06, color: '#c98500' },
+  { key: 'transport', name: 'Transportation', share: 0.07, color: '#d55181' },
+  { key: 'shopping', name: 'Online marketplaces', share: 0.09, color: '#008300' },
+  { key: 'entertainment', name: 'Entertainment', share: 0.05, color: '#9085e9' },
+  { key: 'insurance', name: 'Insurance', share: 0.05, color: '#e66767' },
+  { key: 'other', name: 'Other', share: 0.06, color: '#7A857F' }
+];
+const LIABILITIES = 125740;
+const COVERAGE_T = Date.UTC(2026, 5, 15);
+const EST_BEFORE_T = Date.UTC(2026, 3, 1);
+
+function lcg(seed) {
+  let s = seed >>> 0;
+  return function () { s = (Math.imul(s, 1664525) + 1013904223) >>> 0; return s / 4294967296; };
+}
+function money(n) { return (n < 0 ? '−' : '') + '$' + Math.abs(Math.round(n)).toLocaleString('en-US'); }
+function signedMoney(n) { return (n >= 0 ? '+' : '−') + '$' + Math.abs(Math.round(n)).toLocaleString('en-US'); }
+function moneyK(n) {
+  const a = Math.abs(n);
+  const s = a >= 1000000 ? '$' + (a / 1000000).toFixed(2) + 'M' : a >= 1000 ? '$' + Math.round(a / 1000) + 'k' : '$' + Math.round(a);
+  return (n < 0 ? '−' : '') + s;
+}
+function pct1(n) { return (n >= 0 ? '+' : '−') + Math.abs(n).toFixed(1) + '%'; }
+function pct0(n) { return (n >= 0 ? '+' : '−') + Math.abs(Math.round(n)) + '%'; }
+function pctDelta(a, b) { return b ? (a - b) / Math.abs(b) * 100 : 0; }
+function niceStep(span, target) {
+  const raw = span / target;
+  const pow = Math.pow(10, Math.floor(Math.log10(raw)));
+  const fs = [1, 2, 2.5, 5, 10];
+  for (let i = 0; i < fs.length; i++) { if (fs[i] * pow >= raw) return fs[i] * pow; }
+  return 10 * pow;
+}
+function buildMonths() {
+  const rnd = lcg(7);
+  const out = [];
+  for (let i = 0; i < 48; i++) {
+    const y = 2022 + Math.floor((9 + i) / 12);
+    const m = (9 + i) % 12;
+    const growth = 1 + i * 0.006;
+    let income = Math.round((8900 + (rnd() - 0.5) * 900) * growth);
+    if (m === 5 || m === 11) income += 3200;
+    const spending = Math.round((5400 + (rnd() - 0.5) * 1400) * growth + (m === 11 ? 900 : 0));
+    const saved = Math.round((1500 + (rnd() - 0.5) * 700) * growth);
+    const cats = {};
+    let sum = 0;
+    for (let c = 0; c < CATS.length; c++) {
+      const cat = CATS[c];
+      const noise = cat.key === 'rent' ? 1 : 1 + (rnd() - 0.5) * 0.5;
+      cats[cat.key] = spending * cat.share * noise;
+      sum += cats[cat.key];
+    }
+    for (let c = 0; c < CATS.length; c++) cats[CATS[c].key] = Math.round(cats[CATS[c].key] * spending / sum);
+    const txCount = 90 + Math.round(rnd() * 60);
+    out.push({ y: y, m: m, income: income, spending: spending, saved: saved, cats: cats, txCount: txCount, partial: i === 47, label: MONTH_NAMES[m], long: MONTH_NAMES[m] + ' ' + y });
+  }
+  const last = out[47];
+  last.income = Math.round(last.income * 0.9);
+  last.spending = Math.round(last.spending * 0.85);
+  last.saved = Math.round(last.saved * 0.6);
+  last.txCount = Math.round(last.txCount * 0.85);
+  for (let c = 0; c < CATS.length; c++) last.cats[CATS[c].key] = Math.round(last.cats[CATS[c].key] * 0.85);
+  return out;
+}
+function buildNetWorth() {
+  const rnd = lcg(11);
+  const pts = [];
+  const end = Date.UTC(2026, 8, 26);
+  const start = end - 104 * 7 * 86400000;
+  let v = 318000;
+  for (let i = 0; i <= 104; i++) {
+    const t = start + i * 7 * 86400000;
+    v += 900 + (rnd() - 0.48) * 7000;
+    pts.push({ t: t, v: Math.round(v), est: t < EST_BEFORE_T });
+  }
+  return pts;
+}
+const MONTHS = buildMonths();
+const NW = buildNetWorth();
+function sparkOf(arr, w, h) {
+  let mn = Infinity, mx = -Infinity;
+  for (let i = 0; i < arr.length; i++) { if (arr[i] < mn) mn = arr[i]; if (arr[i] > mx) mx = arr[i]; }
+  const rng = mx - mn || 1;
+  let d = '', lx = 0, ly = 0;
+  for (let i = 0; i < arr.length; i++) {
+    lx = 2 + (i / (arr.length - 1)) * (w - 4);
+    ly = 3 + ((mx - arr[i]) / rng) * (h - 6);
+    d += (i ? ' L' : 'M') + lx.toFixed(1) + ' ' + ly.toFixed(1);
+  }
+  return { d: d, x: lx.toFixed(1), y: ly.toFixed(1) };
+}
+
+class Component extends DCLogic {
+  renderVals() {
+    const accent = this.props.accent || '#34D399';
+    const serif = this.props.serifTitles !== false;
+    const titleFont = serif ? "'Instrument Serif', Georgia, serif" : "'DM Sans', system-ui, sans-serif";
+    const N = 6;
+    const winStart = MONTHS.length - N;
+    const win = MONTHS.slice(winStart);
+    const prv = MONTHS.slice(winStart - N, winStart);
+    const sum = function (arr, f) { let s = 0; for (let i = 0; i < arr.length; i++) s += f(arr[i]); return s; };
+
+    const G = { w: 318, h: 176, left: 36, right: 44, top: 12, bottom: 10 };
+    const plotW = G.w - G.left - G.right, plotH = G.h - G.top - G.bottom, plotBottom = G.top + plotH;
+    const nwPts = NW.slice(NW.length - 1 - 26);
+    let vmin = Infinity, vmax = -Infinity;
+    for (let i = 0; i < nwPts.length; i++) { if (nwPts[i].v < vmin) vmin = nwPts[i].v; if (nwPts[i].v > vmax) vmax = nwPts[i].v; }
+    const vspan = vmax - vmin || 1;
+    const step = niceStep(vspan, 3);
+    const lo = Math.floor((vmin - vspan * 0.06) / step) * step;
+    const hi = Math.ceil((vmax + vspan * 0.06) / step) * step;
+    const xf = function (i) { return G.left + (i / (nwPts.length - 1)) * plotW; };
+    const yf = function (v) { return G.top + ((hi - v) / (hi - lo)) * plotH; };
+    const nwTicks = [];
+    for (let t = lo; t <= hi + 1e-6; t += step) nwTicks.push({ top: yf(t).toFixed(1), label: moneyK(t) });
+    let lastEst = -1;
+    for (let i = 0; i < nwPts.length; i++) if (nwPts[i].est) lastEst = i;
+    const seg = function (from, to) {
+      let d = '';
+      for (let i = from; i < to; i++) d += (d ? ' L' : 'M') + xf(i).toFixed(1) + ' ' + yf(nwPts[i].v).toFixed(1);
+      return d;
+    };
+    const obsStart = lastEst + 1;
+    const nwEstPath = lastEst >= 0 ? seg(0, Math.min(lastEst + 2, nwPts.length)) : '';
+    const nwObsPath = obsStart < nwPts.length ? seg(obsStart, nwPts.length) : '';
+    const nwArea = nwObsPath ? nwObsPath + ' L' + xf(nwPts.length - 1).toFixed(1) + ' ' + plotBottom + ' L' + xf(obsStart).toFixed(1) + ' ' + plotBottom + ' Z' : '';
+    const lastPt = nwPts[nwPts.length - 1], firstPt = nwPts[0];
+    const endX = xf(nwPts.length - 1), endY = yf(lastPt.v);
+    let covIdx = -1;
+    for (let i = 0; i < nwPts.length; i++) { if (nwPts[i].t >= COVERAGE_T) { covIdx = i; break; } }
+    const covX = covIdx > 0 ? xf(covIdx) : -100;
+    const diff = lastPt.v - firstPt.v;
+    const assets = lastPt.v + LIABILITIES;
+
+    const inc = sum(win, function (m) { return m.income; }), sp = sum(win, function (m) { return m.spending; }), sv = sum(win, function (m) { return m.saved; });
+    const pInc = sum(prv, function (m) { return m.income; }), pSp = sum(prv, function (m) { return m.spending; }), pSv = sum(prv, function (m) { return m.saved; });
+    const net = inc - sp, pNet = pInc - pSp;
+    const last12 = MONTHS.slice(-12);
+    const mkKpi = function (label, value, cur, prev, upGood, sparkArr) {
+      const d = pctDelta(cur, prev);
+      const good = upGood ? d >= 0 : d <= 0;
+      const s = sparkOf(sparkArr, 135, 24);
+      return { label: label, value: value, delta: pct1(d), deltaColor: good ? C.up : C.down, deltaIcon: d >= 0 ? TRI_UP : TRI_DOWN, spark: s.d, sparkX: s.x, sparkY: s.y };
+    };
+    const kpis = [
+      mkKpi('Income', money(inc), inc, pInc, true, last12.map(function (m) { return m.income; })),
+      mkKpi('Spending', money(sp), sp, pSp, false, last12.map(function (m) { return m.spending; })),
+      mkKpi('Saved', money(sv), sv, pSv, true, last12.map(function (m) { return m.saved; })),
+      mkKpi('Net cash flow', money(net), net, pNet, true, last12.map(function (m) { return m.income - m.spending; }))
+    ];
+
+    const PH = 220, BASE = 112, PAD = 12;
+    let maxInc = 0, maxOut = 0;
+    for (let i = 0; i < win.length; i++) { if (win[i].income > maxInc) maxInc = win[i].income; if (win[i].spending + win[i].saved > maxOut) maxOut = win[i].spending + win[i].saved; }
+    const ppd = Math.min((BASE - PAD) / maxInc, (PH - BASE - PAD) / maxOut);
+    const cfMonths = win.map(function (m, i) {
+      const incH = m.income * ppd;
+      const spH = m.spending * ppd;
+      const svTop = BASE + 1 + spH + 2;
+      const svH = Math.max(m.saved * ppd - 2, 0);
+      return {
+        label: m.label,
+        incH: incH.toFixed(1), spH: spH.toFixed(1), svTop: svTop.toFixed(1), svH: svH.toFixed(1),
+        showLabels: i === N - 1,
+        incLabel: signedMoney(m.income), outLabel: '−' + money(m.spending + m.saved),
+        incLabelTop: (BASE - incH - 16).toFixed(1), outLabelTop: (svTop + svH + 3).toFixed(1),
+        aria: m.long + ': income ' + money(m.income) + ', spending ' + money(m.spending) + ', saved ' + money(m.saved)
+      };
+    });
+    const cfStep = niceStep(Math.max(maxInc, maxOut), 2);
+    const cfTicks = [];
+    for (let k = -6; k <= 6; k++) {
+      const y = BASE - k * cfStep * ppd;
+      if (y < PAD - 2 || y > PH - PAD + 2) continue;
+      cfTicks.push({ top: y.toFixed(1), label: k === 0 ? '0' : moneyK(k * cfStep), color: k === 0 ? C.base : C.grid });
+    }
+
+    const rows = CATS.map(function (c) {
+      return { c: c, amt: sum(win, function (m) { return m.cats[c.key]; }), pamt: sum(prv, function (m) { return m.cats[c.key]; }) };
+    });
+    const ranked = rows.filter(function (r) { return r.c.key !== 'other'; }).sort(function (a, b) { return b.amt - a.amt; })
+      .concat(rows.filter(function (r) { return r.c.key === 'other'; }));
+    let maxAmt = 1;
+    for (let i = 0; i < ranked.length; i++) if (ranked[i].amt > maxAmt) maxAmt = ranked[i].amt;
+    const cats = ranked.map(function (r) {
+      const d = pctDelta(r.amt, r.pamt);
+      return { name: r.c.name, color: r.c.color, amount: money(r.amt), pct: Math.round(r.amt / maxAmt * 100), delta: r.pamt ? pct0(d) : '—', deltaColor: d > 0 ? C.down : C.up };
+    });
+    const txTotal = sum(win, function (m) { return m.txCount; });
+
+    return {
+      accent: accent, titleFont: titleFont,
+      nwHero: money(lastPt.v),
+      nwDelta: signedMoney(diff) + ' (' + pct1(pctDelta(lastPt.v, firstPt.v)) + ')',
+      nwDeltaColor: diff >= 0 ? C.up : C.down,
+      nwDeltaIcon: diff >= 0 ? TRI_UP : TRI_DOWN,
+      assets: money(assets), liabilities: money(LIABILITIES),
+      assetsPct: (assets / (assets + LIABILITIES) * 100).toFixed(1),
+      nwTicks: nwTicks, nwArea: nwArea, nwEstPath: nwEstPath, nwObsPath: nwObsPath,
+      plotBottom: plotBottom, covX: covX.toFixed(1), covY2: plotBottom - 12,
+      endX: endX.toFixed(1), endY: endY.toFixed(1), endLabel: moneyK(lastPt.v),
+      endLabelLeft: (endX + 9).toFixed(1), endLabelTop: (endY - 8).toFixed(1),
+      nwLabels: win.map(function (m) { return { text: m.label }; }),
+      kpis: kpis,
+      cfTicks: cfTicks, cfMonths: cfMonths,
+      cats: cats,
+      catFooter: money(sp) + ' across ' + txTotal + ' transactions'
+    };
+  }
+}
+</script>
+</body>
+</html>
