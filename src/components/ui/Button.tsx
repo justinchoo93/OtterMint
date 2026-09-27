@@ -19,13 +19,20 @@ const SIZES: Record<ButtonSize, string> = {
   md: "h-9 px-3.5 text-sm",
 };
 
+// Square, padding-free sizes for icon-only buttons (no conflicting px-* classes).
+const ICON_SIZES: Record<ButtonSize, string> = {
+  sm: "h-8 w-8",
+  md: "h-9 w-9",
+};
+
 /** The button look as a class string, for links that should read as buttons. */
 export function buttonClassName({
   variant = "secondary",
   size = "md",
+  iconOnly = false,
   className,
-}: { variant?: ButtonVariant; size?: ButtonSize; className?: string } = {}): string {
-  return cx(BASE, VARIANTS[variant], SIZES[size], className);
+}: { variant?: ButtonVariant; size?: ButtonSize; iconOnly?: boolean; className?: string } = {}): string {
+  return cx(BASE, VARIANTS[variant], iconOnly ? ICON_SIZES[size] : SIZES[size], className);
 }
 
 export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
@@ -33,17 +40,19 @@ export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   size?: ButtonSize;
   /** Leading icon. Icon-only buttons must also pass aria-label. */
   icon?: ReactNode;
+  /** Square button holding only the icon; requires aria-label. */
+  iconOnly?: boolean;
 }
 
 export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button(
-  { variant = "secondary", size = "md", icon, className, type = "button", children, ...rest },
+  { variant = "secondary", size = "md", icon, iconOnly = false, className, type = "button", children, ...rest },
   ref
 ) {
   return (
     <button
       ref={ref}
       type={type}
-      className={buttonClassName({ variant, size, className })}
+      className={buttonClassName({ variant, size, iconOnly, className })}
       {...rest}
     >
       {icon}

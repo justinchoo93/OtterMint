@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { Card, Chip, EmptyState, SegmentedControl, Skeleton } from "@/components/ui";
+import { AnalyticsDetails } from "@/components/dashboard/AnalyticsDetails";
 import { CashflowChart } from "@/components/dashboard/CashflowChart";
 import { CategoryList } from "@/components/dashboard/CategoryList";
 import { NetWorthOverview } from "@/components/dashboard/NetWorthOverview";
@@ -137,10 +138,10 @@ export function AnalyticsView({ accounts, manualAccounts, groupId, refreshKey }:
         <div className="flex flex-col gap-6" data-testid="cashflow-skeleton">
           <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
             {TILES.map((tile) => (
-              <Skeleton key={tile.kind} className="h-[124px] rounded-tile" />
+              <Skeleton key={tile.kind} radius="tile" className="h-[124px]" />
             ))}
           </div>
-          <Skeleton className="h-[420px] rounded-card" />
+          <Skeleton radius="card" className="h-[420px]" />
         </div>
       ) : cashflow.status === "error" && months.length === 0 ? (
         <Card>
@@ -221,6 +222,16 @@ function CashflowSections({
           onSelect={(key) => onDetailChange(key ? { kind: "category", key } : null)}
         />
       </div>
+
+      <AnalyticsDetails
+        detail={detail}
+        periodMonths={period.periodMonths}
+        priorMonths={period.priorMonths}
+        periodLabel={period.periodLabel}
+        comparisonLabel={period.comparisonLabel}
+        rows={rows}
+        onClose={() => onDetailChange(null)}
+      />
     </>
   );
 }

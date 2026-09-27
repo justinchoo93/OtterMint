@@ -1,4 +1,4 @@
-import type { HTMLAttributes, ReactNode } from "react";
+import type { HTMLAttributes, ReactNode, Ref } from "react";
 import { cx } from "./cx";
 
 const PADDING = {
@@ -8,17 +8,18 @@ const PADDING = {
 } as const;
 
 export interface CardProps extends HTMLAttributes<HTMLElement> {
+  ref?: Ref<HTMLElement>;
   as?: "section" | "div";
   padding?: keyof typeof PADDING;
 }
 
 /** The standard surface container: 16px radius, card surface, hairline border. */
-export function Card({ as: Tag = "section", padding = "md", className, ...rest }: CardProps) {
-  return (
-    <Tag
-      className={cx("rounded-card border border-line bg-surface", PADDING[padding], className)}
-      {...rest}
-    />
+export function Card({ as = "section", padding = "md", className, ref, ...rest }: CardProps) {
+  const classes = cx("rounded-card border border-line bg-surface", PADDING[padding], className);
+  return as === "div" ? (
+    <div ref={ref as Ref<HTMLDivElement>} className={classes} {...rest} />
+  ) : (
+    <section ref={ref} className={classes} {...rest} />
   );
 }
 

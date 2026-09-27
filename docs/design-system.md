@@ -64,15 +64,15 @@ Large standalone numbers use proportional figures. Use `font-mono tabular-nums` 
 
 ## Primitives
 
-Import from `@/components/ui`.
+Import from `@/components/ui`. Primitives append `className` without merging, so pass only layout additions such as margins, widths or grid placement; when two utilities set the same property, which one wins depends on the order Tailwind emits them, not on the order in the class string. Change a primitive's own padding, size, radius or color through its props (`size`, `iconOnly`, `padding`, `compact`, `radius`).
 
-- **`Button`**: `variant` `primary` (one per region, mint) · `secondary` (default) · `ghost`; `size` `sm` (32px) · `md` (36px); optional `icon`. Defaults to `type="button"`. Icon-only buttons need `aria-label`. `buttonClassName()` gives links the same look.
+- **`Button`**: `variant` `primary` (one per region, mint) · `secondary` (default) · `ghost`; `size` `sm` (32px) · `md` (36px); optional `icon`. Defaults to `type="button"`. Icon-only buttons use `iconOnly` (a square with no padding) and need `aria-label`. `buttonClassName()` gives links the same look.
 - **`Card`** and **`CardHeader`**: the standard container (`padding` `md` or `lg`) and its serif title with optional subtitle and actions.
 - **`SegmentedControl`**: two to five mutually exclusive options as `aria-pressed` buttons inside a labeled group. `size="sm"` for in-card toggles; `fullWidth` for phone filter rows (44px targets).
 - **`Chip`**: a dismissible active filter. Its accessible name is `"<dismissLabel>: <label>"`.
 - **`DeltaIndicator`**: arrow plus signed text; `tone` says whether the change is good for the reader (more spending is `negative` even though it goes up).
 - **`LegendKey`**: a series key whose mark mirrors the chart mark (square for bars and areas, line or dashed line for lines, dot for markers). Text stays ink.
-- **`EmptyState`**, **`Skeleton`**: the empty/error message and the first-load placeholder. Refetches keep the previous render dimmed instead of flashing a skeleton.
+- **`EmptyState`** (`compact` for one-line prompts) and **`Skeleton`** (`radius` `md` · `tile` · `card`): the empty/error message and the first-load placeholder. Refetches keep the previous render dimmed instead of flashing a skeleton.
 
 ## Data visualization
 

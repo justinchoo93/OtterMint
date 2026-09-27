@@ -178,6 +178,81 @@ describe("AnalyticsView", () => {
     expect(tile("Income")).toHaveAttribute("aria-pressed", "false");
   });
 
+  it("opens the Income details from the tile and closes them again", async () => {
+    stubFetch();
+    await renderView();
+    expect(screen.getByText("Select a stat or a category to see the transactions behind it.")).toBeInTheDocument();
+
+    fireEvent.click(tile("Income"));
+    const panel = screen.getByRole("region", { name: "Income details" });
+    expect(within(panel).getByRole("heading", { name: "Income" })).toBeInTheDocument();
+    expect(within(panel).getByText("PAYROLL 2026-09")).toBeInTheDocument();
+    expect(within(panel).getByText("PAYROLL 2026-04")).toBeInTheDocument();
+    expect(within(panel).queryByText("PAYROLL 2026-03")).not.toBeInTheDocument();
+    expect(within(panel).getByText("6 transactions")).toBeInTheDocument();
+
+    fireEvent.click(within(panel).getByRole("button", { name: "Close details" }));
+    expect(screen.queryByRole("region", { name: "Income details" })).not.toBeInTheDocument();
+    expect(tile("Income")).toHaveAttribute("aria-pressed", "false");
+  });
+
+  it("shows savings withdrawals as negative amounts", async () => {
+    stubFetch();
+    await renderView();
+    fireEvent.click(tile("Saved"));
+    const panel = screen.getByRole("region", { name: "Saved details" });
+    expect(within(panel).getByText("-$800.00")).toBeInTheDocument();
+  });
+
+  it("lists a category's transactions from the items route", async () => {
+    const fetchMock = stubFetch();
+    await renderView();
+    fireEvent.click(screen.getByRole("button", { name: /^Restaurants/ }));
+    const panel = screen.getByRole("region", { name: "Restaurants details" });
+    expect(await within(panel).findByText("Din Tai Fung")).toBeInTheDocument();
+    expect(within(panel).getByText("TACOS EL SOL")).toBeInTheDocument();
+    expect(within(panel).getByText("2 transactions")).toBeInTheDocument();
+    expect(calls(fetchMock, "/api/analytics/cashflow/items")).toEqual([
+      "/api/analytics/cashflow/items?from=2026-04&to=2026-09&flow=spending&sort=date&limit=200&category=FOOD_AND_DRINK_RESTAURANTS",
+    ]);
+  });
+
+  it("sends every folded key for the Other row", async () => {
+    const extra = ["TRAVEL_FLIGHTS", "BANK_FEES_ATM_FEES", "MEDICAL_DENTAL_CARE", "ENTERTAINMENT_MUSIC_AND_AUDIO", "PERSONAL_CARE_GYMS_AND_FITNESS_CENTERS", "GENERAL_SERVICES_INSURANCE", "TRANSPORTATION_GAS", "GENERAL_MERCHANDISE_CLOTHING_AND_ACCESSORIES"];
+    const months = buildMonths().map((m) =>
+      m.spendingByCategory.length === 0
+        ? m
+        : { ...m, spendingByCategory: [...m.spendingByCategory, ...extra.map((key, i) => ({ key, primary: key.split("_")[0], total: (100 - i * 10).toFixed(2) }))] }
+    );
+    const fetchMock = stubFetch({ months });
+    await renderView();
+    fireEvent.click(screen.getByRole("button", { name: /^Other · 2 categories/ }));
+    await screen.findByRole("region", { name: "Other details" });
+    const url = calls(fetchMock, "/api/analytics/cashflow/items")[0];
+    expect(url).toContain("category=TRANSPORTATION_GAS"); // the two smallest of the ten keys
+    expect(url).toContain("category=GENERAL_MERCHANDISE_CLOTHING_AND_ACCESSORIES");
+  });
+
+  it("shows the largest purchases for the Spending tile", async () => {
+    const fetchMock = stubFetch();
+    await renderView();
+    fireEvent.click(tile("Spending"));
+    expect(await screen.findByRole("heading", { name: "Largest purchases" })).toBeInTheDocument();
+    expect(calls(fetchMock, "/api/analytics/cashflow/items")[0]).toBe(
+      "/api/analytics/cashflow/items?from=2026-04&to=2026-09&flow=spending&sort=amount&limit=25"
+    );
+  });
+
+  it("shows one row per month for Net cash flow and closes on a range change", async () => {
+    stubFetch();
+    await renderView();
+    fireEvent.click(tile("Net cash flow"));
+    const panel = screen.getByRole("region", { name: "Net cash flow details" });
+    expect(within(panel).getAllByRole("row")).toHaveLength(7); // header + six months
+    fireEvent.click(screen.getByRole("button", { name: "3M" }));
+    expect(screen.queryByRole("region", { name: "Net cash flow details" })).not.toBeInTheDocument();
+  });
+
   it("shows only net worth and a placeholder for households, never requesting cash flow", async () => {
     const fetchMock = stubFetch();
     await renderView({ groupId: "group-1" });
