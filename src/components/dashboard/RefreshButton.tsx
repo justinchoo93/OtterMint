@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import { RefreshCw } from "lucide-react";
+import { Button } from "@/components/ui";
 
 interface RefreshButtonProps {
   onRefreshed?: () => void;
@@ -40,30 +42,24 @@ export function RefreshButton({
   return (
     <div className="flex items-center gap-3">
       {lastRefreshed && (
-        <span className="hidden sm:inline text-xs text-[var(--text-muted)]">
+        <span className="hidden text-xs text-ink-muted sm:inline">
           Updated {formatLastRefreshed(lastRefreshed)}
         </span>
       )}
-      <button
+      <Button
+        variant="secondary"
+        size="sm"
         onClick={handleRefresh}
         disabled={refreshing}
-        className="flex items-center gap-1.5 rounded-lg border border-[var(--border)] bg-[var(--bg-tertiary)] px-3 py-1.5 text-xs font-medium text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)] disabled:opacity-50 cursor-pointer"
-      >
-        <svg
-          className={`h-3.5 w-3.5 ${refreshing ? "animate-spin-slow" : ""}`}
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke="currentColor"
-          strokeWidth={2}
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+        icon={
+          <RefreshCw
+            aria-hidden
+            className={`h-3.5 w-3.5 ${refreshing ? "animate-spin-slow" : ""}`}
           />
-        </svg>
+        }
+      >
         {refreshing ? "Refreshing..." : "Refresh"}
-      </button>
+      </Button>
     </div>
   );
 }

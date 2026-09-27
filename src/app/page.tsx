@@ -317,7 +317,7 @@ export default function Dashboard() {
                   navExpanded ? "opacity-100" : "pointer-events-none opacity-0"
                 }`}
               >
-                <h1 className="text-lg font-semibold tracking-tight text-[var(--text-primary)]">
+                <h1 className="font-serif text-2xl leading-none font-normal text-ink">
                   ottermint
                 </h1>
               </div>
@@ -348,7 +348,7 @@ export default function Dashboard() {
                     onClick={() => setActiveDestination(item.id)}
                     className={`flex h-10 w-full items-center gap-3 rounded-lg px-3 text-sm font-medium transition-colors ${
                       active
-                        ? "bg-[var(--accent-blue-dim)] text-[var(--text-primary)]"
+                        ? "bg-surface-hover text-ink"
                         : "text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)]"
                     }`}
                     aria-label={item.label}
@@ -356,7 +356,7 @@ export default function Dashboard() {
                   >
                     <Icon
                       className={`h-4 w-4 shrink-0 ${
-                        active ? "text-[var(--accent-blue)]" : ""
+                        active ? "text-accent" : ""
                       }`}
                     />
                     <span
@@ -378,10 +378,10 @@ export default function Dashboard() {
             <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3 sm:px-6 sm:py-4">
               <div className="min-w-0">
                 <div className="flex items-center gap-3">
-                  <h1 className="truncate text-lg font-semibold tracking-tight text-[var(--text-primary)] md:hidden">
+                  <h1 className="truncate font-serif text-2xl leading-none font-normal text-ink md:hidden">
                     ottermint
                   </h1>
-                  <h2 className="truncate text-lg font-semibold tracking-tight text-[var(--text-primary)]">
+                  <h2 className="truncate font-serif text-display font-normal text-ink">
                     {pageTitle}
                   </h2>
                   {showHouseholdTab && (
@@ -415,13 +415,13 @@ export default function Dashboard() {
                     onClick={() => setActiveDestination(item.id)}
                     className={`flex h-10 min-w-10 shrink-0 items-center gap-2 rounded-lg px-3 text-sm font-medium transition-colors ${
                       active
-                        ? "bg-[var(--accent-blue-dim)] text-[var(--text-primary)]"
+                        ? "bg-surface-hover text-ink"
                         : "text-[var(--text-secondary)] hover:bg-[var(--bg-hover)]"
                     }`}
                   >
                     <Icon
                       className={`h-4 w-4 shrink-0 ${
-                        active ? "text-[var(--accent-blue)]" : ""
+                        active ? "text-accent" : ""
                       }`}
                     />
                     <span>{item.label}</span>

@@ -3,6 +3,7 @@
 import { useCallback, useState } from "react";
 import { usePlaidLink } from "react-plaid-link";
 import { exchangeNewLink, persistLinkRestore } from "./plaid-restore";
+import { Button } from "@/components/ui";
 
 interface PlaidLinkButtonProps {
   onSuccess?: () => void;
@@ -56,12 +57,8 @@ export function PlaidLinkButton({ onSuccess }: PlaidLinkButtonProps) {
   }
 
   return (
-    <button
-      onClick={handleClick}
-      disabled={loading}
-      className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-500 disabled:opacity-50 transition-colors cursor-pointer"
-    >
+    <Button variant="primary" onClick={handleClick} disabled={loading}>
       {loading ? "..." : <><span className="sm:hidden">+ Connect</span><span className="hidden sm:inline">+ Connect Account</span></>}
-    </button>
+    </Button>
   );
 }

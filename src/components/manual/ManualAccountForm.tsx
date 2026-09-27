@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import type { ManualAccountRow } from "@/app/api/manual-accounts/route";
+import { Button } from "@/components/ui";
 
 interface ManualAccountFormProps {
   account?: ManualAccountRow | null;
@@ -125,21 +126,11 @@ export function ManualAccountForm({
       )}
 
       <div className="flex gap-2">
-        <button
-          type="submit"
-          disabled={saving}
-          className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-500 disabled:opacity-50 transition-colors cursor-pointer"
-        >
+        <Button type="submit" variant="primary" disabled={saving}>
           {saving ? "Saving..." : isEditing ? "Update" : "Add Account"}
-        </button>
+        </Button>
         {onCancel && (
-          <button
-            type="button"
-            onClick={onCancel}
-            className="rounded-lg border border-[var(--border)] px-4 py-2 text-sm font-medium text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] transition-colors cursor-pointer"
-          >
-            Cancel
-          </button>
+          <Button onClick={onCancel}>Cancel</Button>
         )}
       </div>
     </form>
