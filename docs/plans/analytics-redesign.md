@@ -33,7 +33,8 @@ The approved visual design is a private design canvas at https://claude.ai/artif
 - [x] (2026-09-27 22:50Z) Milestone 5: range control, stat tiles, diverging cash-flow chart, ranked categories; `CashflowPanel` removed (19200ed). `npm run build` passes.
 - [x] (2026-09-27 23:05Z) Milestone 6: details panel for every tile and category (73755b7). 471 tests pass.
 - [x] (2026-09-27 23:40Z) Milestone 7: compared with the mock at 1440px and 390px in both fixture modes. Numbers match the mock exactly in mock mode, and remaining differences are the intended ones in `docs/design/analytics-redesign/README.md`. Fixes landed in 8af9416: 44px phone targets, an accessible chart name, grouped estimate notes, and dense-chart labels. Checked keyboard order and Enter toggling, the mint focus ring, hover readouts, household mode and the All range. Harness files committed under `docs/design/analytics-redesign/harness/`. 471 tests, `tsc`, lint (one pre-existing warning) and `npm run build` all pass.
-- [ ] Milestone 8: merge to main, deploy with the user's go-ahead, verify against production data.
+- [x] (2026-09-28 00:30Z) Pre-deploy verification against production data. Owner rows were exported read-only to scratch, built into API payloads by the same pure functions (in a temporary test, deleted), and rendered through a third harness mode. Hero $697,766 matches the Dashboard's $697,765.83. Category rows sum to the Spending tile ($40,727.35). The Restaurant items total equals its category total ($3,465.03, 41 transactions). This check exposed the Sep 5 normalization contradiction, fixed for the headline and default mode in the commit after 567b3a1.
+- [ ] Milestone 8: merge to main, deploy, verify the live site.
 
 
 ## Surprises & Discoveries
@@ -78,6 +79,9 @@ The approved visual design is a private design canvas at https://claude.ai/artif
   Evidence: `outlineColor` read `rgb(235, 241, 238)` immediately after focus, then `rgb(52, 211, 153)` after 500ms.
 
 - Observation: the headed browser the Playwright tool drives can be changed from outside a check. One check found the page on Dashboard with the 1Y range selected and an Investments request logged. Every browser check now starts by reloading and navigating, and runs start to finish in a single call.
+
+- Observation: production normalization is contradicted by the balances on Sep 5, 2026. The owner re-created a manual 401K asset at 152,000 (manual assets went from 151,000 to 152,000). The app recorded the new account as a +152,000 captured addition but has no removal event for the deleted predecessor. Raw net worth moved only about +8,500, yet every earlier adjusted point was lifted by 152,000, so the Normalized chart drew a false cliff of about $143k. The first hero draft read "-$89,934 (-11.4%) since Jul 23". The same pattern appears, smaller, at the Aug 13 liability addition.
+  Evidence: snapshots on 2026-09-02 and 2026-09-05 (`manualAssetsTotal` 151000.00 then 152000.00; `netWorth` 650609.56 then 659079.88); coverage event 2026-09-05 manual_account +152000.00; manual account id 2 created 2026-09-05.
 
 - Observation: the local `main` branch is stale at 513a880, while `origin/main` equals the current branch tip 42e6e91. Start work from `origin/main`, not local `main`.
 
@@ -168,6 +172,10 @@ The approved visual design is a private design canvas at https://claude.ai/artif
   Rationale: Milestone 8 previously waited for a go-ahead; this instruction is that go-ahead. Production checks that need the owner's signed-in session are done by running production rows (read-only, via the documented `ssh otterholt` psql path) through the same pure functions and rendering them in the local harness, plus a health and asset check of the live site. No credentials are requested or stored.
   Date/Author: 2026-09-27, Claude.
 
+
+- Decision: The hero's change stops at any account-change edge where the balances contradict the recorded adjustment (the adjusted series jumps by more than half the adjustment and more than 1% of net worth). The chart opens in Reported mode when any contradiction exists, with the reason given in "About this chart". The underlying data and normalization are not changed.
+  Rationale: the owner's real data showed the headline could report a false double-digit loss. Correcting the recorded coverage event would change production data, and recording manual-account removals would change the coverage model; both are outside this redesign and need their own decision. The safeguard keeps the new headline honest meanwhile. Follow-up: record a removal event when a manual account is deleted, and correct the Sep 5 event with the owner's approval.
+  Date/Author: 2026-09-28, Claude.
 
 ## Outcomes & Retrospective
 
