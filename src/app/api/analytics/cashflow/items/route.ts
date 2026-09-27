@@ -35,11 +35,15 @@ function parse(params: URLSearchParams): Parsed {
   if (!FLOWS.has(flow)) return { ok: false, error: "flow must be income, spending or savings" };
 
   const categories = params.getAll("category");
-  if (categories.length > MAX_CATEGORIES) {
-    return { ok: false, error: `at most ${MAX_CATEGORIES} category values` };
+  const excluded = params.getAll("exclude");
+  if (categories.length > 0 && excluded.length > 0) {
+    return { ok: false, error: "use category or exclude, not both" };
   }
-  if (categories.some((c) => !CATEGORY.test(c))) {
-    return { ok: false, error: "category values must be uppercase category keys" };
+  if (categories.length > MAX_CATEGORIES || excluded.length > MAX_CATEGORIES) {
+    return { ok: false, error: `at most ${MAX_CATEGORIES} category or exclude values` };
+  }
+  if ([...categories, ...excluded].some((c) => !CATEGORY.test(c))) {
+    return { ok: false, error: "category and exclude values must be uppercase category keys" };
   }
 
   const sort = params.get("sort") ?? "date";
@@ -58,6 +62,7 @@ function parse(params: URLSearchParams): Parsed {
       to,
       flow: flow as CashflowItemsOptions["flow"],
       categoryKeys: categories.length > 0 ? categories : undefined,
+      excludeCategoryKeys: excluded.length > 0 ? excluded : undefined,
       sort,
       limit,
     },
@@ -66,7 +71,7 @@ function parse(params: URLSearchParams): Parsed {
 
 /**
  * GET /api/analytics/cashflow/items?from=YYYY-MM&to=YYYY-MM&flow=spending
- *   [&category=KEY ...][&sort=date|amount][&limit=N]
+ *   [&category=KEY ... | &exclude=KEY ...][&sort=date|amount][&limit=N]
  * The transactions behind one cash-flow figure, for the Analytics details
  * panel. Reads through the shared classified-rows helper so category
  * corrections apply, exactly as the monthly cash-flow route does.

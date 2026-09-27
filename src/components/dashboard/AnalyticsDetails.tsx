@@ -5,6 +5,7 @@ import { X } from "lucide-react";
 import { Button, Card, CardHeader, cx, EmptyState } from "@/components/ui";
 import type { AnalyticsDetail } from "@/components/dashboard/AnalyticsView";
 import {
+  categoryRowFor,
   monthLongLabel,
   periodDelta,
   sumPeriod,
@@ -23,6 +24,8 @@ interface AnalyticsDetailsProps {
   comparisonLabel: string | null;
   rows: CategoryRow[];
   onClose: () => void;
+  /** Changes after a data refresh; refetches the open list. */
+  refreshKey?: number;
 }
 
 type ItemsState =
@@ -148,21 +151,29 @@ export function AnalyticsDetails({
   comparisonLabel,
   rows,
   onClose,
+  refreshKey,
 }: AnalyticsDetailsProps) {
   const ref = useRef<HTMLElement>(null);
   const [items, setItems] = useState<ItemsState>({ status: "idle" });
   const from = periodMonths[0]?.month ?? "";
   const to = periodMonths[periodMonths.length - 1]?.month ?? "";
   const selectedCategory = detail?.kind === "category" ? detail.key : null;
-  const categoryRow = selectedCategory ? rows.find((r) => r.key === selectedCategory) ?? null : null;
-  const categoryKeys = categoryRow?.memberKeys.join(",") ?? "";
+  // A category folded into Other for this period still has its own transactions.
+  const categoryRow = selectedCategory
+    ? (rows.find((r) => r.key === selectedCategory) ??
+      (selectedCategory === "OTHER" ? null : categoryRowFor(periodMonths, priorMonths, selectedCategory)))
+    : null;
+  // Other is every key except the ranked rows, sent as a short exclude list.
+  const categoryParams =
+    categoryRow?.key === "OTHER"
+      ? rows.filter((r) => r.key !== "OTHER").map((r) => `&exclude=${encodeURIComponent(r.key)}`).join("")
+      : (categoryRow?.memberKeys.map((k) => `&category=${encodeURIComponent(k)}`).join("") ?? "");
 
   let url: string | null = null;
   if (detail?.kind === "spending") {
     url = `/api/analytics/cashflow/items?from=${from}&to=${to}&flow=spending&sort=amount&limit=${SPENDING_LIMIT}`;
-  } else if (detail?.kind === "category" && categoryKeys) {
-    const params = categoryKeys.split(",").map((k) => `&category=${encodeURIComponent(k)}`).join("");
-    url = `/api/analytics/cashflow/items?from=${from}&to=${to}&flow=spending&sort=date&limit=${CATEGORY_LIMIT}${params}`;
+  } else if (detail?.kind === "category" && categoryRow) {
+    url = `/api/analytics/cashflow/items?from=${from}&to=${to}&flow=spending&sort=date&limit=${CATEGORY_LIMIT}${categoryParams}`;
   }
 
   useEffect(() => {
@@ -182,7 +193,7 @@ export function AnalyticsDetails({
     };
     load();
     return () => controller.abort();
-  }, [url]);
+  }, [url, refreshKey]);
 
   const detailKey = detail ? (selectedCategory ? `category:${selectedCategory}` : detail.kind) : null;
   useEffect(() => {

@@ -95,6 +95,7 @@ export function CashflowChart({ months, windowLabel, selectedMonth, onSelectMont
                 key={month.month}
                 type="button"
                 aria-pressed={selected}
+                data-month={month.month}
                 aria-label={`${monthLongLabel(month.month)}${month.partial ? " (month to date)" : ""}: income ${formatWholeCurrency(totals.income)}, spending ${formatWholeCurrency(totals.spending)}, saved ${formatWholeCurrency(totals.savings)}`}
                 onClick={() => onSelectMonth(selected ? null : month.month)}
                 onPointerEnter={() => setHovered(month.month)}
@@ -148,7 +149,8 @@ export function CashflowChart({ months, windowLabel, selectedMonth, onSelectMont
                       className={cx(floating, "rounded bg-surface/90 px-1 text-micro font-semibold text-ink")}
                       style={{ bottom: `calc(${100 - layout.baselinePct + upPct}% + 4px)` }}
                     >
-                      {formatSignedWholeCurrency(totals.income)}
+                      {/* Everything above the line: income plus any withdrawal from savings. */}
+                      {formatSignedWholeCurrency(totals.income + Math.max(-totals.savings, 0))}
                     </span>
                     <span
                       aria-hidden

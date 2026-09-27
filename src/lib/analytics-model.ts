@@ -284,6 +284,30 @@ export function rankCategories(
   });
 }
 
+/**
+ * One category's row for the period, whether or not it made the top of the
+ * ranking (a folded key still has transactions to show). Null when the key has
+ * no spending in the period.
+ */
+export function categoryRowFor(
+  period: CashflowMonth[],
+  prior: CashflowMonth[] | null,
+  key: string
+): CategoryRow | null {
+  const cents = categoryCents(period);
+  if (!cents.has(key)) return null;
+  const total = (cents.get(key) ?? 0) / 100;
+  const priorTotal = prior ? (categoryCents(prior).get(key) ?? 0) / 100 : 0;
+  return {
+    key,
+    label: labelForCategoryKey(key),
+    total,
+    barPct: 0,
+    delta: prior ? periodDelta(total, priorTotal, false) : null,
+    memberKeys: [key],
+  };
+}
+
 function niceStep(span: number, targetCount: number): number {
   if (span <= 0) return 1;
   const raw = span / targetCount;

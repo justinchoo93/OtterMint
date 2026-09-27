@@ -549,6 +549,13 @@ describe("selectCashflowItems", () => {
     expect(names).toContain("Brokerage");
   });
 
+  it("excludes category keys for the Other fold", () => {
+    const result = selectCashflowItems(rows, {
+      from: "2026-07", to: "2026-09", flow: "spending", excludeCategoryKeys: ["FOOD_AND_DRINK_RESTAURANTS"], sort: "date", limit: 10,
+    });
+    expect(result.items.map((i) => i.name)).toEqual(["Grocer"]);
+  });
+
   it("treats month bounds as inclusive", () => {
     const july = selectCashflowItems(rows, { from: "2026-07", to: "2026-07", flow: "spending", sort: "date", limit: 10 });
     expect(july.items.map((i) => i.name)).toEqual(["Tacos"]);

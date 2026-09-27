@@ -33,6 +33,7 @@ export function CategoryList({ rows, periodLabel, selectedKey, onSelect }: Categ
                     type="button"
                     aria-pressed={selected}
                     onClick={() => onSelect(selected ? null : row.key)}
+                    data-category-key={row.key}
                     className={cx(
                       "grid min-h-11 w-full grid-cols-[minmax(0,1fr)_76px_44px] items-center gap-3 rounded-[10px] px-2.5 py-1.5 text-left transition-colors sm:min-h-10 sm:grid-cols-[minmax(0,1fr)_84px_52px]",
                       selected ? "bg-surface-hover" : "hover:bg-surface-raised"

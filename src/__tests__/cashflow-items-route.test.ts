@@ -77,6 +77,8 @@ describe("GET /api/analytics/cashflow/items", () => {
     ["a lowercase category", "from=2026-08&to=2026-08&flow=spending&category=restaurants"],
     ["a zero limit", "from=2026-08&to=2026-08&flow=spending&limit=0"],
     ["an unknown sort", "from=2026-08&to=2026-08&flow=spending&sort=name"],
+    ["category together with exclude", "from=2026-08&to=2026-08&flow=spending&category=FOOD_AND_DRINK_GROCERIES&exclude=FOOD_AND_DRINK_RESTAURANTS"],
+    ["a lowercase exclude", "from=2026-08&to=2026-08&flow=spending&exclude=rent"],
   ])("rejects %s with 400 before reading the database", async (_label, query) => {
     const response = await GET(request(query));
     expect(response.status).toBe(400);
@@ -100,6 +102,14 @@ describe("GET /api/analytics/cashflow/items", () => {
     expect(body.items.map((i: { name: string }) => i.name)).toEqual(["Sushi"]);
     expect(body.count).toBe(3);
     expect(body.total).toBe("782.33");
+  });
+
+  it("excludes the ranked keys for the Other fold", async () => {
+    const body = await (
+      await GET(request("from=2026-08&to=2026-08&flow=spending&exclude=FOOD_AND_DRINK_RESTAURANTS"))
+    ).json();
+    expect(body.items.map((i: { name: string }) => i.name)).toEqual(["Grocer"]);
+    expect(body.count).toBe(1);
   });
 
   it("accepts several category values", async () => {

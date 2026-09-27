@@ -4,6 +4,7 @@ import type { NetWorthSnapshotRow } from "@/lib/net-worth-history";
 import {
   comparableChange,
   firstDataMonthIndex,
+  categoryRowFor,
   layoutCashflowColumns,
   netWorthDaysForRange,
   netWorthDomain,
@@ -218,6 +219,13 @@ describe("rankCategories", () => {
     expect(rows[0].total).toBe(3600);
     expect(rows[0].delta).toMatchObject({ direction: "up", good: false });
     expect(rows[0].delta!.pct).toBeCloseTo(100);
+  });
+
+  it("builds a row for one category even when it was folded into Other", () => {
+    const row = categoryRowFor([month("2026-08", { cats: cats(1) })], [month("2026-07", { cats: cats(1) })], "TRAVEL_FLIGHTS")!;
+    expect(row).toMatchObject({ key: "TRAVEL_FLIGHTS", label: "Flights", total: 50, memberKeys: ["TRAVEL_FLIGHTS"] });
+    expect(row.delta).toMatchObject({ direction: "flat" });
+    expect(categoryRowFor([month("2026-08", { cats: cats(1) })], null, "NOT_THERE")).toBeNull();
   });
 
   it("omits Other when nothing is folded", () => {

@@ -217,7 +217,7 @@ describe("AnalyticsView", () => {
     ]);
   });
 
-  it("sends every folded key for the Other row", async () => {
+  it("asks for Other as everything except the ranked rows", async () => {
     const extra = ["TRAVEL_FLIGHTS", "BANK_FEES_ATM_FEES", "MEDICAL_DENTAL_CARE", "ENTERTAINMENT_MUSIC_AND_AUDIO", "PERSONAL_CARE_GYMS_AND_FITNESS_CENTERS", "GENERAL_SERVICES_INSURANCE", "TRANSPORTATION_GAS", "GENERAL_MERCHANDISE_CLOTHING_AND_ACCESSORIES"];
     const months = buildMonths().map((m) =>
       m.spendingByCategory.length === 0
@@ -229,8 +229,11 @@ describe("AnalyticsView", () => {
     fireEvent.click(screen.getByRole("button", { name: /^Other · 2 categories/ }));
     await screen.findByRole("region", { name: "Other details" });
     const url = calls(fetchMock, "/api/analytics/cashflow/items")[0];
-    expect(url).toContain("category=TRANSPORTATION_GAS"); // the two smallest of the ten keys
-    expect(url).toContain("category=GENERAL_MERCHANDISE_CLOTHING_AND_ACCESSORIES");
+    // The eight ranked keys are excluded; the two smallest of the ten remain.
+    expect(url.match(/exclude=/g)).toHaveLength(8);
+    expect(url).toContain("exclude=RENT_AND_UTILITIES_RENT");
+    expect(url).not.toContain("category=");
+    expect(url).not.toContain("TRANSPORTATION_GAS");
   });
 
   it("shows the largest purchases for the Spending tile", async () => {
@@ -251,6 +254,106 @@ describe("AnalyticsView", () => {
     expect(within(panel).getAllByRole("row")).toHaveLength(7); // header + six months
     fireEvent.click(screen.getByRole("button", { name: "3M" }));
     expect(screen.queryByRole("region", { name: "Net cash flow details" })).not.toBeInTheDocument();
+  });
+
+  it("returns focus to the tile when its details close", async () => {
+    stubFetch();
+    await renderView();
+    fireEvent.click(tile("Income"));
+    fireEvent.click(screen.getByRole("button", { name: "Close details" }));
+    expect(document.activeElement).toBe(tile("Income"));
+  });
+
+  it("returns focus to the month column when its chip is cleared", async () => {
+    stubFetch();
+    await renderView();
+    const august = monthColumns().find((b) => b.getAttribute("aria-label")!.startsWith("August 2026"))!;
+    fireEvent.click(august);
+    fireEvent.click(screen.getByRole("button", { name: "Clear month: August 2026" }));
+    expect(document.activeElement).toBe(august);
+  });
+
+  it("labels total inflows above the bar, including a withdrawal from savings", async () => {
+    stubFetch();
+    await renderView();
+    fireEvent.click(monthColumns().find((b) => b.getAttribute("aria-label")!.startsWith("May 2026"))!);
+    expect(screen.getByText("+$10,300")).toBeInTheDocument(); // income 9,500 + withdrawal 800
+  });
+
+  it("still lists a category that a selected month folds into Other", async () => {
+    const ten = ["RENT_AND_UTILITIES_RENT", "FOOD_AND_DRINK_RESTAURANTS", "FOOD_AND_DRINK_GROCERIES", "TRANSPORTATION_GAS", "ENTERTAINMENT_MUSIC_AND_AUDIO", "GENERAL_SERVICES_INSURANCE", "MEDICAL_DENTAL_CARE", "TRAVEL_FLIGHTS", "BANK_FEES_ATM_FEES", "PERSONAL_CARE_GYMS_AND_FITNESS_CENTERS"];
+    const months = buildMonths().map((m) => {
+      if (m.spendingByCategory.length === 0) return m;
+      // Flights ranks first over the six months but is tiny (10th, folded) in August.
+      const flights = m.month === "2026-08" ? 5 : 1500;
+      return { ...m, spendingByCategory: ten.map((key, i) => ({ key, primary: key.split("_")[0], total: (key === "TRAVEL_FLIGHTS" ? flights : 1000 - i * 60).toFixed(2) })) };
+    });
+    const fetchMock = stubFetch({ months });
+    await renderView();
+    fireEvent.click(screen.getByRole("button", { name: /^Flights/ }));
+    fireEvent.click(monthColumns().find((b) => b.getAttribute("aria-label")!.startsWith("August 2026"))!);
+    const panel = screen.getByRole("region", { name: "Flights details" });
+    expect(within(panel).queryByText("No transactions in this period.")).not.toBeInTheDocument();
+    await waitFor(() =>
+      expect(calls(fetchMock, "/api/analytics/cashflow/items")).toContain(
+        "/api/analytics/cashflow/items?from=2026-08&to=2026-08&flow=spending&sort=date&limit=200&category=TRAVEL_FLIGHTS"
+      )
+    );
+  });
+
+  it("refetches an open list after a refresh", async () => {
+    const fetchMock = stubFetch();
+    const { rerender } = render(<AnalyticsView accounts={[]} manualAccounts={[]} refreshKey={0} />);
+    await screen.findByText("Where it went");
+    fireEvent.click(screen.getByRole("button", { name: /^Restaurants/ }));
+    await waitFor(() => expect(calls(fetchMock, "/api/analytics/cashflow/items")).toHaveLength(1));
+    rerender(<AnalyticsView accounts={[]} manualAccounts={[]} refreshKey={1} />);
+    await waitFor(() => expect(calls(fetchMock, "/api/analytics/cashflow/items")).toHaveLength(2));
+  });
+
+  it("drops a selected month that a refresh moves out of the window", async () => {
+    let months = buildMonths();
+    const fn = vi.fn(async (url: string) => {
+      if (url.startsWith("/api/analytics/cashflow")) return { ok: true, json: async () => ({ months }) };
+      return { ok: true, json: async () => HISTORY };
+    });
+    vi.stubGlobal("fetch", fn);
+    const { rerender } = render(<AnalyticsView accounts={[]} manualAccounts={[]} refreshKey={0} />);
+    await screen.findByText("Where it went");
+    fireEvent.click(screen.getByRole("button", { name: "3M" }));
+    fireEvent.click(monthColumns().find((b) => b.getAttribute("aria-label")!.startsWith("July 2026"))!);
+    expect(screen.getByRole("button", { name: "Clear month: July 2026" })).toBeInTheDocument();
+
+    // A month later the window is Aug–Oct; July has left it.
+    months = [...buildMonths().slice(1).map((m) => ({ ...m, partial: false })), { ...buildMonths()[23], month: "2026-10", partial: true }];
+    rerender(<AnalyticsView accounts={[]} manualAccounts={[]} refreshKey={1} />);
+    await waitFor(() => expect(monthColumns().map((b) => b.getAttribute("aria-label")!.slice(0, 12))).toContain("October 2026"));
+    expect(screen.queryByRole("button", { name: /Clear month/ })).not.toBeInTheDocument();
+    expect(monthColumns().every((b) => b.getAttribute("aria-pressed") === "false")).toBe(true);
+  });
+
+  it("never shows one scope's net-worth change under the other's heading", async () => {
+    const personal = {
+      snapshots: [
+        { date: "2026-09-01", totalAssets: "100.00", totalLiabilities: "0.00", netWorth: "100.00", depositoryTotal: null, creditTotal: null, investmentTotal: null, loanTotal: null, manualAssetsTotal: null, manualLiabilitiesTotal: null, adjustedTotalAssets: "100.00", adjustedTotalLiabilities: "0.00", adjustedNetWorth: "100.00", quality: "observed", coverageSegment: 0, comparisonSegment: 0 },
+        { date: "2026-09-20", totalAssets: "150.00", totalLiabilities: "0.00", netWorth: "150.00", depositoryTotal: null, creditTotal: null, investmentTotal: null, loanTotal: null, manualAssetsTotal: null, manualLiabilitiesTotal: null, adjustedTotalAssets: "150.00", adjustedTotalLiabilities: "0.00", adjustedNetWorth: "150.00", quality: "observed", coverageSegment: 0, comparisonSegment: 0 },
+      ],
+      coverageEvents: [],
+      periodChange: null,
+    };
+    vi.stubGlobal(
+      "fetch",
+      vi.fn((url: string) => {
+        if (url.startsWith("/api/groups/")) return new Promise(() => {}); // household history never arrives
+        if (url.startsWith("/api/analytics/cashflow")) return Promise.resolve({ ok: true, json: async () => ({ months: buildMonths() }) });
+        return Promise.resolve({ ok: true, json: async () => personal });
+      })
+    );
+    const { rerender } = render(<AnalyticsView accounts={[]} manualAccounts={[]} />);
+    expect(await screen.findByText("since Sep 1")).toBeInTheDocument();
+    rerender(<AnalyticsView accounts={[]} manualAccounts={[]} groupId="group-1" />);
+    expect(screen.getAllByText("Household net worth").length).toBeGreaterThan(0);
+    expect(screen.queryByText("since Sep 1")).not.toBeInTheDocument();
   });
 
   it("shows only net worth and a placeholder for households, never requesting cash flow", async () => {

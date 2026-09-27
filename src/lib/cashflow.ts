@@ -312,6 +312,8 @@ export interface CashflowItemsOptions {
   flow: Exclude<FlowType, "internal">;
   /** Keep only these category keys (categoryDetailed ?? category ?? "UNCATEGORIZED"). */
   categoryKeys?: string[];
+  /** Drop these category keys; "Other" is every key except the ranked rows. */
+  excludeCategoryKeys?: string[];
   /** "date": newest first; "amount": largest display amount first. */
   sort: "date" | "amount";
   limit: number;
@@ -335,6 +337,7 @@ export function selectCashflowItems(
   options: CashflowItemsOptions
 ): CashflowItemsResult {
   const keys = options.categoryKeys ? new Set(options.categoryKeys) : null;
+  const excluded = new Set(options.excludeCategoryKeys ?? []);
   const matches: Array<{ item: CashflowLineItem; cents: number }> = [];
   for (const row of rows) {
     if (row.pending) continue;
@@ -342,6 +345,7 @@ export function selectCashflowItems(
     if (month < options.from || month > options.to) continue;
     if (classifyTransaction(row) !== options.flow) continue;
     if (keys && !keys.has(categoryKeyOf(row))) continue;
+    if (excluded.has(categoryKeyOf(row))) continue;
     const cents = toCents(row.amount);
     const displayCents = options.flow === "income" ? -cents : cents;
     matches.push({ item: toLineItem(row, displayCents), cents: displayCents });

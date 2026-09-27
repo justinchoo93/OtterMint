@@ -94,6 +94,18 @@ export function AnalyticsView({ accounts, manualAccounts, groupId, refreshKey }:
     [months, range, selectedMonth]
   );
   const firstData = firstDataMonthIndex(months);
+  // A selected month that has left the window (say, after a refresh at month
+  // end) is ignored rather than shown as a chip over the whole range.
+  const activeMonth =
+    selectedMonth && period.periodMonths.length === 1 && period.periodMonths[0].month === selectedMonth
+      ? selectedMonth
+      : null;
+
+  const clearMonth = () => {
+    // Return focus to the column that was selected before its chip disappears.
+    if (activeMonth) focusFirst(`[data-month="${activeMonth}"]`);
+    setSelectedMonth(null);
+  };
 
   const changeRange = (next: AnalyticsRange) => {
     setRange(next);
@@ -114,10 +126,10 @@ export function AnalyticsView({ accounts, manualAccounts, groupId, refreshKey }:
           fullWidth
           className="sm:inline-flex sm:w-auto"
         />
-        {(selectedMonth || caption) && (
+        {(activeMonth || caption) && (
           <div className="flex flex-wrap items-center gap-3">
-            {selectedMonth && !isHousehold && (
-              <Chip label={period.periodLabel} dismissLabel="Clear month" onDismiss={() => setSelectedMonth(null)} />
+            {activeMonth && !isHousehold && (
+              <Chip label={period.periodLabel} dismissLabel="Clear month" onDismiss={clearMonth} />
             )}
             {caption && <span className="text-caption text-ink-muted">{caption}</span>}
           </div>
@@ -125,6 +137,7 @@ export function AnalyticsView({ accounts, manualAccounts, groupId, refreshKey }:
       </div>
 
       <NetWorthOverview
+        key={groupId ?? "personal"}
         accounts={accounts}
         manualAccounts={manualAccounts}
         days={netWorthDaysForRange(range, todayUtc())}
@@ -156,10 +169,11 @@ export function AnalyticsView({ accounts, manualAccounts, groupId, refreshKey }:
           months={months}
           period={period}
           firstData={firstData}
-          selectedMonth={selectedMonth}
+          selectedMonth={activeMonth}
           onSelectMonth={setSelectedMonth}
           detail={detail}
           onDetailChange={setDetail}
+          refreshKey={refreshKey}
         />
       )}
     </div>
@@ -174,6 +188,11 @@ interface CashflowSectionsProps {
   onSelectMonth: (month: string | null) => void;
   detail: AnalyticsDetail;
   onDetailChange: (detail: AnalyticsDetail) => void;
+  refreshKey?: number;
+}
+
+function focusFirst(selector: string) {
+  (document.querySelector(selector) as HTMLElement | null)?.focus();
 }
 
 function CashflowSections({
@@ -184,6 +203,7 @@ function CashflowSections({
   onSelectMonth,
   detail,
   onDetailChange,
+  refreshKey,
 }: CashflowSectionsProps) {
   const totals = sumPeriod(period.periodMonths);
   const prior = period.priorMonths ? sumPeriod(period.priorMonths) : null;
@@ -203,6 +223,7 @@ function CashflowSections({
             extra={tile.kind === "net" ? kept : undefined}
             spark={sparklineSeries(months, tile.key, firstData)}
             pressed={detail?.kind === tile.kind}
+            tileId={tile.kind}
             onClick={() => onDetailChange(detail?.kind === tile.kind ? null : { kind: tile.kind })}
           />
         ))}
@@ -230,7 +251,13 @@ function CashflowSections({
         periodLabel={period.periodLabel}
         comparisonLabel={period.comparisonLabel}
         rows={rows}
-        onClose={() => onDetailChange(null)}
+        refreshKey={refreshKey}
+        onClose={() => {
+          // Return focus to the tile or row that opened the panel before it unmounts.
+          if (detail?.kind === "category") focusFirst(`[data-category-key="${detail.key}"]`);
+          else if (detail) focusFirst(`[data-tile="${detail.kind}"]`);
+          onDetailChange(null);
+        }}
       />
     </>
   );

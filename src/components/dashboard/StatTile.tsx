@@ -16,6 +16,8 @@ interface StatTileProps {
   spark: number[];
   pressed: boolean;
   onClick: () => void;
+  /** Stable id used to return focus to this tile when its details close. */
+  tileId?: string;
 }
 
 const SPARK_W = 96;
@@ -48,6 +50,7 @@ export function StatTile({
   spark,
   pressed,
   onClick,
+  tileId,
 }: StatTileProps) {
   const geometry = spark.length >= 2 ? sparkGeometry(spark) : null;
   return (
@@ -55,6 +58,7 @@ export function StatTile({
       type="button"
       aria-pressed={pressed}
       onClick={onClick}
+      data-tile={tileId}
       className={cx(
         "grid min-h-[118px] w-full grid-cols-1 content-start gap-y-1.5 rounded-tile border bg-surface p-4 text-left transition-colors sm:min-h-[124px] sm:grid-cols-[minmax(0,1fr)_auto] sm:gap-x-3 sm:px-5 sm:py-[18px]",
         pressed ? "border-accent" : "border-line hover:border-chart-muted"
