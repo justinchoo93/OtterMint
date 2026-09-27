@@ -412,10 +412,10 @@ export function comparableChange(
   };
 }
 
-/** Padded, nicely rounded y-domain that never forces zero in. */
-export function netWorthDomain(values: number[]): [number, number] {
+/** Padded, nicely rounded y-scale that never forces zero in, with its gridline ticks. */
+export function netWorthScale(values: number[]): { domain: [number, number]; ticks: number[] } {
   const finite = values.filter((v) => Number.isFinite(v));
-  if (finite.length === 0) return [0, 1];
+  if (finite.length === 0) return { domain: [0, 1], ticks: [0, 1] };
   const min = Math.min(...finite);
   const max = Math.max(...finite);
   const span = max - min;
@@ -423,7 +423,16 @@ export function netWorthDomain(values: number[]): [number, number] {
   const lo = min - pad;
   const hi = max + pad;
   const step = niceStep(hi - lo, 4);
-  return [Math.floor(lo / step) * step, Math.ceil(hi / step) * step];
+  const first = Math.floor(lo / step);
+  const last = Math.ceil(hi / step);
+  const ticks: number[] = [];
+  for (let k = first; k <= last; k++) ticks.push(k * step);
+  return { domain: [first * step, last * step], ticks };
+}
+
+/** The y-domain half of netWorthScale. */
+export function netWorthDomain(values: number[]): [number, number] {
+  return netWorthScale(values).domain;
 }
 
 /** "since Jul 1", or "since Mar 31, 2025" when the year differs from today's. */

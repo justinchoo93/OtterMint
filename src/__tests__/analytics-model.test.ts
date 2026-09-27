@@ -7,6 +7,7 @@ import {
   layoutCashflowColumns,
   netWorthDaysForRange,
   netWorthDomain,
+  netWorthScale,
   periodDelta,
   rankCategories,
   resolvePeriod,
@@ -336,6 +337,11 @@ describe("netWorthDomain", () => {
     expect(lo).toBeLessThanOrEqual(380000 - 960);
     expect(hi).toBeGreaterThanOrEqual(396000 + 960);
     expect(hi).toBeLessThan(420000);
+  });
+  it("puts gridline ticks on the same round step as the domain", () => {
+    const { domain, ticks } = netWorthScale([371000, 397000]);
+    expect(domain).toEqual([360000, 400000]);
+    expect(ticks).toEqual([360000, 370000, 380000, 390000, 400000]);
   });
   it("handles a flat or empty series", () => {
     const [lo, hi] = netWorthDomain([1000, 1000]);

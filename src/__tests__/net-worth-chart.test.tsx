@@ -1,7 +1,7 @@
 import React from "react";
 import "@testing-library/jest-dom/vitest";
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { fireEvent, render, screen } from "@testing-library/react";
+import { describe, expect, it, vi } from "vitest";
 
 vi.mock("recharts", () => ({
   ResponsiveContainer: ({
@@ -11,50 +11,25 @@ vi.mock("recharts", () => ({
     children: React.ReactNode;
     initialDimension?: { width: number; height: number };
   }) => (
-    <div
-      data-testid="responsive-chart"
-      data-initial-dimension={JSON.stringify(initialDimension ?? null)}
-    >
+    <div data-testid="responsive-chart" data-initial-dimension={JSON.stringify(initialDimension ?? null)}>
       {children}
     </div>
   ),
-  LineChart: ({
-    children,
-    data,
-  }: {
-    children: React.ReactNode;
-    data?: Array<Record<string, unknown>>;
-  }) => (
+  ComposedChart: ({ children, data }: { children: React.ReactNode; data?: Array<Record<string, unknown>> }) => (
     <div data-testid="line-chart" data-chart-data={JSON.stringify(data ?? [])}>
       {children}
     </div>
   ),
   CartesianGrid: () => null,
-  XAxis: ({
-    dataKey,
-    type,
-  }: {
-    dataKey?: string;
-    type?: string;
-  }) => (
-    <div
-      data-testid="chart-x-axis"
-      data-key={dataKey}
-      data-axis-type={type}
-    />
+  XAxis: ({ dataKey, type }: { dataKey?: string; type?: string }) => (
+    <div data-testid="chart-x-axis" data-key={dataKey} data-axis-type={type} />
   ),
-  YAxis: () => null,
+  YAxis: ({ domain }: { domain?: unknown }) => <div data-testid="chart-y-axis" data-domain={JSON.stringify(domain)} />,
   Tooltip: () => null,
   ReferenceLine: () => null,
-  Line: ({
-    data,
-    dataKey,
-    strokeDasharray,
-  }: {
-    strokeDasharray?: string;
-    data?: unknown;
-    dataKey?: string;
-  }) => (
+  ReferenceDot: () => null,
+  Area: ({ dataKey }: { dataKey?: string }) => <div data-testid="chart-area" data-key={dataKey} />,
+  Line: ({ data, dataKey, strokeDasharray }: { strokeDasharray?: string; data?: unknown; dataKey?: string }) => (
     <div
       data-testid="chart-line"
       data-dash={strokeDasharray}
@@ -64,12 +39,9 @@ vi.mock("recharts", () => ({
   ),
 }));
 
-import { NetWorthChart } from "@/components/dashboard/NetWorthChart";
-import type { NetWorthHistoryResponse } from "@/lib/net-worth-history-server";
+import { NetWorthChart, type NetWorthHistory } from "@/components/dashboard/NetWorthChart";
 
-function response(
-  overrides: Partial<NetWorthHistoryResponse> = {}
-): NetWorthHistoryResponse {
+function response(overrides: Partial<NetWorthHistory> = {}): NetWorthHistory {
   return {
     snapshots: [
       {
@@ -127,231 +99,157 @@ function response(
   };
 }
 
+function unknownCoverage(label: string, kind: "legacy_unknown" | "coverage_unknown"): NetWorthHistory {
+  return response({
+    snapshots: response().snapshots.map((point, index) => ({
+      ...point,
+      adjustedTotalAssets: null,
+      adjustedTotalLiabilities: null,
+      adjustedNetWorth: null,
+      quality: index === 1 ? "unknown_coverage" : "observed",
+      comparisonSegment: index,
+    })),
+    coverageEvents: [
+      {
+        date: "2026-07-05",
+        kind,
+        assetAdjustment: null,
+        liabilityAdjustment: null,
+        netWorthAdjustment: null,
+        sourceCount: null,
+        label,
+      },
+    ],
+    periodChange: { reported: "600000.00", normalized: null },
+  });
+}
+
 describe("NetWorthChart", () => {
-  beforeEach(() => {
-    vi.stubGlobal(
-      "fetch",
-      vi.fn().mockResolvedValue({
-        ok: true,
-        json: async () => response(),
-      })
+  it("shows Normalized selected with honest wording kept in the notes", () => {
+    render(<NetWorthChart history={response()} mode="normalized" normalizedAvailable onModeChange={() => {}} />);
+
+    expect(screen.getByRole("button", { name: "Normalized" })).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByText("About this chart")).toBeInTheDocument();
+    expect(screen.getByText(/Earlier values use first known balances for comparison/)).toBeInTheDocument();
+    expect(screen.getByText(/\$600,000\.00 first-known balance normalized out of change/)).toBeInTheDocument();
+    expect(screen.getByText("Account change")).toBeInTheDocument();
+  });
+
+  it("reports mode changes to its owner", () => {
+    const onModeChange = vi.fn();
+    render(<NetWorthChart history={response()} mode="normalized" normalizedAvailable onModeChange={onModeChange} />);
+    fireEvent.click(screen.getByRole("button", { name: "Reported" }));
+    expect(onModeChange).toHaveBeenCalledWith("reported");
+  });
+
+  it("shows segmented reported history when normalization is unavailable", () => {
+    render(
+      <NetWorthChart
+        history={unknownCoverage("Coverage may have changed around this date", "legacy_unknown")}
+        mode="reported"
+        normalizedAvailable={false}
+        onModeChange={() => {}}
+      />
     );
-  });
-
-  afterEach(() => {
-    vi.unstubAllGlobals();
-  });
-
-  it("defaults captured personal history to Normalized with honest wording", async () => {
-    render(<NetWorthChart />);
-
-    expect(await screen.findByText("Net Worth Over Time")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "normalized" })).toHaveAttribute(
-      "aria-pressed",
-      "true"
-    );
-    expect(
-      screen.getByText(/Earlier values use first known balances for comparison/)
-    ).toBeInTheDocument();
-    expect(
-      screen.getByText(/\$600,000\.00 first-known balance normalized out of change/)
-    ).toBeInTheDocument();
-    expect(screen.getByText(/Change excluding coverage: \$0\.00/)).toBeInTheDocument();
-  });
-
-  it("allows switching to Reported mode", async () => {
-    render(<NetWorthChart />);
-    await screen.findByText("Net Worth Over Time");
-
-    fireEvent.click(screen.getByRole("button", { name: "reported" }));
-
-    expect(screen.getByRole("button", { name: "reported" })).toHaveAttribute(
-      "aria-pressed",
-      "true"
-    );
-    expect(
-      screen.queryByText(/Earlier values use first known balances for comparison/)
-    ).not.toBeInTheDocument();
-  });
-
-  it("shows segmented reported history when normalization is unavailable", async () => {
-    vi.mocked(fetch).mockResolvedValueOnce({
-      ok: true,
-      json: async () =>
-        response({
-          snapshots: response().snapshots.map((point, index) => ({
-            ...point,
-            adjustedTotalAssets: null,
-            adjustedTotalLiabilities: null,
-            adjustedNetWorth: null,
-            quality: index === 1 ? "unknown_coverage" : "observed",
-            comparisonSegment: index,
-          })),
-          coverageEvents: [
-            {
-              date: "2026-07-05",
-              kind: "legacy_unknown",
-              assetAdjustment: null,
-              liabilityAdjustment: null,
-              netWorthAdjustment: null,
-              sourceCount: null,
-              label: "Coverage may have changed around this date",
-            },
-          ],
-          periodChange: { reported: "600000.00", normalized: null },
-        }),
-    } as Response);
-
-    render(<NetWorthChart />);
-
-    await screen.findByText("Net Worth Over Time");
-    expect(screen.queryByRole("button", { name: "normalized" })).not.toBeInTheDocument();
-    expect(
-      screen.getByText(/The line is split where OtterMint cannot compare/)
-    ).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Normalized" })).not.toBeInTheDocument();
+    expect(screen.getByText(/The line is split where OtterMint cannot compare/)).toBeInTheDocument();
     expect(screen.getByText(/Coverage may have changed around this date/)).toBeInTheDocument();
   });
 
-  it("keeps every segmented metric on one unique chronological x-axis", async () => {
+  it("plots only net worth, with an area under observed stretches and a padded y-domain", () => {
+    render(<NetWorthChart history={response()} mode="normalized" normalizedAvailable onModeChange={() => {}} />);
+    const lines = screen.getAllByTestId("chart-line");
+    expect(lines.every((line) => line.getAttribute("data-key")!.startsWith("net_worth_"))).toBe(true);
+    const areas = screen.getAllByTestId("chart-area");
+    const estimated = lines.filter((line) => line.getAttribute("data-dash") === "6 4").map((l) => l.getAttribute("data-key"));
+    expect(areas.map((a) => a.getAttribute("data-key"))).not.toEqual(expect.arrayContaining(estimated));
+    const domain = JSON.parse(screen.getByTestId("chart-y-axis").getAttribute("data-domain")!);
+    expect(domain[0]).toBeGreaterThan(0);
+  });
+
+  it("keeps every segmented series on one unique chronological x-axis", () => {
     const base = response().snapshots[0];
-    const dates = [
-      "2026-07-04",
-      "2026-07-05",
-      "2026-07-06",
-      "2026-07-20",
-      "2026-07-23",
-    ];
-    vi.mocked(fetch).mockResolvedValueOnce({
-      ok: true,
-      json: async () =>
-        response({
-          snapshots: dates.map((date, index) => ({
-            ...base,
-            date,
-            totalAssets: `${580000 + index * 1000}.00`,
-            netWorth: `${580000 + index * 1000}.00`,
-            adjustedTotalAssets: null,
-            adjustedTotalLiabilities: null,
-            adjustedNetWorth: null,
-            quality: index === 0 ? "observed" : "unknown_coverage",
-            coverageSegment: index,
-            comparisonSegment: index,
-          })),
-          coverageEvents: dates.slice(1).map((date) => ({
-            date,
-            kind: "legacy_unknown" as const,
-            assetAdjustment: null,
-            liabilityAdjustment: null,
-            netWorthAdjustment: null,
-            sourceCount: null,
-            label: "Coverage may have changed around this date",
-          })),
-          periodChange: { reported: "4000.00", normalized: null },
-        }),
-    } as Response);
+    const dates = ["2026-07-04", "2026-07-05", "2026-07-06", "2026-07-20", "2026-07-23"];
+    const history = response({
+      snapshots: dates.map((date, index) => ({
+        ...base,
+        date,
+        totalAssets: `${580000 + index * 1000}.00`,
+        netWorth: `${580000 + index * 1000}.00`,
+        adjustedTotalAssets: null,
+        adjustedTotalLiabilities: null,
+        adjustedNetWorth: null,
+        quality: index === 0 ? "observed" : "unknown_coverage",
+        coverageSegment: index,
+        comparisonSegment: index,
+      })),
+      coverageEvents: dates.slice(1).map((date) => ({
+        date,
+        kind: "legacy_unknown" as const,
+        assetAdjustment: null,
+        liabilityAdjustment: null,
+        netWorthAdjustment: null,
+        sourceCount: null,
+        label: "Coverage may have changed around this date",
+      })),
+      periodChange: { reported: "4000.00", normalized: null },
+    });
+    render(<NetWorthChart history={history} mode="reported" normalizedAvailable={false} onModeChange={() => {}} />);
 
-    render(<NetWorthChart />);
-
-    const chart = await screen.findByTestId("line-chart");
     const chartData = JSON.parse(
-      chart.getAttribute("data-chart-data") ?? "[]"
+      screen.getByTestId("line-chart").getAttribute("data-chart-data") ?? "[]"
     ) as Array<{ date: string; timestamp: number }>;
-
-    expect(chartData).toHaveLength(dates.length);
     expect(chartData.map((point) => point.date)).toEqual(dates);
-    expect(new Set(chartData.map((point) => point.timestamp)).size).toBe(
-      dates.length
-    );
-    expect(screen.getByTestId("chart-x-axis")).toHaveAttribute(
-      "data-key",
-      "timestamp"
-    );
-    expect(screen.getByTestId("chart-x-axis")).toHaveAttribute(
-      "data-axis-type",
-      "number"
-    );
+    expect(new Set(chartData.map((point) => point.timestamp)).size).toBe(dates.length);
+    expect(screen.getByTestId("chart-x-axis")).toHaveAttribute("data-key", "timestamp");
+    expect(screen.getByTestId("chart-x-axis")).toHaveAttribute("data-axis-type", "number");
     const initialDimension = JSON.parse(
-      screen
-        .getByTestId("responsive-chart")
-        .getAttribute("data-initial-dimension") ?? "null"
+      screen.getByTestId("responsive-chart").getAttribute("data-initial-dimension") ?? "null"
     ) as { width: number; height: number } | null;
     expect(initialDimension?.width).toBeGreaterThan(0);
     expect(initialDimension?.height).toBeGreaterThan(0);
     const lines = screen.getAllByTestId("chart-line");
-    expect(
-      lines.every(
-        (line) => line.getAttribute("data-has-private-data") === "false"
-      )
-    ).toBe(true);
+    expect(lines.every((line) => line.getAttribute("data-has-private-data") === "false")).toBe(true);
     expect(
       lines.every((line) => {
         const dataKey = line.getAttribute("data-key");
-        return (
-          dataKey !== null &&
-          chartData.some(
-            (point) =>
-              typeof (point as Record<string, unknown>)[dataKey] === "number"
-          )
-        );
+        return dataKey !== null && chartData.some((point) => typeof (point as Record<string, unknown>)[dataKey] === "number");
       })
     ).toBe(true);
   });
 
-  it("keeps household annotations generic and refetches when groupId changes", async () => {
-    vi.mocked(fetch).mockResolvedValue({
-      ok: true,
-      json: async () =>
-        response({
-          snapshots: response().snapshots.map((point, index) => ({
-            ...point,
-            adjustedTotalAssets: null,
-            adjustedTotalLiabilities: null,
-            adjustedNetWorth: null,
-            quality: index === 1 ? "unknown_coverage" : "observed",
-            comparisonSegment: index,
-          })),
-          coverageEvents: [
-            {
-              date: "2026-07-05",
-              kind: "coverage_unknown",
-              assetAdjustment: null,
-              liabilityAdjustment: null,
-              netWorthAdjustment: null,
-              sourceCount: null,
-              label: "Household coverage changed",
-            },
-          ],
-          periodChange: { reported: "600000.00", normalized: null },
-        }),
-    } as Response);
-
-    const { rerender } = render(<NetWorthChart groupId="group-1" />);
-    expect(await screen.findByText(/Household coverage changed/)).toBeInTheDocument();
-    expect(screen.queryByText(/\$600,000\.00 first-known/)).not.toBeInTheDocument();
-
-    rerender(<NetWorthChart groupId="group-2" />);
-    await waitFor(() =>
-      expect(fetch).toHaveBeenCalledWith("/api/groups/group-2/net-worth?days=90")
+  it("keeps household annotations generic", () => {
+    render(
+      <NetWorthChart
+        history={unknownCoverage("Household coverage changed", "coverage_unknown")}
+        mode="reported"
+        normalizedAvailable={false}
+        onModeChange={() => {}}
+        isHousehold
+      />
     );
+    expect(screen.getByText(/Household coverage changed/)).toBeInTheDocument();
+    expect(screen.queryByText(/first-known/)).not.toBeInTheDocument();
   });
-});
 
-
-it("labels and dashes reconstructed values and allows requesting a full year", async () => {
-  vi.stubGlobal("fetch", vi.fn().mockResolvedValue({
-    ok: true, json: async () => response({
+  it("labels and dashes reconstructed values and discloses their sources", () => {
+    const history = response({
       snapshots: response().snapshots.map((point) => ({
-        ...point, quality: "reconstructed", reconstructionNotes: "Card value carried from its prior statement.",
-        coverageSegment: 0, comparisonSegment: 0,
-      })), coverageEvents: [], periodChange: { reported: "0.00", normalized: null },
-    }),
-  }));
-  try {
-    render(<NetWorthChart />);
-    expect(await screen.findByText(/Dashed historical values are reconstructed estimates/)).toBeInTheDocument();
+        ...point,
+        quality: "reconstructed",
+        reconstructionNotes: "Card value carried from its prior statement.",
+        coverageSegment: 0,
+        comparisonSegment: 0,
+      })),
+      coverageEvents: [],
+      periodChange: { reported: "0.00", normalized: null },
+    });
+    render(<NetWorthChart history={history} mode="reported" normalizedAvailable={false} onModeChange={() => {}} />);
+    expect(screen.getByText(/Dashed history is estimated from statements/)).toBeInTheDocument();
+    expect(screen.getByText(/Dashed historical values are reconstructed estimates/)).toBeInTheDocument();
     expect(screen.getAllByText(/Card value carried from its prior statement/)).toHaveLength(2);
     expect(screen.getAllByTestId("chart-line").every((line) => line.getAttribute("data-dash") === "6 4")).toBe(true);
-    fireEvent.click(screen.getByRole("button", { name: "1 year" }));
-    await waitFor(() => expect(fetch).toHaveBeenCalledWith("/api/net-worth?days=365"));
-  } finally { vi.unstubAllGlobals(); }
+    expect(screen.getByText("Estimated")).toBeInTheDocument();
+    expect(screen.queryByTestId("chart-area")).not.toBeInTheDocument();
+  });
 });

@@ -15,7 +15,8 @@ import { AccountsPanel } from "@/components/dashboard/AccountsPanel";
 import { TransactionsFeed } from "@/components/dashboard/TransactionsFeed";
 import { HoldingsPanel } from "@/components/dashboard/HoldingsPanel";
 import { ManualAccountsPanel } from "@/components/manual/ManualAccountsPanel";
-import { NetWorthChart } from "@/components/dashboard/NetWorthChart";
+import { NetWorthOverview } from "@/components/dashboard/NetWorthOverview";
+import { netWorthDaysForRange, todayUtc } from "@/lib/analytics-model";
 import { CashflowPanel } from "@/components/dashboard/CashflowPanel";
 import { InvestmentPerformancePanel } from "@/components/dashboard/InvestmentPerformancePanel";
 import { RefreshButton } from "@/components/dashboard/RefreshButton";
@@ -280,23 +281,19 @@ export default function Dashboard() {
 
     return (
       <div className="space-y-6 animate-fade-in">
-        <NetWorthCard
+        <NetWorthOverview
           accounts={visibleAccounts}
           manualAccounts={visibleManualAccounts}
-          label={isHousehold ? "Household Net Worth" : undefined}
+          days={netWorthDaysForRange("6M", todayUtc())}
+          groupId={isHousehold ? group?.id : undefined}
+          refreshKey={refreshKey}
         />
         {isHousehold ? (
-          <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-            <NetWorthChart refreshKey={refreshKey} groupId={group?.id} />
-            <div className="rounded-xl border border-dashed border-[var(--border)] bg-[var(--bg-secondary)] p-8 text-center text-sm text-[var(--text-muted)]">
-              Household spending analytics are not available yet.
-            </div>
+          <div className="rounded-xl border border-dashed border-[var(--border)] bg-[var(--bg-secondary)] p-8 text-center text-sm text-[var(--text-muted)]">
+            Household spending analytics are not available yet.
           </div>
         ) : (
-          <>
-            <NetWorthChart refreshKey={refreshKey} />
-            <CashflowPanel refreshKey={refreshKey} />
-          </>
+          <CashflowPanel refreshKey={refreshKey} />
         )}
       </div>
     );
