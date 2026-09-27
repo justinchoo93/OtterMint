@@ -1,5 +1,5 @@
 // @vitest-environment node
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const {
   mockGetUserId,
@@ -124,5 +124,38 @@ describe("coverage-aware net-worth routes", () => {
 
     expect(response.status).toBe(403);
     expect(mockBuildGroupHistory).not.toHaveBeenCalled();
+  });
+});
+
+describe("net-worth history range cap", () => {
+  function sinceFor(days: number): string {
+    const d = new Date();
+    d.setDate(d.getDate() - days);
+    return d.toISOString().split("T")[0];
+  }
+
+  beforeEach(() => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date("2026-09-26T12:00:00Z"));
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it("allows ten years of personal history for the All range and clamps beyond it", async () => {
+    await getPersonalHistory(new NextRequest("http://localhost/api/net-worth?days=3650"));
+    await getPersonalHistory(new NextRequest("http://localhost/api/net-worth?days=99999"));
+    const expected = sinceFor(3650);
+    expect(expected < "2016-10-01").toBe(true);
+    expect(mockBuildUserHistory.mock.calls[0][1]).toBe(expected);
+    expect(mockBuildUserHistory.mock.calls[1][1]).toBe(expected);
+  });
+
+  it("allows ten years of household history too", async () => {
+    await getGroupHistory(new NextRequest("http://localhost/api/groups/group-1/net-worth?days=3650"), {
+      params: Promise.resolve({ id: "group-1" }),
+    });
+    expect(mockBuildGroupHistory.mock.calls[0][1]).toBe(sinceFor(3650));
   });
 });

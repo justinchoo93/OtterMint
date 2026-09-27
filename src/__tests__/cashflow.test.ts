@@ -3,6 +3,7 @@ import {
   aggregateCashflow,
   classifyTransaction,
   labelForCategoryKey,
+  selectCashflowItems,
   type CashflowRow,
   type ClassifiableTransaction,
 } from "@/lib/cashflow";
@@ -495,5 +496,61 @@ describe("labelForCategoryKey", () => {
     expect(labelForCategoryKey("SOME_FUTURE_CATEGORY")).toBe(
       "Some Future Category"
     );
+  });
+});
+
+describe("selectCashflowItems", () => {
+  const restaurant = (date: string, amount: string, name: string) =>
+    row(date, { amount, name, category: "FOOD_AND_DRINK", categoryDetailed: "FOOD_AND_DRINK_RESTAURANTS" });
+  const rows: CashflowRow[] = [
+    restaurant("2026-07-03", "40.00", "Tacos"),
+    restaurant("2026-08-02", "120.50", "Sushi"),
+    restaurant("2026-08-20", "18.25", "Coffee"),
+    restaurant("2026-09-01", "60.00", "Ramen"),
+    { ...restaurant("2026-08-25", "33.00", "Pending Pizza"), pending: true },
+    row("2026-08-05", { amount: "350.00", category: "FOOD_AND_DRINK", categoryDetailed: "FOOD_AND_DRINK_GROCERIES", name: "Grocer" }),
+    row("2026-08-10", { amount: "1850.00", category: "LOAN_PAYMENTS", categoryDetailed: "LOAN_PAYMENTS_CREDIT_CARD_PAYMENT", name: "Card payment" }),
+    row("2026-08-15", { amount: "-4200.00", category: "INCOME", categoryDetailed: "INCOME_WAGES", name: "Payroll" }),
+    row("2026-08-16", { amount: "1000.00", category: "TRANSFER_OUT", categoryDetailed: "TRANSFER_OUT_INVESTMENT_AND_RETIREMENT_FUNDS", name: "Brokerage" }),
+  ];
+
+  it("filters by month range, flow and category, newest first", () => {
+    const result = selectCashflowItems(rows, {
+      from: "2026-08",
+      to: "2026-09",
+      flow: "spending",
+      categoryKeys: ["FOOD_AND_DRINK_RESTAURANTS"],
+      sort: "date",
+      limit: 200,
+    });
+    expect(result.items.map((i) => i.name)).toEqual(["Ramen", "Coffee", "Sushi"]);
+    expect(result.count).toBe(3);
+    expect(result.total).toBe("198.75");
+    expect(result.items[0]).toMatchObject({ amount: "60.00", categoryKey: "FOOD_AND_DRINK_RESTAURANTS" });
+  });
+
+  it("sorts by amount and counts and totals beyond the limit", () => {
+    const result = selectCashflowItems(rows, { from: "2026-07", to: "2026-09", flow: "spending", sort: "amount", limit: 2 });
+    expect(result.items.map((i) => i.name)).toEqual(["Grocer", "Sushi"]);
+    expect(result.count).toBe(5);
+    expect(result.total).toBe("588.75");
+  });
+
+  it("returns income display-signed positive and never returns internal rows", () => {
+    const income = selectCashflowItems(rows, { from: "2026-08", to: "2026-08", flow: "income", sort: "date", limit: 10 });
+    expect(income.items).toHaveLength(1);
+    expect(income.items[0]).toMatchObject({ name: "Payroll", amount: "4200.00" });
+    const all = ["income", "spending", "savings"] as const;
+    const names = all.flatMap((flow) =>
+      selectCashflowItems(rows, { from: "2026-01", to: "2026-12", flow, sort: "date", limit: 500 }).items.map((i) => i.name)
+    );
+    expect(names).not.toContain("Card payment");
+    expect(names).not.toContain("Pending Pizza");
+    expect(names).toContain("Brokerage");
+  });
+
+  it("treats month bounds as inclusive", () => {
+    const july = selectCashflowItems(rows, { from: "2026-07", to: "2026-07", flow: "spending", sort: "date", limit: 10 });
+    expect(july.items.map((i) => i.name)).toEqual(["Tacos"]);
   });
 });

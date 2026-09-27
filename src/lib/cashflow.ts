@@ -195,6 +195,26 @@ function monthWindow(today: string, months: number): string[] {
   return window;
 }
 
+function categoryKeyOf(row: CashflowRow): string {
+  return row.categoryDetailed ?? row.category ?? "UNCATEGORIZED";
+}
+
+/**
+ * Line item for a drilldown; displayCents carries the display sign (income
+ * received positive, spending and savings contributions positive, savings
+ * withdrawals and refunds negative).
+ */
+function toLineItem(row: CashflowRow, displayCents: number): CashflowLineItem {
+  return {
+    date: row.date,
+    amount: fromCents(displayCents),
+    name: row.name,
+    merchantName: row.merchantName,
+    categoryKey: categoryKeyOf(row),
+    accountName: row.accountName,
+  };
+}
+
 /**
  * Aggregate rows into per-month cash-flow totals for the last `months`
  * calendar months up to and including today's month (zero-filled, ascending).
@@ -230,17 +250,6 @@ export function aggregateCashflow(
     });
   }
 
-  // Line item for the drilldown; displayCents carries the display sign
-  // (income received positive, savings withdrawals negative).
-  const lineItem = (row: CashflowRow, displayCents: number): CashflowLineItem => ({
-    date: row.date,
-    amount: fromCents(displayCents),
-    name: row.name,
-    merchantName: row.merchantName,
-    categoryKey: row.categoryDetailed ?? row.category ?? "UNCATEGORIZED",
-    accountName: row.accountName,
-  });
-
   for (const row of rows) {
     if (row.pending) continue;
     const bucket = buckets.get(row.date.slice(0, 7));
@@ -252,14 +261,14 @@ export function aggregateCashflow(
     if (flow === "income") {
       // Inflows are negative in Plaid's convention; flip the sign.
       bucket.income += -cents;
-      bucket.incomeItems.push(lineItem(row, -cents));
+      bucket.incomeItems.push(toLineItem(row, -cents));
     } else if (flow === "savings") {
       // Signed sum: contributions (outflows) add, withdrawals subtract.
       bucket.savings += cents;
-      bucket.savingsItems.push(lineItem(row, cents));
+      bucket.savingsItems.push(toLineItem(row, cents));
     } else if (flow === "spending") {
       bucket.spending += cents;
-      const key = row.categoryDetailed ?? row.category ?? "UNCATEGORIZED";
+      const key = categoryKeyOf(row);
       const primary = primaryOf(row) ?? "UNCATEGORIZED";
       const entry = bucket.byCategory.get(key) ?? { primary, cents: 0 };
       entry.cents += cents;
@@ -293,6 +302,62 @@ export function aggregateCashflow(
         ),
     };
   });
+}
+
+export interface CashflowItemsOptions {
+  /** First month, "YYYY-MM", inclusive. */
+  from: string;
+  /** Last month, "YYYY-MM", inclusive. */
+  to: string;
+  flow: Exclude<FlowType, "internal">;
+  /** Keep only these category keys (categoryDetailed ?? category ?? "UNCATEGORIZED"). */
+  categoryKeys?: string[];
+  /** "date": newest first; "amount": largest display amount first. */
+  sort: "date" | "amount";
+  limit: number;
+}
+
+export interface CashflowItemsResult {
+  items: CashflowLineItem[];
+  /** Every matching row, before the limit. */
+  count: number;
+  /** Sum of every matching row's display amount, before the limit. */
+  total: string;
+}
+
+/**
+ * The line items behind one flow for a month range, for the Analytics
+ * details panel. Uses the same classification and display signs as
+ * aggregateCashflow, so a category's items sum to its category total.
+ */
+export function selectCashflowItems(
+  rows: CashflowRow[],
+  options: CashflowItemsOptions
+): CashflowItemsResult {
+  const keys = options.categoryKeys ? new Set(options.categoryKeys) : null;
+  const matches: Array<{ item: CashflowLineItem; cents: number }> = [];
+  for (const row of rows) {
+    if (row.pending) continue;
+    const month = row.date.slice(0, 7);
+    if (month < options.from || month > options.to) continue;
+    if (classifyTransaction(row) !== options.flow) continue;
+    if (keys && !keys.has(categoryKeyOf(row))) continue;
+    const cents = toCents(row.amount);
+    const displayCents = options.flow === "income" ? -cents : cents;
+    matches.push({ item: toLineItem(row, displayCents), cents: displayCents });
+  }
+
+  matches.sort((a, b) =>
+    options.sort === "amount"
+      ? b.cents - a.cents || b.item.date.localeCompare(a.item.date)
+      : b.item.date.localeCompare(a.item.date) || a.item.name.localeCompare(b.item.name)
+  );
+
+  return {
+    items: matches.slice(0, options.limit).map((m) => m.item),
+    count: matches.length,
+    total: fromCents(matches.reduce((sum, m) => sum + m.cents, 0)),
+  };
 }
 
 // Explicit labels where mechanical prettifying reads badly. Extend as real

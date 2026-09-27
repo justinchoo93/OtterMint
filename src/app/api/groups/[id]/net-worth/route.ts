@@ -16,7 +16,7 @@ export async function GET(
 
     const { searchParams } = new URL(request.url);
     const parsedDays = parseInt(searchParams.get("days") ?? "90", 10);
-    const days = Number.isNaN(parsedDays) || parsedDays < 1 ? 90 : Math.min(parsedDays, 365);
+    const days = Number.isNaN(parsedDays) || parsedDays < 1 ? 90 : Math.min(parsedDays, 3650);
 
     const sinceDate = new Date();
     sinceDate.setDate(sinceDate.getDate() - days);
