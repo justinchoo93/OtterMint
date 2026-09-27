@@ -27,11 +27,11 @@ The approved visual design is a private design canvas at https://claude.ai/artif
 - [x] (2026-09-27 16:10Z) User approved the app-wide theme, added a baseline design system to scope, asked for all pending work to be committed first, and authorized running the plan end to end including deploy.
 - [x] (2026-09-27 16:20Z) Created branch `feat/analytics-redesign` from `origin/main` (42e6e91) and committed the pending work: the River category rule (4c59049), this plan with the records-backfill checklist (26f62bb), and an ignore rule for `.playwright-mcp/` (328125a). Working tree clean.
 - [x] (2026-09-27 21:55Z) Milestone 1: design-system foundation and shell adoption. Tokens and fonts (a99df32), primitives, gallery and guide (bb948c6), shell adoption (26f5365). 407 tests pass; `tsc` clean; lint unchanged; `npm run build` passes and serves `/design-system` as a 404 in production. Gallery and Dashboard verified in the browser harness.
-- [ ] Milestone 2: pure analytics model and formatting helpers, test-first.
-- [ ] Milestone 3: spending line-items API route and the longer net-worth range.
-- [ ] Milestone 4: net-worth hero and restyled single-line chart.
-- [ ] Milestone 5: filter row, stat tiles, cash-flow chart and category list wired into the page; old cash-flow panel removed.
-- [ ] Milestone 6: details panel.
+- [x] (2026-09-27 22:00Z) Milestone 2: pure analytics model and formatting helpers, test-first (a065295). Tests failed first; 30 model tests plus formatter and totals tests pass.
+- [x] (2026-09-27 22:05Z) Milestone 3: items route with validation, shared `toLineItem`, `selectCashflowItems`, and the 3650-day cap (cf1fe86).
+- [x] (2026-09-27 22:25Z) Milestone 4: net-worth hero and restyled chart (5882403). The approved mock is committed as static renders under `docs/design/analytics-redesign/` (b201dd1, 1dda08d), and it is being compared in the browser as each part lands.
+- [x] (2026-09-27 22:50Z) Milestone 5: range control, stat tiles, diverging cash-flow chart, ranked categories; `CashflowPanel` removed (19200ed). `npm run build` passes.
+- [x] (2026-09-27 23:05Z) Milestone 6: details panel for every tile and category (73755b7). 471 tests pass.
 - [ ] Milestone 7: visual, accessibility and hygiene pass with the harness at desktop and phone widths.
 - [ ] Milestone 8: merge to main, deploy with the user's go-ahead, verify against production data.
 
@@ -68,6 +68,11 @@ The approved visual design is a private design canvas at https://claude.ai/artif
 - Observation: in Tailwind v4, unlayered CSS outranks utilities, so the global focus ring and cursor rule go inside `@layer base` where components can still override them.
 
 - Observation: `next build` and `next dev` can run at the same time; the dev server writes to `.next/dev`.
+
+- Observation: primitives append `className` without a class-merging utility, so an override such as `px-0` on a `Button` whose size sets `px-3` loses or wins depending on the order Tailwind emits them, not the class order. It squeezed the close icon to 6px wide. The fix is props that own those properties: `Button iconOnly`, `EmptyState compact`, `Skeleton radius`. The guide now states the rule.
+  Evidence: the rendered close button measured `svg: [6, 16]` before the fix and `[16, 16]` after.
+
+- Observation: a stretch of `flat_normalized` points is drawn dashed and without the area wash, because an estimated series gets no area. That leaves a visible notch in the wash before an account-connection date. This is the established honesty rule, not a layout bug.
 
 - Observation: the local `main` branch is stale at 513a880, while `origin/main` equals the current branch tip 42e6e91. Start work from `origin/main`, not local `main`.
 
