@@ -1,6 +1,6 @@
 import React from "react";
 import "@testing-library/jest-dom/vitest";
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("recharts", () => {
@@ -125,22 +125,19 @@ describe("NetWorthOverview", () => {
     expect(screen.getAllByText("Household net worth").length).toBeGreaterThan(0);
   });
 
-  it("lets the reader switch to Reported when normalization exists", async () => {
+  it("measures the headline within the normalized stretch without offering a mode toggle", async () => {
     stubHistory([
       point("2026-07-01", 0, { quality: "flat_normalized", coverageSegment: 0, comparisonSegment: 0, adjustedNetWorth: "600000.00" }),
       point("2026-07-05", 600000, { coverageSegment: 1, comparisonSegment: 0 }),
       point("2026-07-06", 601000, { coverageSegment: 1, comparisonSegment: 0 }),
     ]);
     render(<NetWorthOverview accounts={ACCOUNTS} manualAccounts={[]} days={87} />);
-    const normalized = await screen.findByRole("button", { name: "Normalized" });
-    expect(normalized).toHaveAttribute("aria-pressed", "true");
-    expect(screen.getByText("since Jul 1")).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: "Reported" }));
-    expect(screen.getByRole("button", { name: "Reported" })).toHaveAttribute("aria-pressed", "true");
-    expect(screen.getByText("since Jul 5")).toBeInTheDocument();
+    expect(await screen.findByText("since Jul 1")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Normalized" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Reported" })).not.toBeInTheDocument();
   });
 
-  it("opens in Reported and says why when the balances contradict an account change", async () => {
+  it("falls back to the reported stretch when the balances contradict an account change", async () => {
     const lifted = (date: string, raw: number) =>
       point(date, raw, {
         quality: "flat_normalized",
@@ -156,12 +153,9 @@ describe("NetWorthOverview", () => {
       point("2026-09-26", 697766, { coverageSegment: 8, comparisonSegment: 6 }),
     ]);
     render(<NetWorthOverview accounts={ACCOUNTS} manualAccounts={[]} days={87} />);
-    const reported = await screen.findByRole("button", { name: "Reported" });
-    expect(reported).toHaveAttribute("aria-pressed", "true");
-    expect(screen.getByText(/Normalized values may be wrong around Sep 5:/)).toBeInTheDocument();
-    expect(screen.getByText("since Sep 5")).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: "Normalized" }));
-    expect(screen.getByRole("button", { name: "Normalized" })).toHaveAttribute("aria-pressed", "true");
+    expect(await screen.findByText("since Sep 5")).toBeInTheDocument();
+    expect(screen.queryByText(/Normalized values may be wrong/)).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Normalized" })).not.toBeInTheDocument();
   });
 
   it("shows an error line when history fails to load", async () => {

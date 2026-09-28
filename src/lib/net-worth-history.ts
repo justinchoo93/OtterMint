@@ -198,7 +198,11 @@ export function normalizeNetWorthHistory<T extends CanonicalSnapshot>(input: {
   events: CoverageEventInput[];
   possibleLegacyBoundaries?: string[];
 }): CoverageAdjustedHistory<T> {
-  const snapshots = [...input.snapshots].sort((a, b) => a.date.localeCompare(b.date));
+  // A snapshot with no balances at all (the one written at signup, before any
+  // account is linked) is not an observation.
+  const snapshots = input.snapshots
+    .filter((snapshot) => money(snapshot.totalAssets) !== 0 || money(snapshot.totalLiabilities) !== 0)
+    .sort((a, b) => a.date.localeCompare(b.date));
   const events = [...input.events].sort((a, b) =>
     a.effectiveDate.localeCompare(b.effectiveDate)
   );

@@ -7,13 +7,11 @@ import {
   ComposedChart,
   Line,
   ReferenceDot,
-  ReferenceLine,
   ResponsiveContainer,
   Tooltip,
   XAxis,
   YAxis,
 } from "recharts";
-import { LegendKey, SegmentedControl } from "@/components/ui";
 import { formatCompactCurrency, formatCurrency } from "@/lib/format";
 import { monthAxisLabel, monthShortLabel, netWorthScale } from "@/lib/analytics-model";
 import type {
@@ -30,36 +28,18 @@ export interface NetWorthHistory {
   } | null;
 }
 
-export type ChartMode = "normalized" | "reported";
-
 interface NetWorthChartProps {
   history: NetWorthHistory;
-  /** The mode actually shown (Reported whenever Normalized is unavailable). */
-  mode: ChartMode;
-  normalizedAvailable: boolean;
-  onModeChange: (mode: ChartMode) => void;
-  /** Account changes whose normalization the balances contradict. */
-  contradictedDates?: string[];
   isHousehold?: boolean;
-}
-
-interface LineSeries {
-  id: string;
-  estimated: boolean;
-  points: Array<{ date: string; value: number }>;
 }
 
 interface ChartDatum {
   date: string;
   timestamp: number;
-  [key: string]: string | number | null;
+  netWorth: number;
 }
 
 const LINE_COLOR = "var(--accent-mint)";
-const MODE_OPTIONS = [
-  { value: "normalized", label: "Normalized" },
-  { value: "reported", label: "Reported" },
-] as const;
 
 function dateTimestamp(dateStr: string): number {
   return Date.parse(`${dateStr}T00:00:00Z`);
@@ -82,12 +62,6 @@ function formatDateLabel(dateStr: string, withYear = false): string {
   });
 }
 
-/** "Aug 13", "Aug 13 and Sep 5", "Jul 4, Aug 13 and Sep 5". */
-function listDates(labels: string[]): string {
-  if (labels.length <= 1) return labels.join("");
-  return `${labels.slice(0, -1).join(", ")} and ${labels[labels.length - 1]}`;
-}
-
 /** Consecutive reconstructed points that share a note, as one dated range each. */
 function groupReconstructionNotes(
   points: NetWorthSnapshotRow[]
@@ -100,96 +74,6 @@ function groupReconstructionNotes(
     else groups.push({ from: point.date, to: point.date, note });
   }
   return groups;
-}
-
-function groupBySegment(
-  snapshots: NetWorthSnapshotRow[],
-  segmentKey: "coverageSegment" | "comparisonSegment"
-): NetWorthSnapshotRow[][] {
-  const groups = new Map<number, NetWorthSnapshotRow[]>();
-  for (const snapshot of snapshots) {
-    const points = groups.get(snapshot[segmentKey]) ?? [];
-    points.push(snapshot);
-    groups.set(snapshot[segmentKey], points);
-  }
-  return [...groups.values()];
-}
-
-/**
- * Net-worth line series: one per coverage segment in Reported mode; in
- * Normalized mode one per comparison segment, split again wherever points
- * switch between observed and estimated so estimates can be dashed.
- */
-function buildLineSeries(snapshots: NetWorthSnapshotRow[], mode: ChartMode): LineSeries[] {
-  const series: LineSeries[] = [];
-
-  if (mode === "reported") {
-    groupBySegment(snapshots, "coverageSegment").forEach((segment, index) => {
-      series.push({
-        id: `net_worth_reported_${index}`,
-        estimated: segment.some((point) => point.quality === "reconstructed"),
-        points: segment.map((point) => ({
-          date: point.date,
-          value: Number.parseFloat(point.netWorth),
-        })),
-      });
-    });
-    return series;
-  }
-
-  groupBySegment(snapshots, "comparisonSegment").forEach((segment, segmentIndex) => {
-    let current: LineSeries | null = null;
-    for (const point of segment) {
-      if (point.adjustedNetWorth === null) {
-        current = null;
-        continue;
-      }
-      const estimated = point.quality === "flat_normalized" || point.quality === "reconstructed";
-      const linePoint = { date: point.date, value: Number.parseFloat(point.adjustedNetWorth) };
-      if (!current || current.estimated !== estimated) {
-        if (current && current.points.length > 0) {
-          // Share the transition point so dashed and solid portions meet.
-          current.points.push(linePoint);
-        }
-        current = {
-          id: `net_worth_normalized_${segmentIndex}_${series.length}`,
-          estimated,
-          points: [linePoint],
-        };
-        series.push(current);
-      } else {
-        current.points.push(linePoint);
-      }
-    }
-  });
-  return series;
-}
-
-function buildChartModel(
-  snapshots: NetWorthSnapshotRow[],
-  mode: ChartMode
-): { data: ChartDatum[]; series: LineSeries[] } {
-  const data = snapshots.map<ChartDatum>((point) => ({
-    date: point.date,
-    timestamp: dateTimestamp(point.date),
-  }));
-  const byDate = new Map(data.map((point) => [point.date, point]));
-  const series = buildLineSeries(snapshots, mode);
-  for (const line of series) {
-    for (const point of line.points) {
-      const row = byDate.get(point.date);
-      if (row) row[line.id] = point.value;
-    }
-  }
-  return { data, series };
-}
-
-function qualityLabel(point: NetWorthSnapshotRow, mode: ChartMode): string {
-  if (point.quality === "reconstructed") return "Reconstructed estimate";
-  if (mode === "reported") return "Reported observation";
-  if (point.quality === "flat_normalized") return "Flat normalization from first known balance";
-  if (point.quality === "unknown_coverage") return "Unknown coverage";
-  return "Observed";
 }
 
 /**
@@ -223,77 +107,42 @@ function monthKeyOf(timestamp: number): string {
   return new Date(timestamp).toISOString().slice(0, 7);
 }
 
-export function NetWorthChart({
-  history,
-  mode,
-  normalizedAvailable,
-  onModeChange,
-  contradictedDates = [],
-  isHousehold = false,
-}: NetWorthChartProps) {
-  const chartModel = useMemo(() => buildChartModel(history.snapshots, mode), [history.snapshots, mode]);
+export function NetWorthChart({ history, isHousehold = false }: NetWorthChartProps) {
+  const data = useMemo<ChartDatum[]>(
+    () =>
+      history.snapshots.map((point) => ({
+        date: point.date,
+        timestamp: dateTimestamp(point.date),
+        netWorth: Number.parseFloat(point.netWorth),
+      })),
+    [history.snapshots]
+  );
 
-  const values = chartModel.series.flatMap((s) => s.points.map((p) => p.value));
-  const { domain, ticks: yTicks } = netWorthScale(values);
-  const latestEvent = history.coverageEvents.at(-1);
-  const timestamps = chartModel.data.map((d) => d.timestamp);
+  const { domain, ticks: yTicks } = netWorthScale(data.map((d) => d.netWorth));
+  const timestamps = data.map((d) => d.timestamp);
   const minTs = Math.min(...timestamps);
   const maxTs = Math.max(...timestamps);
   const axis = timestamps.length > 1 ? monthTicks(minTs, maxTs) : null;
-  const hasEstimates = chartModel.series.some((s) => s.estimated);
-  const hasEvents = history.coverageEvents.length > 0;
-  const hasUnknownCoverage = history.coverageEvents.some((e) => e.kind !== "captured_addition");
   const reconstructedPoints = history.snapshots.filter((point) => point.reconstructionNotes);
   const noteGroups = groupReconstructionNotes(reconstructedPoints);
   const firstDate = history.snapshots[0]?.date ?? "";
   const lastDate = history.snapshots.at(-1)?.date ?? "";
   const withYear = firstDate.slice(0, 4) !== lastDate.slice(0, 4);
-  const lastSeries = chartModel.series.at(-1);
-  const lastPoint = lastSeries?.points.at(-1);
-  const eventTick = (domain[1] - domain[0]) * 0.12;
-
-  const showNotes =
-    reconstructedPoints.length > 0 || normalizedAvailable || hasUnknownCoverage || hasEvents;
+  const lastPoint = data.at(-1);
+  const showNotes = reconstructedPoints.length > 0 || history.coverageEvents.length > 0;
 
   return (
     <div className="flex min-w-0 flex-col">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
-          <LegendKey color={LINE_COLOR} shape="line">
-            Observed
-          </LegendKey>
-          {hasEstimates && (
-            <LegendKey color={LINE_COLOR} shape="dashed-line">
-              Estimated
-            </LegendKey>
-          )}
-          {hasEvents && (
-            <LegendKey color="var(--text-muted)" shape="dot">
-              Account change
-            </LegendKey>
-          )}
-        </div>
-        {normalizedAvailable && (
-          <SegmentedControl
-            ariaLabel="Net worth history mode"
-            size="sm"
-            options={MODE_OPTIONS}
-            value={mode}
-            onChange={onModeChange}
-          />
-        )}
-      </div>
-
       {history.snapshots.length < 2 && (
-        <p className="mt-3 text-xs text-ink-muted">
+        <p className="mb-3 text-xs text-ink-muted">
           Not enough history in this range. Try a longer range.
         </p>
       )}
 
-      <div className="mt-3 h-[176px] sm:h-[232px]">
+      <div className="h-[176px] sm:h-[232px]">
         <ResponsiveContainer width="100%" height="100%" initialDimension={{ width: 640, height: 232 }}>
           <ComposedChart
-            data={chartModel.data}
+            data={data}
             margin={{ top: 8, right: 52, bottom: 0, left: 0 }}
             title={isHousehold ? "Household net worth over time" : "Net worth over time"}
             desc="Use the left and right arrow keys to read values by date."
@@ -328,113 +177,51 @@ export function NetWorthChart({
               cursor={{ stroke: "var(--chart-muted-line)", strokeWidth: 1 }}
               content={({ active, label }) => {
                 if (!active || label === undefined) return null;
-                const chartPoint = chartModel.data.find((c) => c.timestamp === Number(label));
-                const point = history.snapshots.find((s) => s.date === chartPoint?.date);
+                const datum = data.find((d) => d.timestamp === Number(label));
+                const point = history.snapshots.find((s) => s.date === datum?.date);
                 if (!point) return null;
-                const useAdjusted = mode === "normalized";
                 return (
-                  <div className="max-w-xs rounded-control border border-line bg-surface-raised px-3 py-2.5 text-xs text-ink shadow-popover">
+                  <div className="rounded-control border border-line bg-surface-raised px-3 py-2 text-xs text-ink shadow-popover">
                     <div className="text-ink-secondary">{formatDateLabel(point.date)}</div>
-                    <div className="mt-0.5 text-[15px] font-semibold">
-                      {formatCurrency(useAdjusted ? point.adjustedNetWorth : point.netWorth)}
-                    </div>
-                    <div className="mt-0.5 text-ink-muted">{qualityLabel(point, mode)}</div>
-                    {point.reconstructionNotes && <p className="mt-1.5">{point.reconstructionNotes}</p>}
-                    <div className="mt-2 space-y-0.5 font-mono tabular-nums text-ink-secondary">
-                      <div>
-                        Assets {formatCurrency(useAdjusted ? point.adjustedTotalAssets : point.totalAssets)}
-                      </div>
-                      <div>
-                        Liabilities{" "}
-                        {formatCurrency(useAdjusted ? point.adjustedTotalLiabilities : point.totalLiabilities)}
-                      </div>
-                    </div>
+                    <div className="mt-0.5 text-[15px] font-semibold">{formatCurrency(point.netWorth)}</div>
+                    {point.quality === "reconstructed" && <div className="mt-0.5 text-ink-muted">Estimate</div>}
                   </div>
                 );
               }}
             />
-            {chartModel.series
-              .filter((series) => !series.estimated)
-              .map((series) => (
-                <Area
-                  key={`${series.id}-area`}
-                  type="linear"
-                  dataKey={series.id}
-                  stroke="none"
-                  fill={LINE_COLOR}
-                  fillOpacity={0.1}
-                  baseValue={domain[0]}
-                  connectNulls={false}
-                  isAnimationActive={false}
-                  activeDot={false}
-                  tooltipType="none"
-                />
-              ))}
-            {history.coverageEvents.map((event, index) => (
-              <ReferenceLine
-                key={`${event.kind}-${event.date}-${index}`}
-                segment={[
-                  { x: dateTimestamp(event.date), y: domain[0] },
-                  { x: dateTimestamp(event.date), y: domain[0] + eventTick },
-                ]}
-                stroke="var(--text-muted)"
-                strokeOpacity={0.6}
-              />
-            ))}
-            {history.coverageEvents.map((event, index) => (
-              <ReferenceDot
-                key={`${event.kind}-${event.date}-${index}-dot`}
-                x={dateTimestamp(event.date)}
-                y={domain[0]}
-                r={3.5}
-                fill="var(--text-muted)"
-                stroke="var(--bg-secondary)"
-                strokeWidth={2}
-                label={
-                  // Only a lone account change gets an on-chart label (never on phones);
-                  // with several, the legend and "About this chart" explain the dots.
-                  history.coverageEvents.length === 1 && event === latestEvent
-                    ? {
-                        value: event.label,
-                        className: "hidden sm:inline",
-                        // Flip to the marker's left near the right edge so the label is never clipped.
-                        position:
-                          maxTs > minTs && (dateTimestamp(event.date) - minTs) / (maxTs - minTs) > 0.6 ? "left" : "right",
-                        offset: 8,
-                        fill: "var(--text-muted)",
-                        fontSize: 11,
-                      }
-                    : undefined
-                }
-              />
-            ))}
-            {chartModel.series.map((series) => (
-              <Line
-                key={series.id}
-                type="linear"
-                dataKey={series.id}
-                name="Net Worth"
-                stroke={LINE_COLOR}
-                strokeWidth={2}
-                strokeDasharray={series.estimated ? "6 4" : undefined}
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                dot={series.points.length === 1 ? { r: 3, fill: LINE_COLOR, strokeWidth: 0 } : false}
-                activeDot={{ r: 4, fill: LINE_COLOR, stroke: "var(--bg-secondary)", strokeWidth: 2 }}
-                connectNulls={false}
-                isAnimationActive={false}
-              />
-            ))}
+            <Area
+              type="linear"
+              dataKey="netWorth"
+              stroke="none"
+              fill={LINE_COLOR}
+              fillOpacity={0.1}
+              baseValue={domain[0]}
+              isAnimationActive={false}
+              activeDot={false}
+              tooltipType="none"
+            />
+            <Line
+              type="linear"
+              dataKey="netWorth"
+              name="Net Worth"
+              stroke={LINE_COLOR}
+              strokeWidth={2}
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              dot={data.length === 1 ? { r: 3, fill: LINE_COLOR, strokeWidth: 0 } : false}
+              activeDot={{ r: 4, fill: LINE_COLOR, stroke: "var(--bg-secondary)", strokeWidth: 2 }}
+              isAnimationActive={false}
+            />
             {lastPoint && (
               <ReferenceDot
-                x={dateTimestamp(lastPoint.date)}
-                y={lastPoint.value}
+                x={lastPoint.timestamp}
+                y={lastPoint.netWorth}
                 r={4}
                 fill={LINE_COLOR}
                 stroke="var(--bg-secondary)"
                 strokeWidth={2}
                 label={{
-                  value: formatCompactCurrency(lastPoint.value),
+                  value: formatCompactCurrency(lastPoint.netWorth),
                   position: "right",
                   offset: 8,
                   fill: "var(--text-primary)",
@@ -450,12 +237,11 @@ export function NetWorthChart({
       {showNotes && (
         <details className="group mt-3 text-xs text-ink-muted">
           <summary className="cursor-pointer list-none py-3.5 select-none hover:text-ink-secondary sm:py-0 [&::-webkit-details-marker]:hidden">
-            {reconstructedPoints.length > 0 ? "Dashed history is estimated from statements. " : ""}
             <span className="text-accent underline decoration-accent/40 underline-offset-2">About this chart</span>
           </summary>
           <div className="mt-2 space-y-1.5 leading-relaxed">
             {reconstructedPoints.length > 0 && (
-              <p>Dashed historical values are reconstructed estimates. Sources and assumptions:</p>
+              <p>Estimated values and how they were reconstructed from statements:</p>
             )}
             {noteGroups.map((group) => (
               <p key={group.from}>
@@ -465,32 +251,9 @@ export function NetWorthChart({
                 · {group.note}
               </p>
             ))}
-            {contradictedDates.length > 0 && (
-              <p>
-                Normalized values may be wrong around{" "}
-                {listDates(contradictedDates.map((d) => formatDateLabel(d, withYear)))}: an account change recorded
-                then does not match the balances (for example, a manual account re-created without the old one
-                being removed), so this chart opens in Reported.
-              </p>
-            )}
-            {normalizedAvailable && mode === "normalized" && (
-              <p>
-                Earlier values use first known balances for comparison; they are not
-                reconstructed account history.
-              </p>
-            )}
-            {hasUnknownCoverage && (
-              <p>The line is split where OtterMint cannot compare the same set of accounts.</p>
-            )}
             {history.coverageEvents.map((event, index) => (
               <p key={`description-${event.kind}-${event.date}-${index}`}>
                 {formatDateLabel(event.date, withYear)} · {event.label}
-                {!isHousehold && event.kind === "captured_addition" && event.netWorthAdjustment !== null && (
-                  <>
-                    : {formatCurrency(event.netWorthAdjustment)} first-known balance normalized out
-                    of change.
-                  </>
-                )}
               </p>
             ))}
           </div>

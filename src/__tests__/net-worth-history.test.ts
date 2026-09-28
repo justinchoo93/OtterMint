@@ -94,25 +94,40 @@ describe("coverage contributions", () => {
 });
 
 describe("normalizeNetWorthHistory", () => {
+  it("drops a snapshot with no balances at all, such as the one written at signup", () => {
+    const history = normalizeNetWorthHistory({
+      snapshots: [
+        snapshot("2026-07-04", "0.00", "0.00", null),
+        snapshot("2026-07-06", "586513.80", "299.69", "fp"),
+        snapshot("2026-07-09", "581472.85", "661.68", "fp"),
+      ],
+      events: [],
+    });
+
+    expect(history.snapshots.map((point) => point.date)).toEqual(["2026-07-06", "2026-07-09"]);
+    expect(history.snapshots.every((point) => point.quality === "observed" && point.coverageSegment === 0)).toBe(true);
+    expect(history.coverageEvents).toEqual([]);
+  });
+
   it("normalizes a captured existing asset without changing raw values", () => {
     const history = normalizeNetWorthHistory({
       snapshots: [
-        snapshot("2026-07-01", "0.00", "0.00", "before"),
-        snapshot("2026-07-05", "600000.00", "0.00", "after"),
+        snapshot("2026-07-01", "1000.00", "0.00", "before"),
+        snapshot("2026-07-05", "601000.00", "0.00", "after"),
       ],
       events: [event("2026-07-05", "600000.00")],
     });
 
     expect(history.snapshots[0]).toMatchObject({
-      netWorth: "0.00",
-      adjustedNetWorth: "600000.00",
+      netWorth: "1000.00",
+      adjustedNetWorth: "601000.00",
       quality: "flat_normalized",
       coverageSegment: 0,
       comparisonSegment: 0,
     });
     expect(history.snapshots[1]).toMatchObject({
-      netWorth: "600000.00",
-      adjustedNetWorth: "600000.00",
+      netWorth: "601000.00",
+      adjustedNetWorth: "601000.00",
       quality: "observed",
       coverageSegment: 1,
       comparisonSegment: 0,
@@ -188,8 +203,8 @@ describe("normalizeNetWorthHistory", () => {
   it("isolates a legacy same-day point instead of claiming an exact boundary", () => {
     const history = normalizeNetWorthHistory({
       snapshots: [
-        snapshot("2026-07-01", "0.00"),
-        snapshot("2026-07-05", "0.00"),
+        snapshot("2026-07-01", "1000.00"),
+        snapshot("2026-07-05", "1000.00"),
         snapshot("2026-07-10", "600000.00"),
       ],
       events: [],

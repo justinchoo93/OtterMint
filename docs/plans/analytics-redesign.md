@@ -188,6 +188,16 @@ The approved visual design is a private design canvas at https://claude.ai/artif
 
   Date/Author: 2026-09-28, Claude.
 
+- Decision: At the owner's request (2026-09-27: "I just want to see a simple line that shows my progress"), the net-worth chart is one continuous solid line of reported values. The Normalized/Reported toggle, the legend, the dashed estimate styling, the gaps between coverage segments and the account-change markers are gone. The tooltip shows only the date, the value and an "Estimate" tag on reconstructed points. The estimate sources and the account-change dates stay under the collapsed "About this chart" disclosure. The hero is unchanged in substance: it still measures within the normalized stretch when the balances support it, otherwise within the reported stretch, but there is no longer a user-facing mode.
+  Rationale: the honesty machinery was correct but read as clutter, and the tooltip paragraphs made hovering useless. The y-axis had also opened at $0 not because of the scale (which hugs the data) but because of two setup-day snapshots: Jul 4 (every total zero, written four minutes after signup, id 1) and Jul 5 (a half-synced 402,791.26 against 586,513.80 the next day, id 3). Both rows were deleted with the owner's approval, rehearsed first in a rolled-back transaction (DELETE 1 twice), and `normalizeNetWorthHistory` now drops any snapshot whose assets and liabilities are both zero, because the other production user has the same signup-day rows.
+  Undo (run in `ottermint-db-1` as postgres):
+
+      INSERT INTO user_net_worth_snapshots (id, user_id, date, total_assets, total_liabilities, net_worth, depository_total, credit_total, investment_total, loan_total, manual_assets_total, manual_liabilities_total, created_at, coverage_fingerprint, reconstruction_notes) VALUES
+        (1, 'a125daba-7942-4c0b-878d-3b787f636fe9', '2026-07-04', 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, '2026-07-04T21:24:58.619319+00:00', NULL, NULL),
+        (3, 'a125daba-7942-4c0b-878d-3b787f636fe9', '2026-07-05', 403005.41, 214.15, 402791.26, 11994.58, 214.15, 391010.83, 0.00, 0.00, 0.00, '2026-07-05T04:49:24.835598+00:00', NULL, NULL);
+
+  Date/Author: 2026-09-27, Claude.
+
 ## Outcomes & Retrospective
 
 Implementation (Milestones 1–7) is complete on `feat/analytics-redesign` as of 2026-09-28. The Analytics destination now leads with a net-worth hero whose change is always measured over a comparable stretch and labeled with its start date. One range control scopes everything, and cash flow is fetched once and sliced client-side. Stat tiles show comparisons only when real history covers the prior period. The diverging cash-flow chart doubles as a month filter, categories are ranked with an Other fold, and a details panel explains every figure. A baseline design system underpins it: semantic tokens with a contrast-guard test, eight primitives, a development gallery, and a written guide. The whole app shares the new theme.

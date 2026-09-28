@@ -21,7 +21,8 @@ These differences come from real data or scope decisions recorded in the plan's 
 - Category bars are one color (the spending series) instead of a color per category, and there are no colored dots. Real detailed categories are open-ended.
 - The hero change reads "since <date>", measured within the latest comparable stretch of history, not "over 6 months".
 - The app shell keeps its header bar (page title, household switch, Refresh with "Updated … ago", Connect Account, avatar menu) and its sidebar without the mock's logo tile, "Settings" and "Personal plan" rows, and "Synced … · 9 accounts" subtitle. Phones keep the existing header (wordmark, title, then its buttons on a second row) and top navigation instead of the mock's large title and bottom tab bar.
-- On phones the Normalized/Reported toggle sits on its own row under the chart legend, and every control is at least 44px tall.
+- The net-worth chart is one solid line of reported values with no legend, Normalized/Reported toggle, dashed estimates or account-change markers, and its tooltip shows only the date, the value and an "Estimate" tag (owner's decision on 2026-09-27, in the plan's Decision Log).
+- Every control is at least 44px tall on phones.
 - Cash-flow gridline steps follow the data (for example $5k steps up to $15k) rather than the mock's fixed ±$10k.
 - With more than 12 months on screen (1Y, All), only a selected month carries value labels; hover, focus and the details panel carry the rest.
 - There are no "All categories" or "Open in Transactions" links; no destination supports those filters yet.

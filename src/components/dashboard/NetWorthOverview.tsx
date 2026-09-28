@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Card, DeltaIndicator, Skeleton } from "@/components/ui";
-import { NetWorthChart, type ChartMode, type NetWorthHistory } from "@/components/dashboard/NetWorthChart";
+import { NetWorthChart, type NetWorthHistory } from "@/components/dashboard/NetWorthChart";
 import { comparableChange, normalizationContradictions, sinceLabel, todayUtc } from "@/lib/analytics-model";
 import { formatSignedPercent, formatSignedWholeCurrency, formatWholeCurrency } from "@/lib/format";
 import { computeNetWorthTotals } from "@/lib/net-worth-totals";
@@ -32,8 +32,6 @@ export function NetWorthOverview({
   refreshKey,
 }: NetWorthOverviewProps) {
   const [state, setState] = useState<LoadState>({ status: "loading", history: null });
-  // null until the reader picks a mode; the default depends on the data.
-  const [mode, setMode] = useState<ChartMode | null>(null);
   const url = groupId
     ? `/api/groups/${groupId}/net-worth?days=${days}`
     : `/api/net-worth?days=${days}`;
@@ -73,9 +71,9 @@ export function NetWorthOverview({
     ) ??
       false);
   const contradictions = history && normalizedAvailable ? normalizationContradictions(history.snapshots) : [];
-  const defaultMode: ChartMode = contradictions.length > 0 ? "reported" : "normalized";
-  const activeMode: ChartMode = normalizedAvailable ? (mode ?? defaultMode) : "reported";
-  const change = history ? comparableChange(history.snapshots, activeMode) : null;
+  // The headline measures within the normalized stretch when the balances support it.
+  const changeMode = normalizedAvailable && contradictions.length === 0 ? "normalized" : "reported";
+  const change = history ? comparableChange(history.snapshots, changeMode) : null;
   const liabilityShare = totals.assets > 0 ? Math.round((totals.liabilities / totals.assets) * 100) : null;
   const assetShare =
     totals.assets + totals.liabilities > 0
@@ -117,14 +115,7 @@ export function NetWorthOverview({
           aria-busy={state.status === "loading"}
         >
           {history ? (
-            <NetWorthChart
-              history={history}
-              mode={activeMode}
-              normalizedAvailable={normalizedAvailable}
-              onModeChange={setMode}
-              contradictedDates={contradictions}
-              isHousehold={Boolean(groupId)}
-            />
+            <NetWorthChart history={history} isHousehold={Boolean(groupId)} />
           ) : state.status === "error" ? (
             <p className="text-caption text-ink-muted">Net worth history couldn&apos;t load. Try Refresh.</p>
           ) : (
