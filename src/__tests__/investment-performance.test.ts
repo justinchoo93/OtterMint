@@ -3,18 +3,12 @@ import {
   buildPortfolioSeries,
   computeAccountNetGains,
   computeAllocation,
-  computeAttribution,
-  computeDividends,
   computeUnrealized,
-  computeXirr,
-  extractInvestmentFlows,
   type AccountFeedRow,
   type AccountInfoRow,
   type AggregateRow,
   type CoverageEventRow,
   type HoldingRowInput,
-  type InvestmentFlow,
-  type InvestmentFlowRow,
 } from "@/lib/investment-performance";
 
 // ── Production-reality fixture (queried 2026-08-15) ─────────────────────────
@@ -42,12 +36,6 @@ const AGGREGATE: AggregateRow[] = [
 
 const EVENTS: CoverageEventRow[] = [
   { effectiveDate: "2026-08-13", assetAdjustment: "0.00" },
-];
-
-const FLOWS: InvestmentFlow[] = [
-  { date: "2026-07-07", kind: "contribution", cents: 200000 },
-  { date: "2026-07-16", kind: "contribution", cents: 400000 },
-  { date: "2026-07-31", kind: "contribution", cents: 250000 },
 ];
 
 describe("buildPortfolioSeries", () => {
@@ -83,163 +71,6 @@ describe("buildPortfolioSeries", () => {
     const brokerage = series.accounts.find((a) => a.accountId === "a")!;
     expect(brokerage.points.map((p) => p.date)).toEqual(["2026-08-15", "2026-08-16"]);
     expect(brokerage.points[0].value).toBe("45093.17");
-  });
-});
-
-describe("computeAttribution", () => {
-  it("reconciles the production fixture over the trusted window only", () => {
-    // Hand-computed: window Jul 23 → Aug 14.
-    //   start 452,791.71 · end 459,956.89
-    //   contributions in window: Jul 31 2,500 (Jul 7/16 are legacy, excluded)
-    //   coverage steps: Aug 13 boundary explained by a $0 event
-    //   market = 459,956.89 − 452,791.71 − 2,500 − 0 = +4,665.18
-    const attribution = computeAttribution(AGGREGATE, FLOWS, EVENTS)!;
-    expect(attribution).toMatchObject({
-      windowStart: "2026-07-23",
-      windowEnd: "2026-08-14",
-      start: "452791.71",
-      contributions: "2500.00",
-      withdrawals: "0.00",
-      coverageSteps: "0.00",
-      marketPnl: "4665.18",
-      end: "459956.89",
-    });
-    // The attribution identity holds exactly:
-    const sum =
-      Number(attribution.start) +
-      Number(attribution.contributions) -
-      Number(attribution.withdrawals) +
-      Number(attribution.marketPnl) +
-      Number(attribution.coverageSteps);
-    expect(sum.toFixed(2)).toBe(attribution.end);
-  });
-
-  it("returns null when no fingerprinted rows exist", () => {
-    const legacyOnly = AGGREGATE.filter((r) => r.coverageFingerprint === null);
-    expect(computeAttribution(legacyOnly, FLOWS, EVENTS)).toBeNull();
-  });
-
-  it("nulls market P&L when a boundary step has no explaining event", () => {
-    const attribution = computeAttribution(AGGREGATE, FLOWS, [])!;
-    expect(attribution.marketPnl).toBeNull();
-    expect(attribution.coverageSteps).toBe("0.00");
-  });
-
-  it("counts withdrawals against contributions, not market", () => {
-    const rows = [
-      agg("2026-01-01", "100000.00", "fp1"),
-      agg("2026-03-01", "95000.00", "fp1"),
-    ];
-    const flows: InvestmentFlow[] = [
-      { date: "2026-02-01", kind: "withdrawal", cents: 1000000 },
-    ];
-    const attribution = computeAttribution(rows, flows, [])!;
-    // 95,000 = 100,000 − 10,000 (withdrawal) + market → market = +5,000
-    expect(attribution.withdrawals).toBe("10000.00");
-    expect(attribution.marketPnl).toBe("5000.00");
-  });
-});
-
-describe("computeXirr", () => {
-  it("returns 10% for a one-year single-flow fixture", () => {
-    // −10,000 grows to 11,000 over exactly 365 days → 10.0% annualized.
-    const rate = computeXirr([], 10000, "2025-01-01", 11000, "2026-01-01");
-    expect(rate).not.toBeNull();
-    expect(rate!).toBeCloseTo(0.1, 4);
-  });
-
-  it("accounts for the timing of a mid-window contribution", () => {
-    const flows: InvestmentFlow[] = [
-      { date: "2025-07-02", kind: "contribution", cents: 100000 },
-    ];
-    // 10,000 start + 1,000 mid-year contribution → 11,550 end.
-    // The 550 gain on ~10.5k average capital ≈ 5%; must be far below the
-    // 15.5% a flow-blind calculation would report.
-    const rate = computeXirr(flows, 10000, "2025-01-01", 11550, "2026-01-01")!;
-    expect(rate).toBeGreaterThan(0.04);
-    expect(rate).toBeLessThan(0.06);
-  });
-
-  it("returns null for windows under 30 days", () => {
-    expect(computeXirr([], 10000, "2026-08-01", 10100, "2026-08-20")).toBeNull();
-  });
-
-  it("returns null when no rate in bounds fits", () => {
-    // 100 → 5,000 in one year is a 4,900% return, outside the 1,000% bound.
-    expect(computeXirr([], 100, "2025-01-01", 5000, "2026-01-01")).toBeNull();
-  });
-});
-
-describe("extractInvestmentFlows", () => {
-  function flowRow(overrides: Partial<InvestmentFlowRow>): InvestmentFlowRow {
-    return {
-      amount: "1000.00",
-      category: "TRANSFER_OUT",
-      categoryDetailed: "TRANSFER_OUT_INVESTMENT_AND_RETIREMENT_FUNDS",
-      accountType: "depository",
-      accountSubtype: "checking",
-      date: "2026-07-31",
-      pending: false,
-      ...overrides,
-    };
-  }
-
-  it("extracts contributions and withdrawals with positive magnitudes", () => {
-    const flows = extractInvestmentFlows([
-      flowRow({}),
-      flowRow({
-        date: "2026-06-02",
-        amount: "-22612.90",
-        category: "TRANSFER_IN",
-        categoryDetailed: "TRANSFER_IN_INVESTMENT_AND_RETIREMENT_FUNDS",
-      }),
-    ]);
-    expect(flows).toEqual([
-      { date: "2026-06-02", kind: "withdrawal", cents: 2261290 },
-      { date: "2026-07-31", kind: "contribution", cents: 100000 },
-    ]);
-  });
-
-  it("excludes pending rows and bank-savings transfers", () => {
-    const flows = extractInvestmentFlows([
-      flowRow({ pending: true }),
-      flowRow({ categoryDetailed: "TRANSFER_OUT_SAVINGS" }),
-    ]);
-    expect(flows).toEqual([]);
-  });
-});
-
-describe("computeDividends", () => {
-  const TODAY = "2026-08-15";
-
-  it("sums credited dividends by month with sign flipped, zero-filled", () => {
-    const dividends = computeDividends(
-      [
-        { date: "2026-08-01", amount: "-46.80", subtype: "dividend" },
-        { date: "2026-08-20", amount: "-12.20", subtype: "qualified dividend" },
-        { date: "2026-05-10", amount: "-30.00", subtype: "dividend" },
-        // reinvestment purchases and buys must not offset income:
-        { date: "2026-08-01", amount: "46.80", subtype: "dividend reinvestment" },
-        { date: "2026-08-02", amount: "500.00", subtype: "buy" },
-        // outside the trailing window:
-        { date: "2025-07-01", amount: "-99.00", subtype: "dividend" },
-      ],
-      TODAY
-    );
-
-    expect(dividends.trailingTwelveMonths).toBe("89.00");
-    expect(dividends.monthly).toHaveLength(12);
-    expect(dividends.monthly[0].month).toBe("2025-09");
-    const august = dividends.monthly.find((m) => m.month === "2026-08")!;
-    expect(august.total).toBe("59.00");
-    const may = dividends.monthly.find((m) => m.month === "2026-05")!;
-    expect(may.total).toBe("30.00");
-  });
-
-  it("returns a zero-filled year for no dividend rows", () => {
-    const dividends = computeDividends([], TODAY);
-    expect(dividends.trailingTwelveMonths).toBe("0.00");
-    expect(dividends.monthly.every((m) => m.total === "0.00")).toBe(true);
   });
 });
 

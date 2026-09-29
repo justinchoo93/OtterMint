@@ -16,7 +16,6 @@ import { HoldingsPanel } from "@/components/dashboard/HoldingsPanel";
 import { ManualAccountsPanel } from "@/components/manual/ManualAccountsPanel";
 import { AnalyticsView } from "@/components/dashboard/AnalyticsView";
 import { TrendsView } from "@/components/dashboard/TrendsView";
-import { InvestmentPerformancePanel } from "@/components/dashboard/InvestmentPerformancePanel";
 import { RefreshButton } from "@/components/dashboard/RefreshButton";
 import { PlaidLinkButton } from "@/components/plaid/PlaidLinkButton";
 import { AvatarMenu } from "@/components/auth/AvatarMenu";
@@ -253,10 +252,7 @@ export default function Dashboard() {
               Household investment holdings are not available yet.
             </div>
           ) : (
-            <>
-              <InvestmentPerformancePanel refreshKey={refreshKey} />
-              <HoldingsPanel refreshKey={refreshKey} />
-            </>
+            <HoldingsPanel refreshKey={refreshKey} />
           )}
         </div>
       );

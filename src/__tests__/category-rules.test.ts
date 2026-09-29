@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { applyCategoryRules } from "@/lib/category-rules";
 import { classifyTransaction } from "@/lib/cashflow";
-import { extractInvestmentFlows } from "@/lib/investment-performance";
 
 // The production shape that motivated the rule: a Chase manual brokerage
 // credit Plaid tags as contractor income. Negative amount = money arrived
@@ -65,11 +64,11 @@ describe("applyCategoryRules", () => {
     expect(classifyTransaction(applyCategoryRules(crBkrg))).toBe("savings");
   });
 
-  it("makes the corrected row extract as an investment withdrawal", () => {
-    expect(extractInvestmentFlows([crBkrg])).toEqual([]);
-    expect(extractInvestmentFlows([applyCategoryRules(crBkrg)])).toEqual([
-      { date: "2026-04-21", kind: "withdrawal", cents: 100000 },
-    ]);
+  it("routes the corrected row into the investment-withdrawal category", () => {
+    expect(crBkrg.categoryDetailed).not.toBe("TRANSFER_IN_INVESTMENT_AND_RETIREMENT_FUNDS");
+    const corrected = applyCategoryRules(crBkrg);
+    expect(corrected.categoryDetailed).toBe("TRANSFER_IN_INVESTMENT_AND_RETIREMENT_FUNDS");
+    expect(classifyTransaction(corrected)).toBe("savings");
   });
 });
 
@@ -120,7 +119,9 @@ describe("applyCategoryRules: River recurring buys", () => {
     expect(classifyTransaction(applyCategoryRules(riverBuy))).toBe("savings");
   });
 
-  it("does not extract the corrected row as an investment flow", () => {
-    expect(extractInvestmentFlows([applyCategoryRules(riverBuy)])).toEqual([]);
+  it("does not route the corrected row into an investment-fund category", () => {
+    const corrected = applyCategoryRules(riverBuy);
+    expect(corrected.categoryDetailed).not.toBe("TRANSFER_OUT_INVESTMENT_AND_RETIREMENT_FUNDS");
+    expect(corrected.categoryDetailed).not.toBe("TRANSFER_IN_INVESTMENT_AND_RETIREMENT_FUNDS");
   });
 });

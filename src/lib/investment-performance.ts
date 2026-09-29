@@ -4,7 +4,6 @@
 // snapshot rows without a coverage fingerprint (the "legacy" region), and a
 // fingerprint change is a measurement boundary, never market movement.
 
-import { classifyTransaction, type ClassifiableTransaction } from "@/lib/cashflow";
 
 export type SeriesQuality = "legacy" | "known";
 
@@ -24,11 +23,6 @@ export interface AccountSnapshotRow {
 export interface CoverageEventRow {
   effectiveDate: string;
   assetAdjustment: string;
-}
-
-export interface InvestmentFlowRow extends ClassifiableTransaction {
-  date: string;
-  pending: boolean;
 }
 
 export interface PortfolioSeriesPoint {
@@ -56,28 +50,6 @@ export interface PortfolioSeries {
   accounts: AccountSeries[];
 }
 
-export interface Attribution {
-  windowStart: string;
-  windowEnd: string;
-  start: string;
-  contributions: string;
-  withdrawals: string; // positive magnitude
-  /** Residual market P&L; null when a boundary step inside the window is unknown. */
-  marketPnl: string | null;
-  coverageSteps: string;
-  end: string;
-}
-
-export interface InvestmentFlow {
-  date: string;
-  kind: "contribution" | "withdrawal";
-  /** Positive cents magnitude. */
-  cents: number;
-}
-
-const CONTRIBUTION_DETAILED = "TRANSFER_OUT_INVESTMENT_AND_RETIREMENT_FUNDS";
-const WITHDRAWAL_DETAILED = "TRANSFER_IN_INVESTMENT_AND_RETIREMENT_FUNDS";
-
 function toCents(value: string | null | undefined): number {
   const parsed = Number.parseFloat(value ?? "0");
   if (!Number.isFinite(parsed)) return 0;
@@ -86,27 +58,6 @@ function toCents(value: string | null | undefined): number {
 
 function fromCents(cents: number): string {
   return (cents / 100).toFixed(2);
-}
-
-/**
- * Investment contributions/withdrawals from classified transactions: the
- * checking-side transfers the cash-flow classifier marks as savings, narrowed
- * to the investment-fund detailed categories (bank-savings moves excluded).
- */
-export function extractInvestmentFlows(rows: InvestmentFlowRow[]): InvestmentFlow[] {
-  const flows: InvestmentFlow[] = [];
-  for (const row of rows) {
-    if (row.pending) continue;
-    if (classifyTransaction(row) !== "savings") continue;
-    if (row.categoryDetailed === CONTRIBUTION_DETAILED) {
-      const cents = toCents(row.amount);
-      if (cents > 0) flows.push({ date: row.date, kind: "contribution", cents });
-    } else if (row.categoryDetailed === WITHDRAWAL_DETAILED) {
-      const cents = toCents(row.amount);
-      if (cents < 0) flows.push({ date: row.date, kind: "withdrawal", cents: -cents });
-    }
-  }
-  return flows.sort((a, b) => (a.date < b.date ? -1 : 1));
 }
 
 function boundaryBetween(prev: AggregateRow, current: AggregateRow): boolean {
@@ -182,183 +133,6 @@ export function buildPortfolioSeries(
   }
 
   return { points, boundaries, accounts: [...byAccount.values()] };
-}
-
-/**
- * Start → contributions → market → coverage → end, over the trusted window
- * (first fingerprinted row through the last row). Market P&L is the exact
- * residual; it is null when the window contains a fingerprint change whose
- * step no coverage event explains. Returns null when no trusted rows exist.
- */
-export function computeAttribution(
-  aggregateRows: AggregateRow[],
-  flows: InvestmentFlow[],
-  events: CoverageEventRow[]
-): Attribution | null {
-  const rows = aggregateRows
-    .filter((r) => r.investmentTotal !== null)
-    .sort((a, b) => (a.date < b.date ? -1 : 1));
-  const firstKnown = rows.findIndex((r) => r.coverageFingerprint !== null);
-  if (firstKnown === -1) return null;
-  const trusted = rows.slice(firstKnown);
-  if (trusted.length < 2) return null;
-
-  const windowStart = trusted[0].date;
-  const windowEnd = trusted[trusted.length - 1].date;
-  const startCents = toCents(trusted[0].investmentTotal);
-  const endCents = toCents(trusted[trusted.length - 1].investmentTotal);
-
-  let coverageStepCents = 0;
-  let stepsKnown = true;
-  for (let i = 1; i < trusted.length; i++) {
-    if (!boundaryBetween(trusted[i - 1], trusted[i])) continue;
-    const step = stepForGap(events, trusted[i - 1].date, trusted[i].date, true);
-    if (step === null) stepsKnown = false;
-    else coverageStepCents += toCents(step);
-  }
-
-  // Flows strictly after the start date (the start snapshot already contains
-  // that day's money) through the end date.
-  let contributionCents = 0;
-  let withdrawalCents = 0;
-  for (const flow of flows) {
-    if (flow.date <= windowStart || flow.date > windowEnd) continue;
-    if (flow.kind === "contribution") contributionCents += flow.cents;
-    else withdrawalCents += flow.cents;
-  }
-
-  const marketCents =
-    endCents - startCents - contributionCents + withdrawalCents - coverageStepCents;
-
-  return {
-    windowStart,
-    windowEnd,
-    start: fromCents(startCents),
-    contributions: fromCents(contributionCents),
-    withdrawals: fromCents(withdrawalCents),
-    marketPnl: stepsKnown ? fromCents(marketCents) : null,
-    coverageSteps: fromCents(coverageStepCents),
-    end: fromCents(endCents),
-  };
-}
-
-const MIN_XIRR_DAYS = 30;
-
-function daysBetween(a: string, b: string): number {
-  return (
-    (new Date(b + "T00:00:00Z").getTime() - new Date(a + "T00:00:00Z").getTime()) /
-    86400000
-  );
-}
-
-/**
- * Money-weighted annualized return. Convention: the start value is treated as
- * an outflow at windowStart, contributions as outflows on their dates,
- * withdrawals and the end value as inflows. Solved by bisection (cannot
- * diverge). Null for windows under 30 days (annualizing noise) or when no
- * rate in (-99.9%, +1000%) fits.
- */
-export function computeXirr(
-  flows: InvestmentFlow[],
-  startValue: number,
-  startDate: string,
-  endValue: number,
-  endDate: string
-): number | null {
-  const totalDays = daysBetween(startDate, endDate);
-  if (totalDays < MIN_XIRR_DAYS) return null;
-
-  const cashflows: Array<{ t: number; amount: number }> = [
-    { t: 0, amount: -startValue },
-    ...flows
-      .filter((f) => f.date > startDate && f.date <= endDate)
-      .map((f) => ({
-        t: daysBetween(startDate, f.date) / 365,
-        amount: f.kind === "contribution" ? -f.cents / 100 : f.cents / 100,
-      })),
-    { t: totalDays / 365, amount: endValue },
-  ];
-
-  const npv = (rate: number) =>
-    cashflows.reduce((sum, cf) => sum + cf.amount / Math.pow(1 + rate, cf.t), 0);
-
-  let lo = -0.999;
-  let hi = 10;
-  let npvLo = npv(lo);
-  const npvHi = npv(hi);
-  if (npvLo === 0) return lo;
-  if (npvHi === 0) return hi;
-  if (npvLo * npvHi > 0) return null; // no sign change: no solvable rate
-
-  for (let i = 0; i < 200; i++) {
-    const mid = (lo + hi) / 2;
-    const value = npv(mid);
-    if (Math.abs(value) < 1e-7 || hi - lo < 1e-9) return mid;
-    if (value * npvLo < 0) {
-      hi = mid;
-    } else {
-      lo = mid;
-      npvLo = value;
-    }
-  }
-  return (lo + hi) / 2;
-}
-
-export interface DividendRowInput {
-  date: string;
-  /** Plaid sign convention: dividends credit cash, so amounts are negative. */
-  amount: string;
-  subtype: string | null;
-}
-
-export interface Dividends {
-  trailingTwelveMonths: string;
-  monthly: Array<{ month: string; total: string }>;
-}
-
-// Cash dividend subtypes. "dividend reinvestment" is deliberately absent: it
-// is the purchase side of a reinvested dividend and would net the income
-// back toward zero.
-const DIVIDEND_SUBTYPES = new Set([
-  "dividend",
-  "qualified dividend",
-  "non-qualified dividend",
-]);
-
-/**
- * Dividend income by month over the trailing twelve calendar months up to
- * `today`, zero-filled. Income is the credited cash (sign flipped).
- */
-export function computeDividends(
-  rows: DividendRowInput[],
-  today: string
-): Dividends {
-  const year = Number.parseInt(today.slice(0, 4), 10);
-  const month = Number.parseInt(today.slice(5, 7), 10);
-  const window: string[] = [];
-  for (let i = 11; i >= 0; i--) {
-    const total = year * 12 + (month - 1) - i;
-    window.push(
-      `${Math.floor(total / 12)}-${String((total % 12) + 1).padStart(2, "0")}`
-    );
-  }
-
-  const byMonth = new Map<string, number>(window.map((m) => [m, 0]));
-  for (const row of rows) {
-    if (row.subtype === null || !DIVIDEND_SUBTYPES.has(row.subtype)) continue;
-    const bucket = row.date.slice(0, 7);
-    if (!byMonth.has(bucket)) continue;
-    byMonth.set(bucket, (byMonth.get(bucket) ?? 0) + -toCents(row.amount));
-  }
-
-  let trailing = 0;
-  const monthly = window.map((m) => {
-    const cents = byMonth.get(m) ?? 0;
-    trailing += cents;
-    return { month: m, total: fromCents(cents) };
-  });
-
-  return { trailingTwelveMonths: fromCents(trailing), monthly };
 }
 
 export interface HoldingRowInput {
@@ -665,8 +439,8 @@ export function computeAccountNetGains(
     }
 
     // Anchored windows count flows strictly after the anchor: the anchor
-    // snapshot already contains that day's money (same convention as
-    // computeAttribution).
+    // snapshot already contains that day's money (the same convention as the
+    // stretch summary in src/lib/investments-model.ts).
     const externals = rows.filter(isExternalFlow);
     const windowExternals =
       mode === "anchored"
