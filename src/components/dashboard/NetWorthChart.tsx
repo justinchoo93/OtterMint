@@ -13,7 +13,7 @@ import {
   YAxis,
 } from "recharts";
 import { formatCompactCurrency, formatCurrency } from "@/lib/format";
-import { monthAxisLabel, monthShortLabel, netWorthScale } from "@/lib/analytics-model";
+import { monthAxisLabel, monthKeyOf, monthShortLabel, monthTicks, netWorthScale } from "@/lib/analytics-model";
 import type {
   CoverageAnnotation,
   NetWorthSnapshotRow,
@@ -74,37 +74,6 @@ function groupReconstructionNotes(
     else groups.push({ from: point.date, to: point.date, note });
   }
   return groups;
-}
-
-/**
- * First-of-month ticks across the range; every third month on long ranges.
- * When the data starts within the first ten days of a month, the axis starts
- * on that month's first day so its label is shown.
- */
-function monthTicks(min: number, max: number): { ticks: number[]; dense: boolean; start: number } | null {
-  const first = new Date(min);
-  const monthStart = Date.UTC(first.getUTCFullYear(), first.getUTCMonth(), 1);
-  const start = min - monthStart <= 10 * 86_400_000 ? monthStart : min;
-  let year = first.getUTCFullYear();
-  let month = first.getUTCMonth() + (start === monthStart ? 0 : 1);
-  const ticks: number[] = [];
-  for (;;) {
-    const t = Date.UTC(year, month, 1);
-    if (t > max) break;
-    ticks.push(t);
-    month += 1;
-    if (month > 11) {
-      month = 0;
-      year += 1;
-    }
-  }
-  if (ticks.length < 2) return null;
-  const dense = ticks.length > 12;
-  return { ticks: dense ? ticks.filter((_, i) => i % 3 === 0) : ticks, dense, start };
-}
-
-function monthKeyOf(timestamp: number): string {
-  return new Date(timestamp).toISOString().slice(0, 7);
 }
 
 export function NetWorthChart({ history, isHousehold = false }: NetWorthChartProps) {

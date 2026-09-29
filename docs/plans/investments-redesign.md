@@ -16,7 +16,7 @@ A human can demonstrate the result by opening the app, choosing Investments, see
 
 - [x] (2026-09-29 19:10Z) Research complete: current panel, route and pure math read; design system, primitives and the analytics redesign's conventions read; production shape taken from the checked-in plans (four investment accounts, feed taxonomy, snapshot start dates, option quantity convention); Recharts 3.7's active-point hooks confirmed in `node_modules/recharts/types/index.d.ts`; baseline gate recorded under Concrete Steps.
 - [x] (2026-09-29 19:10Z) Milestone 0: the approved mock checked in under `docs/design/investments-redesign/` (boards, renders, README, render script). Plan written.
-- [ ] Milestone 1: pure model `src/lib/investments-model.ts` with `src/__tests__/investments-model.test.ts`, test-first.
+- [x] (2026-09-29 19:40Z) Milestone 1: `src/lib/investments-model.ts` (ranges, feed classification, stretches, modified-Dietz summary, holdings grouping and filtering, OCC parsing, axis ticks, allocation rows) with 19 tests in `src/__tests__/investments-model.test.ts`, written first and seen failing on the missing module; `monthTicks` and `monthKeyOf` lifted into `src/lib/analytics-model.ts` with `NetWorthChart` importing them. Suite 51 files / 509 tests passing.
 - [ ] Milestone 2: the investments route rewritten to the new response shape, the old performance panel and its test removed, route tests rewritten, retired math removed.
 - [ ] Milestone 3: `InvestmentsView` with the hero, chart, scrubbing and range control, wired above the existing holdings list.
 - [ ] Milestone 4: account tiles (the filter) and the four summary tiles.
