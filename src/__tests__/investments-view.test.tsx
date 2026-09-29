@@ -195,6 +195,15 @@ function requestedUrls(stub: FetchStub): string[] {
   return stub.mock.calls.map((call) => String(call[0]));
 }
 
+/** The hero card; the account tiles repeat its figures, so hero queries stay inside it. */
+function hero(): HTMLElement {
+  return screen.getByRole("region", { name: "Investments over time" });
+}
+
+function findHero(): Promise<HTMLElement> {
+  return screen.findByRole("region", { name: "Investments over time" });
+}
+
 beforeEach(() => {
   vi.useFakeTimers({ toFake: ["Date"] });
   vi.setSystemTime(new Date("2026-09-29T12:00:00Z"));
@@ -210,11 +219,11 @@ describe("InvestmentsView hero", () => {
   it("requests 90 days by default and shows the live value with its change since the trusted start", async () => {
     const stub = stubFetch(() => ok(fixture()));
     render(<InvestmentsView />);
-    expect(await screen.findByText("$391,405")).toBeInTheDocument();
+    expect(await within(await findHero()).findByText("$391,405")).toBeInTheDocument();
     expect(requestedUrls(stub)).toEqual(["/api/analytics/investments?days=90"]);
     expect(screen.getByText("Portfolio value")).toBeInTheDocument();
     // 391,404.58 − 386,000 = +5,404.58 (+1.4%), measured since the first fingerprinted point.
-    expect(screen.getByText("+$5,405 (+1.4%)")).toBeInTheDocument();
+    expect(within(hero()).getByText("+$5,405 (+1.4%)")).toBeInTheDocument();
     expect(screen.getByText("since Jul 23")).toBeInTheDocument();
     expect(screen.getByTestId("end-label")).toHaveTextContent("$391k");
   });
@@ -226,7 +235,7 @@ describe("InvestmentsView hero", () => {
       return ok(fixture());
     });
     render(<InvestmentsView />);
-    await screen.findByText("$391,405");
+    await within(await findHero()).findByText("$391,405");
     fireEvent.click(screen.getByRole("button", { name: "1M" }));
     await waitFor(() => expect(requestedUrls(stub)).toEqual(["/api/analytics/investments?days=90", "/api/analytics/investments?days=28"]));
     expect(screen.getByRole("button", { name: "1M" })).toHaveAttribute("aria-pressed", "true");
@@ -235,39 +244,117 @@ describe("InvestmentsView hero", () => {
       resolveSecond!(ok(fixture({ since: "2026-09-01" })));
     });
     await waitFor(() => expect(document.querySelector('[aria-busy="true"]')).toBeNull());
-    expect(screen.getByText("$391,405")).toBeInTheDocument();
+    expect(within(hero()).getByText("$391,405")).toBeInTheDocument();
   });
 
   it("follows the crosshair: the hero shows the hovered value, its change from the stretch start and the full date", async () => {
     stubFetch(() => ok(fixture()));
     render(<InvestmentsView />);
-    await screen.findByText("$391,405");
+    await within(await findHero()).findByText("$391,405");
     act(() => {
       activeHolder.set([{ timestamp: Date.parse("2026-08-14T00:00:00Z"), value: 388000, date: "2026-08-14", segment: 1 }]);
     });
-    expect(await screen.findByText("$388,000")).toBeInTheDocument();
+    expect(await within(hero()).findByText("$388,000")).toBeInTheDocument();
     expect(screen.getByText("+$2,000 (+0.5%)")).toBeInTheDocument();
     expect(screen.getByText("Aug 14, 2026")).toBeInTheDocument();
     // A legacy point before the trusted stretch shows its value but no change.
     act(() => {
       activeHolder.set([{ timestamp: Date.parse("2026-07-05T00:00:00Z"), value: 380000, date: "2026-07-05", segment: 0 }]);
     });
-    expect(await screen.findByText("$380,000")).toBeInTheDocument();
-    expect(screen.queryByText(/\(\+|\(-/)).toBeNull();
+    expect(await within(hero()).findByText("$380,000")).toBeInTheDocument();
+    expect(within(hero()).queryByText(/\(\+|\(-/)).toBeNull();
     act(() => {
       activeHolder.set(undefined);
     });
-    expect(await screen.findByText("$391,405")).toBeInTheDocument();
+    expect(await within(await findHero()).findByText("$391,405")).toBeInTheDocument();
     expect(screen.getByText("since Jul 23")).toBeInTheDocument();
   });
 
   it("explains the trusted-history rule and lists account-set changes in the window", async () => {
     stubFetch(() => ok(fixture()));
     render(<InvestmentsView />);
-    await screen.findByText("$391,405");
+    await within(await findHero()).findByText("$391,405");
     const details = screen.getByText("About this chart").closest("details")!;
     expect(within(details).getByText(/Before Jul 23, 2026 the set of accounts covered is unknown/)).toBeInTheDocument();
     expect(within(details).getByText("Jul 23 · account set changed")).toBeInTheDocument();
+  });
+
+  it("renders the account tiles with lifetime and anchored net-gain lines, All pressed", async () => {
+    stubFetch(() => ok(fixture()));
+    render(<InvestmentsView />);
+    await within(await findHero()).findByText("$391,405");
+    const group = screen.getByRole("group", { name: "Account filter" });
+    const tiles = within(group).getAllByRole("button");
+    expect(tiles).toHaveLength(5);
+    expect(tiles[0]).toHaveAttribute("aria-pressed", "true");
+    expect(within(tiles[0]).getByText("4 accounts · 2 with lifetime history")).toBeInTheDocument();
+    const individual = tiles.find((t) => within(t).queryByText("Charles Schwab Individual"))!;
+    expect(within(individual).getByText("+$12,515 lifetime on $35,000 in")).toBeInTheDocument();
+    expect(within(individual).getByText("····5111")).toBeInTheDocument();
+    // 44,000 → 47,514.67 over the window: +3,514.67 (+8.0%).
+    expect(within(individual).getByText("+$3,515 (+8.0%)")).toBeInTheDocument();
+    const chase = tiles.find((t) => within(t).queryByText("····6850"))!;
+    expect(within(chase).getByText("+$14,480 since Aug 15 · earlier history not visible")).toBeInTheDocument();
+  });
+
+  it("scopes the whole page to one account without a request", async () => {
+    const stub = stubFetch(() => ok(fixture()));
+    render(<InvestmentsView />);
+    await within(await findHero()).findByText("$391,405");
+    const group = screen.getByRole("group", { name: "Account filter" });
+    const roth = within(group).getAllByRole("button").find((t) => within(t).queryByText("····6093"))!;
+    fireEvent.click(roth);
+    expect(screen.getByText("Charles Schwab Roth IRA ····6093")).toBeInTheDocument();
+    expect(within(hero()).getByText("$12,449")).toBeInTheDocument();
+    expect(roth).toHaveAttribute("aria-pressed", "true");
+    // 13,000 → 12,449.31: −550.69 (−4.2%), since the account's first snapshot.
+    expect(screen.getByText("since Aug 15 · earliest history")).toBeInTheDocument();
+    expect(requestedUrls(stub)).toHaveLength(1);
+    fireEvent.click(within(group).getByRole("button", { name: /All accounts/ }));
+    expect(screen.getByText("Portfolio value")).toBeInTheDocument();
+  });
+
+  it("summarizes the range: market gain with its money-weighted return, contributions, income and unrealized gain", async () => {
+    stubFetch(() => ok(fixture()));
+    render(<InvestmentsView />);
+    await within(await findHero()).findByText("$391,405");
+    // Stretch +5,404.58 − net contributions 3,000 = market gain 2,404.58;
+    // denominator 386,000 − 2,000 × 57/68 + 5,000 × 14/68 = 385,352.94 → +0.6%.
+    const market = screen.getByText("Market gain").parentElement!;
+    expect(within(market).getByText("+$2,405")).toBeInTheDocument();
+    expect(within(market).getByText("+0.6% return")).toBeInTheDocument();
+    expect(within(market).getByText("money-weighted, this range")).toBeInTheDocument();
+    const contributions = screen.getByText("Net contributions").parentElement!;
+    expect(within(contributions).getByText("+$3,000")).toBeInTheDocument();
+    expect(within(contributions).getByText("1 deposit · 1 withdrawal")).toBeInTheDocument();
+    const income = screen.getByText("Dividends & interest").parentElement!;
+    expect(within(income).getByText("$558.47")).toBeInTheDocument();
+    expect(within(income).getByText("$1,624 trailing 12 months")).toBeInTheDocument();
+    const unrealized = screen.getByText("Unrealized gain").parentElement!;
+    expect(within(unrealized).getByText("+$34,373")).toBeInTheDocument();
+    expect(within(unrealized).getByText("+15.3% vs cost")).toBeInTheDocument();
+
+    const group = screen.getByRole("group", { name: "Account filter" });
+    fireEvent.click(within(group).getAllByRole("button").find((t) => within(t).queryByText("····6093"))!);
+    // Roth: 13,000 → 12,449.31 with no flows: −550.69 market gain, −4.2% return.
+    expect(within(screen.getByText("Market gain").parentElement!).getByText("-$551")).toBeInTheDocument();
+    expect(within(screen.getByText("Market gain").parentElement!).getByText("-4.2% return")).toBeInTheDocument();
+    expect(within(screen.getByText("Net contributions").parentElement!).getByText("0 deposits · 0 withdrawals")).toBeInTheDocument();
+    expect(within(screen.getByText("Dividends & interest").parentElement!).getByText("$12.00")).toBeInTheDocument();
+    expect(within(screen.getByText("Unrealized gain").parentElement!).getByText("-$124")).toBeInTheDocument();
+    expect(within(screen.getByText("Unrealized gain").parentElement!).getByText("-1.1% vs cost")).toBeInTheDocument();
+  });
+
+  it("withholds the return for a scope with a single snapshot", async () => {
+    const data = fixture();
+    data.accounts[1] = { ...data.accounts[1], points: [{ date: "2026-09-29", value: "18960.18" }] };
+    stubFetch(() => ok(data));
+    render(<InvestmentsView />);
+    await within(await findHero()).findByText("$391,405");
+    const group = screen.getByRole("group", { name: "Account filter" });
+    fireEvent.click(within(group).getAllByRole("button").find((t) => within(t).queryByText("····6940"))!);
+    expect(within(screen.getByText("Market gain").parentElement!).getByText("needs two days of history")).toBeInTheDocument();
+    expect(screen.getByText("Not enough history in this range. Try a longer range.")).toBeInTheDocument();
   });
 
   it("prompts to connect an account when there are none", async () => {

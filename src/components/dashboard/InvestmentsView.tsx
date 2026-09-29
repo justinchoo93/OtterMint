@@ -2,12 +2,16 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Card, EmptyState, Skeleton } from "@/components/ui";
+import { AccountTiles, type AccountTileData } from "@/components/dashboard/AccountTiles";
 import { InvestmentHero } from "@/components/dashboard/InvestmentHero";
+import { InvestmentSummaryTiles, type SummaryTileData } from "@/components/dashboard/InvestmentSummaryTiles";
 import { sinceLabel, todayUtc } from "@/lib/analytics-model";
 import { computeAllocation, computeUnrealized, type HoldingRowInput } from "@/lib/investment-performance";
+import { formatCurrency, formatSignedPercent, formatSignedWholeCurrency, formatWholeCurrency } from "@/lib/format";
 import {
   allocationRows,
   filterGroups,
+  formatShortDate,
   groupPositions,
   investmentDaysForRange,
   latestStretch,
@@ -35,6 +39,18 @@ const DAY = 86_400_000;
 function toNumber(value: string | null | undefined): number {
   const parsed = Number.parseFloat(value ?? "0");
   return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function plural(count: number, noun: string): string {
+  return `${count} ${noun}${count === 1 ? "" : "s"}`;
+}
+
+function signedDelta(amount: number, text: string) {
+  return {
+    direction: amount > 0 ? ("up" as const) : amount < 0 ? ("down" as const) : ("flat" as const),
+    tone: amount > 0 ? ("positive" as const) : amount < 0 ? ("negative" as const) : ("neutral" as const),
+    text,
+  };
 }
 
 export function accountLabelOf(data: InvestmentsResponse): (accountId: string) => string {
@@ -117,6 +133,77 @@ export function deriveScope(data: InvestmentsResponse, scope: Scope, filter: Hol
   };
 }
 
+/** One tile per account plus All, each with its value, change over the window and net-gain sentence. */
+export function accountTiles(data: InvestmentsResponse): AccountTileData[] {
+  const lifetimeCount = data.accounts.filter((a) => a.netGain.mode === "lifetime").length;
+  const all: AccountTileData = {
+    id: "all",
+    title: "All accounts",
+    mask: null,
+    value: data.accounts.reduce((t, a) => t + toNumber(a.balance), 0),
+    change: latestStretch(scopedSeries(data, "all")),
+    note: `${plural(data.accounts.length, "account")} · ${lifetimeCount} with lifetime history`,
+  };
+  const perAccount = data.accounts.map((account): AccountTileData => {
+    const gain = account.netGain;
+    let note: string;
+    if (gain.mode === "lifetime" && gain.gain !== null) {
+      note = `${formatSignedWholeCurrency(gain.gain)} lifetime on ${formatWholeCurrency(gain.netContributions)} in`;
+    } else if (gain.mode === "anchored" && gain.gain !== null && gain.startDate !== null) {
+      note = `${formatSignedWholeCurrency(gain.gain)} since ${formatShortDate(gain.startDate)} · earlier history not visible`;
+    } else {
+      note = "net gain not measurable yet";
+    }
+    return {
+      id: account.accountId,
+      title: `${account.institutionName} ${account.name}`,
+      mask: account.mask,
+      value: toNumber(account.balance),
+      change: latestStretch(scopedSeries(data, account.accountId)),
+      note,
+    };
+  });
+  return [all, ...perAccount];
+}
+
+type ScopeModel = ReturnType<typeof deriveScope>;
+
+/** Market gain, net contributions, income and unrealized gain for the scope. */
+export function summaryTiles(model: ScopeModel): SummaryTileData[] {
+  const summary = model.summary;
+  const dietz = summary?.dietzReturnPct ?? null;
+  const unrealizedGain = toNumber(model.unrealized.total.gain);
+  const unrealizedCost = toNumber(model.unrealized.total.cost);
+  const excluded = toNumber(model.unrealized.total.excludedValue);
+  return [
+    {
+      label: "Market gain",
+      value: summary ? formatSignedWholeCurrency(summary.marketGain) : "—",
+      delta: dietz !== null ? signedDelta(dietz, `${formatSignedPercent(dietz)} return`) : undefined,
+      note: dietz !== null ? "money-weighted, this range" : "needs two days of history",
+    },
+    {
+      label: "Net contributions",
+      value: formatSignedWholeCurrency(summary?.netContributions ?? 0),
+      note: `${plural(summary?.depositCount ?? 0, "deposit")} · ${plural(summary?.withdrawalCount ?? 0, "withdrawal")}`,
+    },
+    {
+      label: "Dividends & interest",
+      value: formatCurrency(model.incomeWindow),
+      note: `${formatWholeCurrency(model.incomeTrailing)} trailing 12 months`,
+    },
+    {
+      label: "Unrealized gain",
+      value: formatSignedWholeCurrency(unrealizedGain),
+      delta:
+        unrealizedCost > 0
+          ? signedDelta(unrealizedGain, `${formatSignedPercent((unrealizedGain / unrealizedCost) * 100)} vs cost`)
+          : undefined,
+      note: excluded > 0 ? `${formatWholeCurrency(excluded)} without cost basis excluded` : unrealizedCost > 0 ? "" : "no cost basis available",
+    },
+  ];
+}
+
 export function InvestmentsView({ refreshKey }: InvestmentsViewProps) {
   const [range, setRange] = useState<InvestmentRange>("3M");
   const [scope, setScope] = useState<Scope>("all");
@@ -163,6 +250,8 @@ export function InvestmentsView({ refreshKey }: InvestmentsViewProps) {
     () => (data ? deriveScope(data, scope, holdingsFilter, holdingsQuery) : null),
     [data, scope, holdingsFilter, holdingsQuery]
   );
+  const tiles = useMemo(() => (data ? accountTiles(data) : []), [data]);
+  const summary = useMemo(() => (model ? summaryTiles(model) : []), [model]);
 
   // A scoped account that vanished from a later response falls back to All.
   useEffect(() => {
@@ -216,6 +305,8 @@ export function InvestmentsView({ refreshKey }: InvestmentsViewProps) {
         firstTrustedDate={model.firstTrustedDate}
         boundaries={model.boundaries}
       />
+      <AccountTiles tiles={tiles} scope={scope} onScope={changeScope} />
+      <InvestmentSummaryTiles tiles={summary} />
       {state.status === "error" && (
         <p className="text-xs text-ink-muted">Couldn&apos;t refresh investments. Showing the last loaded range.</p>
       )}
