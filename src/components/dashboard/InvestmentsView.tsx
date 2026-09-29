@@ -3,12 +3,16 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Card, EmptyState, Skeleton } from "@/components/ui";
 import { AccountTiles, type AccountTileData } from "@/components/dashboard/AccountTiles";
+import { ActivityCard } from "@/components/dashboard/ActivityCard";
+import { AllocationCard } from "@/components/dashboard/AllocationCard";
+import { HoldingsTable } from "@/components/dashboard/HoldingsTable";
 import { InvestmentHero } from "@/components/dashboard/InvestmentHero";
 import { InvestmentSummaryTiles, type SummaryTileData } from "@/components/dashboard/InvestmentSummaryTiles";
 import { sinceLabel, todayUtc } from "@/lib/analytics-model";
 import { computeAllocation, computeUnrealized, type HoldingRowInput } from "@/lib/investment-performance";
 import { formatCurrency, formatSignedPercent, formatSignedWholeCurrency, formatWholeCurrency } from "@/lib/format";
 import {
+  INVESTMENT_RANGES,
   allocationRows,
   filterGroups,
   formatShortDate,
@@ -282,10 +286,19 @@ export function InvestmentsView({ refreshKey }: InvestmentsViewProps) {
     return <EmptyState>Connect an investment account to see performance.</EmptyState>;
   }
 
-  void setHoldingsFilter;
-  void setHoldingsQuery;
-  void setActivityExpanded;
-  void activityExpanded;
+  const accountLabel = accountLabelOf(data);
+  const showAccount = scope === "all";
+  const rangeInfo = INVESTMENT_RANGES.find((r) => r.id === range) ?? INVESTMENT_RANGES[1];
+  const positionCount = model.groups.filter((g) => !g.isCash).length;
+  const holdingsSubtitle = `${plural(positionCount, "position")} and cash${
+    showAccount ? ` across ${plural(data.accounts.length, "account")}` : ` in ${accountLabel(scope)}`
+  } · sorted by value`;
+  const activityTotal = showAccount ? data.activityTotal : model.activity.length;
+  const activitySubtitle = `${rangeInfo.longLabel} · ${plural(activityTotal, "event")}${
+    showAccount ? " across all accounts" : " in this account"
+  }`;
+  const unrealizedGain = toNumber(model.unrealized.total.gain);
+  const unrealizedCost = toNumber(model.unrealized.total.cost);
 
   return (
     <div
@@ -307,6 +320,32 @@ export function InvestmentsView({ refreshKey }: InvestmentsViewProps) {
       />
       <AccountTiles tiles={tiles} scope={scope} onScope={changeScope} />
       <InvestmentSummaryTiles tiles={summary} />
+      <HoldingsTable
+        groups={model.visibleGroups}
+        totalValue={model.totalValue}
+        subtitle={holdingsSubtitle}
+        showAccount={showAccount}
+        changeHeader={range === "ALL" ? "All-time change" : `${rangeInfo.label} change`}
+        rangeLabel={rangeInfo.label}
+        filter={holdingsFilter}
+        onFilter={setHoldingsFilter}
+        query={holdingsQuery}
+        onQuery={setHoldingsQuery}
+        totals={{ gain: unrealizedGain, gainPct: unrealizedCost > 0 ? (unrealizedGain / unrealizedCost) * 100 : null }}
+        accountLabel={accountLabel}
+      />
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[440px_minmax(0,1fr)] lg:items-start">
+        <AllocationCard rows={model.allocation} total={model.totalValue} />
+        <ActivityCard
+          events={model.activity}
+          total={activityTotal}
+          subtitle={activitySubtitle}
+          showAccount={showAccount}
+          accountLabel={accountLabel}
+          expanded={activityExpanded}
+          onToggle={() => setActivityExpanded((v) => !v)}
+        />
+      </div>
       {state.status === "error" && (
         <p className="text-xs text-ink-muted">Couldn&apos;t refresh investments. Showing the last loaded range.</p>
       )}

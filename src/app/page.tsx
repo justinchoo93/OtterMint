@@ -12,7 +12,6 @@ import {
 } from "lucide-react";
 import { AccountsPanel } from "@/components/dashboard/AccountsPanel";
 import { TransactionsFeed } from "@/components/dashboard/TransactionsFeed";
-import { HoldingsPanel } from "@/components/dashboard/HoldingsPanel";
 import { InvestmentsView } from "@/components/dashboard/InvestmentsView";
 import { ManualAccountsPanel } from "@/components/manual/ManualAccountsPanel";
 import { AnalyticsView } from "@/components/dashboard/AnalyticsView";
@@ -253,10 +252,7 @@ export default function Dashboard() {
               Household investment holdings are not available yet.
             </div>
           ) : (
-            <>
-              <InvestmentsView refreshKey={refreshKey} />
-              <HoldingsPanel refreshKey={refreshKey} />
-            </>
+            <InvestmentsView refreshKey={refreshKey} />
           )}
         </div>
       );

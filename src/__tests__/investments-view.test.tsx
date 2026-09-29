@@ -330,7 +330,7 @@ describe("InvestmentsView hero", () => {
     const income = screen.getByText("Dividends & interest").parentElement!;
     expect(within(income).getByText("$558.47")).toBeInTheDocument();
     expect(within(income).getByText("$1,624 trailing 12 months")).toBeInTheDocument();
-    const unrealized = screen.getByText("Unrealized gain").parentElement!;
+    const unrealized = within(screen.getByRole("group", { name: "Range summary" })).getByText("Unrealized gain").parentElement!;
     expect(within(unrealized).getByText("+$34,373")).toBeInTheDocument();
     expect(within(unrealized).getByText("+15.3% vs cost")).toBeInTheDocument();
 
@@ -341,8 +341,8 @@ describe("InvestmentsView hero", () => {
     expect(within(screen.getByText("Market gain").parentElement!).getByText("-4.2% return")).toBeInTheDocument();
     expect(within(screen.getByText("Net contributions").parentElement!).getByText("0 deposits · 0 withdrawals")).toBeInTheDocument();
     expect(within(screen.getByText("Dividends & interest").parentElement!).getByText("$12.00")).toBeInTheDocument();
-    expect(within(screen.getByText("Unrealized gain").parentElement!).getByText("-$124")).toBeInTheDocument();
-    expect(within(screen.getByText("Unrealized gain").parentElement!).getByText("-1.1% vs cost")).toBeInTheDocument();
+    expect(within(within(screen.getByRole("group", { name: "Range summary" })).getByText("Unrealized gain").parentElement!).getByText("-$124")).toBeInTheDocument();
+    expect(within(within(screen.getByRole("group", { name: "Range summary" })).getByText("Unrealized gain").parentElement!).getByText("-1.1% vs cost")).toBeInTheDocument();
   });
 
   it("withholds the return for a scope with a single snapshot", async () => {
@@ -355,6 +355,99 @@ describe("InvestmentsView hero", () => {
     fireEvent.click(within(group).getAllByRole("button").find((t) => within(t).queryByText("····6940"))!);
     expect(within(screen.getByText("Market gain").parentElement!).getByText("needs two days of history")).toBeInTheDocument();
     expect(screen.getByText("Not enough history in this range. Try a longer range.")).toBeInTheDocument();
+  });
+
+  it("lists holdings by value with cash last, merged across accounts, options in contracts", async () => {
+    stubFetch(() => ok(fixture()));
+    render(<InvestmentsView />);
+    await findHero();
+    const rows = screen.getAllByTestId("holding-row");
+    expect(rows.map((r) => within(r).getAllByText(/^(VTI|QQQ|AAPL|NVDA|SCHD|CRWD|Cash|AAPL \$260 call)$/)[0].textContent)).toEqual([
+      "VTI", "AAPL", "QQQ", "NVDA", "SCHD", "AAPL $260 call", "CRWD", "Cash",
+    ]);
+    const aapl = rows[1];
+    expect(within(aapl).getByText("2 accounts")).toBeInTheDocument();
+    expect(within(aapl).getByText("180")).toBeInTheDocument();
+    expect(within(aapl).getByText("$44,658.00")).toBeInTheDocument();
+    expect(within(aapl).getByText("11.4%")).toBeInTheDocument();
+    expect(within(aapl).getByText("+$9,152")).toBeInTheDocument();
+    expect(within(aapl).getByText("+25.8%")).toBeInTheDocument();
+    const option = rows[5];
+    expect(within(option).getAllByText("5 contracts").length).toBeGreaterThan(0);
+    expect(within(option).getByText("Expires Dec 18, 2026")).toBeInTheDocument();
+    expect(within(option).getByText("-$850")).toBeInTheDocument();
+    const crwd = rows[6];
+    expect(within(crwd).getAllByText("—").length).toBeGreaterThan(0); // no price history, no basis
+    const cash = rows[7];
+    expect(within(cash).getByText("Money market sweep")).toBeInTheDocument();
+    expect(within(cash).getAllByText("4 accounts").length).toBeGreaterThan(0);
+    expect(screen.getByText("7 positions and cash across 4 accounts · sorted by value")).toBeInTheDocument();
+    expect(screen.getByText("3M change")).toBeInTheDocument();
+    // Footer totals: every position's value, and the unrealized gain over positions with a basis.
+    expect(screen.getByText("$391,404.58")).toBeInTheDocument();
+    expect(screen.getByText("+$34,373 unrealized")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "1M" }));
+    expect(await screen.findByText("1M change")).toBeInTheDocument();
+  });
+
+  it("filters holdings by type pill and by search, and drops the account column when scoped", async () => {
+    stubFetch(() => ok(fixture()));
+    render(<InvestmentsView />);
+    await findHero();
+    fireEvent.click(screen.getByRole("button", { name: "Options" }));
+    expect(screen.getAllByTestId("holding-row")).toHaveLength(1);
+    fireEvent.click(within(screen.getByRole("group", { name: "Security type" })).getByRole("button", { name: "All" }));
+    fireEvent.change(screen.getByLabelText("Search holdings"), { target: { value: "aapl" } });
+    expect(screen.getAllByTestId("holding-row")).toHaveLength(2);
+    fireEvent.change(screen.getByLabelText("Search holdings"), { target: { value: "" } });
+    expect(screen.getAllByTestId("holding-row")).toHaveLength(8);
+    expect(screen.getByText("Account")).toBeInTheDocument();
+    const group = screen.getByRole("group", { name: "Account filter" });
+    fireEvent.click(within(group).getAllByRole("button").find((t) => within(t).queryByText("····5111"))!);
+    expect(screen.queryByText("Account")).toBeNull();
+    expect(screen.getAllByTestId("holding-row")).toHaveLength(4);
+    expect(screen.getByText("3 positions and cash in Charles Schwab ····5111 · sorted by value")).toBeInTheDocument();
+  });
+
+  it("shows the allocation by security type with shares that sum to the whole", async () => {
+    stubFetch(() => ok(fixture()));
+    render(<InvestmentsView />);
+    await findHero();
+    const allocation = screen.getByRole("region", { name: "Allocation" });
+    const items = within(allocation).getAllByRole("listitem");
+    expect(items.map((i) => i.textContent)).toEqual([
+      "ETFs×3$177,24645.3%",
+      "Single stocks×5$76,22519.5%",
+      "Options×1$6,2001.6%",
+      "Cash$131,73433.7%",
+    ]);
+    expect(within(allocation).getByText("By security type · $391,405 total")).toBeInTheDocument();
+  });
+
+  it("shows the newest eight activity rows, expands to all, and scopes with the tiles", async () => {
+    stubFetch(() => ok(fixture()));
+    render(<InvestmentsView />);
+    await findHero();
+    expect(screen.getAllByTestId("activity-row")).toHaveLength(8);
+    const first = screen.getAllByTestId("activity-row")[0];
+    expect(within(first).getByText("Bought NVDA")).toBeInTheDocument();
+    expect(within(first).getByText("-$3,564.00")).toBeInTheDocument();
+    expect(within(first).getByText(/20 shares at \$178\.20 · Charles Schwab ····5111/)).toBeInTheDocument();
+    expect(within(screen.getAllByTestId("activity-row")[2]).getByText("+$104.80")).toBeInTheDocument();
+    expect(screen.getByText("Showing 8 of 16 · newest first")).toBeInTheDocument();
+    expect(screen.getByText("Past 3 months · 16 events across all accounts")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Show all 16" }));
+    expect(screen.getAllByTestId("activity-row")).toHaveLength(16);
+    expect(screen.getByText("Showing all 16 · newest first")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Show fewer" })).toBeInTheDocument();
+    const group = screen.getByRole("group", { name: "Account filter" });
+    fireEvent.click(within(group).getAllByRole("button").find((t) => within(t).queryByText("····6093"))!);
+    const rothRows = screen.getAllByTestId("activity-row");
+    expect(rothRows).toHaveLength(3);
+    expect(within(rothRows[0]).getByText("NVDA dividend")).toBeInTheDocument();
+    expect(within(rothRows[0]).queryByText(/Charles Schwab/)).toBeNull();
+    expect(screen.getByText("Showing all 3 · newest first")).toBeInTheDocument();
+    expect(screen.getByText("Past 3 months · 3 events in this account")).toBeInTheDocument();
   });
 
   it("prompts to connect an account when there are none", async () => {

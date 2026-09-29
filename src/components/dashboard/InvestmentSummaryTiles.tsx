@@ -12,7 +12,7 @@ export interface SummaryTileData {
 /** Four figures that explain the range: market gain, contributions, income, unrealized gain. */
 export function InvestmentSummaryTiles({ tiles }: { tiles: SummaryTileData[] }) {
   return (
-    <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
+    <div role="group" aria-label="Range summary" className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
       {tiles.map((tile) => (
         <div
           key={tile.label}
