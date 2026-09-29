@@ -1,0 +1,443 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Investments redesign · phone</title>
+<!-- Static render of the approved design canvas board; see README.md. -->
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&amp;family=Instrument+Serif&amp;family=JetBrains+Mono:wght@400;500;600&amp;display=swap">
+<style>
+body{margin:0;background:#0A0D0C;color:#EDF1EF;font-family:'DM Sans',system-ui,-apple-system,sans-serif;-webkit-font-smoothing:antialiased}
+a{color:#34D399}a:hover{color:#6EE7B7}
+button{font:inherit;color:inherit;background:none;border:0;padding:0;margin:0;cursor:pointer;text-align:left}
+button:focus-visible,a:focus-visible,summary:focus-visible{outline:2px solid #34D399;outline-offset:2px}
+.mono{font-family:'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,monospace;font-variant-numeric:tabular-nums}
+.tile:hover{border-color:#3A453F}
+.pill:hover{color:#EDF1EF}
+.row:hover{background:#171D1A}
+summary{list-style:none;cursor:pointer}
+summary::-webkit-details-marker{display:none}
+</style>
+</head>
+<body>
+<div style="width: 390px; height: 2560px; display: flex; flex-direction: column; background: #0A0D0C; color: #EDF1EF; font-family: 'DM Sans', system-ui, sans-serif; box-sizing: border-box; overflow: hidden">
+
+  <header style="background: #111614; border-bottom: 1px solid #242C28">
+    <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 12px; padding: 12px 16px">
+      <div style="display: flex; align-items: center; gap: 12px; min-width: 0">
+        <span style="font-family: 'Instrument Serif', Georgia, serif; font-size: 24px; line-height: 1">ottermint</span>
+        <h1 style="margin: 0; font-family: 'Instrument Serif', Georgia, serif; font-weight: 400; font-size: 26px; line-height: 1.1">Investments</h1>
+      </div>
+      <div style="display: flex; align-items: center; gap: 8px">
+        <button style="height: 44px; padding: 0 12px; border-radius: 10px; border: 1px solid #242C28; background: #171D1A; display: flex; align-items: center; gap: 6px; font-size: 14px; font-weight: 500; color: #A3ADA8">
+          <svg width="16" height="16"><g transform="scale(0.6667)" style="fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round"><path d="M21 12a9 9 0 1 1-2.64-6.36M21 3v6h-6"></path></g></svg>
+          <span>Refresh</span>
+        </button>
+        <button style="height: 44px; padding: 0 12px; border-radius: 10px; background: #34D399; color: #0A0D0C; display: flex; align-items: center; gap: 6px; font-size: 14px; font-weight: 600">
+          <svg width="16" height="16"><g transform="scale(0.6667)" style="fill: none; stroke: currentColor; stroke-width: 2.25; stroke-linecap: round"><path d="M12 5v14M5 12h14"></path></g></svg>
+          <span>Connect</span>
+        </button>
+        <button aria-label="Account menu" style="width: 44px; height: 44px; display: flex; align-items: center; justify-content: center"><span style="width: 28px; height: 28px; border-radius: 50%; background: #171D1A; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 500; color: #A3ADA8">J</span></button>
+      </div>
+    </div>
+    <nav style="display: flex; gap: 4px; padding: 8px 12px; border-top: 1px solid #1B221E; overflow: hidden">
+      <button style="height: 44px; flex-shrink: 0; display: flex; align-items: center; gap: 8px; padding: 0 12px; border-radius: 10px; font-size: 14px; font-weight: 500; color: #A3ADA8">
+        <svg width="16" height="16"><g transform="scale(0.6667)" style="fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round"><rect x="3" y="3" width="7" height="9" rx="1"></rect><rect x="14" y="3" width="7" height="5" rx="1"></rect><rect x="14" y="12" width="7" height="9" rx="1"></rect><rect x="3" y="16" width="7" height="5" rx="1"></rect></g></svg>
+        <span>Dashboard</span>
+      </button>
+      <button style="height: 44px; flex-shrink: 0; display: flex; align-items: center; gap: 8px; padding: 0 12px; border-radius: 10px; font-size: 14px; font-weight: 500; color: #A3ADA8">
+        <svg width="16" height="16"><g transform="scale(0.6667)" style="fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round"><rect x="2" y="5" width="20" height="14" rx="2"></rect><path d="M2 10h20"></path></g></svg>
+        <span>Accounts</span>
+      </button>
+      <button style="height: 44px; flex-shrink: 0; display: flex; align-items: center; gap: 8px; padding: 0 12px; border-radius: 10px; font-size: 14px; font-weight: 500; color: #A3ADA8">
+        <svg width="16" height="16"><g transform="scale(0.6667)" style="fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round"><path d="M10 6h11M10 12h11M10 18h11M4 6h1v4M4 10h2M6 18H4c0-1 2-2 2-3s-1-1.5-2-1"></path></g></svg>
+        <span>Transactions</span>
+      </button>
+      <button aria-current="page" style="height: 44px; flex-shrink: 0; display: flex; align-items: center; gap: 8px; padding: 0 12px; border-radius: 10px; font-size: 14px; font-weight: 500; color: #EDF1EF; background: #1C2320">
+        <svg width="16" height="16" style="color: #34D399"><g transform="scale(0.6667)" style="fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round"><path d="M16 6V4a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2M22 13a18 18 0 0 1-20 0"></path><rect x="2" y="6" width="20" height="14" rx="2"></rect></g></svg>
+        <span>Investments</span>
+      </button>
+    </nav>
+  </header>
+
+  <main style="padding: 24px 16px; display: flex; flex-direction: column; gap: 24px">
+
+    <section aria-label="Portfolio value over time" style="background: #111614; border: 1px solid #242C28; border-radius: 16px; padding: 20px; box-sizing: border-box; display: flex; flex-direction: column">
+      <span style="font-size: 13px; font-weight: 500; color: #A3ADA8">Portfolio value</span>
+      <span style="margin-top: 6px; font-size: 40px; font-weight: 600; line-height: 1.05; letter-spacing: -0.025em">$391,405</span>
+      <div style="margin-top: 10px; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; font-size: 14px">
+        <span style="display: inline-flex; align-items: center; gap: 4px; font-weight: 600; color: #34D399"><svg width="10" height="8"><path d="M5 1l4 6H1z" style="fill: currentColor"></path></svg><span>+$9,258 (+2.4%)</span></span>
+        <span style="color: #A3ADA8">since Jul 1</span>
+      </div>
+
+      <div style="position: relative; width: 318px; height: 176px; margin-top: 16px">
+        
+          <div style="position: absolute; left: 0; right: 0; top: 150.0px; height: 0">
+            <span class="mono" style="position: absolute; left: 0; width: 38px; top: -7px; text-align: right; font-size: 11px; color: #85908A">$370k</span>
+            <div style="position: absolute; left: 44px; right: 50px; top: 0; height: 1px; background: #1E2622"></div>
+          </div>
+        
+          <div style="position: absolute; left: 0; right: 0; top: 102.7px; height: 0">
+            <span class="mono" style="position: absolute; left: 0; width: 38px; top: -7px; text-align: right; font-size: 11px; color: #85908A">$380k</span>
+            <div style="position: absolute; left: 44px; right: 50px; top: 0; height: 1px; background: #1E2622"></div>
+          </div>
+        
+          <div style="position: absolute; left: 0; right: 0; top: 55.3px; height: 0">
+            <span class="mono" style="position: absolute; left: 0; width: 38px; top: -7px; text-align: right; font-size: 11px; color: #85908A">$390k</span>
+            <div style="position: absolute; left: 44px; right: 50px; top: 0; height: 1px; background: #1E2622"></div>
+          </div>
+        
+          <div style="position: absolute; left: 0; right: 0; top: 8.0px; height: 0">
+            <span class="mono" style="position: absolute; left: 0; width: 38px; top: -7px; text-align: right; font-size: 11px; color: #85908A">$400k</span>
+            <div style="position: absolute; left: 44px; right: 50px; top: 0; height: 1px; background: #1E2622"></div>
+          </div>
+        
+        <svg width="318" height="176" style="position: absolute; left: 0; top: 0; overflow: visible">
+          <path d="M44.0 92.5 L46.5 84.2 L49.0 89.7 L51.5 99.3 L54.0 106.2 L56.4 110.7 L58.9 103.9 L61.4 109.4 L63.9 120.9 L66.4 126.3 L68.9 118.9 L71.4 114.3 L73.9 104.1 L76.4 96.3 L78.8 97.5 L81.3 96.9 L83.8 88.2 L86.3 81.9 L88.8 86.6 L91.3 100.6 L93.8 100.7 L96.3 97.9 L98.8 76.8 L101.2 85.6 L103.7 76.6 L106.2 69.3 L108.7 79.4 L111.2 73.4 L113.7 72.7 L116.2 66.8 L118.7 65.4 L121.2 72.1 L123.6 74.9 L126.1 89.9 L128.6 99.0 L131.1 103.1 L133.6 105.1 L136.1 109.5 L138.6 104.6 L141.1 94.0 L143.6 102.3 L146.0 105.6 L148.5 101.5 L151.0 107.8 L153.5 120.6 L156.0 116.8 L158.5 108.2 L161.0 106.1 L163.5 110.6 L166.0 106.9 L168.4 87.3 L170.9 74.9 L173.4 78.7 L175.9 77.4 L178.4 81.9 L180.9 74.2 L183.4 68.0 L185.9 73.6 L188.4 85.8 L190.8 87.6 L193.3 93.7 L195.8 91.8 L198.3 80.1 L200.8 77.9 L203.3 83.7 L205.8 90.1 L208.3 91.5 L210.8 91.1 L213.2 78.2 L215.7 79.5 L218.2 66.1 L220.7 60.1 L223.2 68.8 L225.7 68.6 L228.2 67.9 L230.7 69.9 L233.2 39.2 L235.6 36.3 L238.1 41.5 L240.6 34.5 L243.1 42.2 L245.6 42.0 L248.1 34.3 L250.6 32.7 L253.1 36.3 L255.6 50.0 L258.0 43.3 L260.5 45.3 L263.0 38.2 L265.5 33.7 L268.0 48.7 L268.0 150 L44.0 150 Z" style="fill: #34D399; opacity: 0.1"></path>
+          <path d="M44.0 92.5 L46.5 84.2 L49.0 89.7 L51.5 99.3 L54.0 106.2 L56.4 110.7 L58.9 103.9 L61.4 109.4 L63.9 120.9 L66.4 126.3 L68.9 118.9 L71.4 114.3 L73.9 104.1 L76.4 96.3 L78.8 97.5 L81.3 96.9 L83.8 88.2 L86.3 81.9 L88.8 86.6 L91.3 100.6 L93.8 100.7 L96.3 97.9 L98.8 76.8 L101.2 85.6 L103.7 76.6 L106.2 69.3 L108.7 79.4 L111.2 73.4 L113.7 72.7 L116.2 66.8 L118.7 65.4 L121.2 72.1 L123.6 74.9 L126.1 89.9 L128.6 99.0 L131.1 103.1 L133.6 105.1 L136.1 109.5 L138.6 104.6 L141.1 94.0 L143.6 102.3 L146.0 105.6 L148.5 101.5 L151.0 107.8 L153.5 120.6 L156.0 116.8 L158.5 108.2 L161.0 106.1 L163.5 110.6 L166.0 106.9 L168.4 87.3 L170.9 74.9 L173.4 78.7 L175.9 77.4 L178.4 81.9 L180.9 74.2 L183.4 68.0 L185.9 73.6 L188.4 85.8 L190.8 87.6 L193.3 93.7 L195.8 91.8 L198.3 80.1 L200.8 77.9 L203.3 83.7 L205.8 90.1 L208.3 91.5 L210.8 91.1 L213.2 78.2 L215.7 79.5 L218.2 66.1 L220.7 60.1 L223.2 68.8 L225.7 68.6 L228.2 67.9 L230.7 69.9 L233.2 39.2 L235.6 36.3 L238.1 41.5 L240.6 34.5 L243.1 42.2 L245.6 42.0 L248.1 34.3 L250.6 32.7 L253.1 36.3 L255.6 50.0 L258.0 43.3 L260.5 45.3 L263.0 38.2 L265.5 33.7 L268.0 48.7" style="fill: none; stroke: #34D399; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round"></path>
+          
+          <circle cx="268.0" cy="48.7" r="4" style="fill: #34D399; stroke: #111614; stroke-width: 2"></circle>
+        </svg>
+        <span style="position: absolute; left: 278.0px; top: 40.7px; font-size: 12px; font-weight: 600; white-space: nowrap">$391k</span>
+        
+          <span class="mono" style="position: absolute; top: 160px; left: 44.0px; transform: translateX(0); font-size: 11px; color: #85908A; white-space: nowrap">Jul</span>
+        
+          <span class="mono" style="position: absolute; top: 160px; left: 121.2px; transform: translateX(-50%); font-size: 11px; color: #85908A; white-space: nowrap">Aug</span>
+        
+          <span class="mono" style="position: absolute; top: 160px; left: 198.3px; transform: translateX(-50%); font-size: 11px; color: #85908A; white-space: nowrap">Sep</span>
+        
+        
+        <div aria-hidden="true" style="position: absolute; left: 44px; top: 0; width: 224px; height: 154px; cursor: crosshair"></div>
+      </div>
+
+      <div role="group" aria-label="Time range" style="margin-top: 12px; display: flex; padding: 3px; gap: 2px; background: #171D1A; border: 1px solid #242C28; border-radius: 10px">
+        
+          <button class="pill" aria-pressed="false" style="flex: 1; height: 44px; border-radius: 7px; background: transparent; color: #A3ADA8; font-size: 13px; font-weight: 500; text-align: center">1M</button>
+        
+          <button class="pill" aria-pressed="true" style="flex: 1; height: 44px; border-radius: 7px; background: #242C28; color: #EDF1EF; font-size: 13px; font-weight: 500; text-align: center">3M</button>
+        
+          <button class="pill" aria-pressed="false" style="flex: 1; height: 44px; border-radius: 7px; background: transparent; color: #A3ADA8; font-size: 13px; font-weight: 500; text-align: center">6M</button>
+        
+          <button class="pill" aria-pressed="false" style="flex: 1; height: 44px; border-radius: 7px; background: transparent; color: #A3ADA8; font-size: 13px; font-weight: 500; text-align: center">YTD</button>
+        
+          <button class="pill" aria-pressed="false" style="flex: 1; height: 44px; border-radius: 7px; background: transparent; color: #A3ADA8; font-size: 13px; font-weight: 500; text-align: center">1Y</button>
+        
+          <button class="pill" aria-pressed="false" style="flex: 1; height: 44px; border-radius: 7px; background: transparent; color: #A3ADA8; font-size: 13px; font-weight: 500; text-align: center">All</button>
+        
+      </div>
+      <details style="margin-top: 12px; font-size: 12px; color: #85908A">
+        <summary style="display: inline-block; padding: 8px 0"><span style="color: #34D399; text-decoration: underline; text-decoration-color: rgba(52, 211, 153, 0.4); text-underline-offset: 2px">About this chart</span></summary>
+        <p style="margin: 4px 0 0; line-height: 1.5">Balances are what each brokerage reported at the last refresh of the day. Deposits and withdrawals move the line; the tiles below separate them from market gain. Before Aug 15, 2026 the set of accounts covered is unknown, so change figures are measured across trusted history only.</p>
+      </details>
+    </section>
+
+    <div role="group" aria-label="Account filter" style="display: flex; gap: 12px; margin: 0 -16px; padding: 0 16px; overflow: hidden">
+      
+        <button class="tile" aria-pressed="true" style="width: 196px; flex-shrink: 0; display: flex; flex-direction: column; gap: 6px; padding: 16px; min-height: 118px; box-sizing: border-box; background: #111614; border: 1px solid #34D399; border-radius: 14px">
+          <span style="display: flex; align-items: baseline; gap: 6px; min-width: 0; font-size: 13px; font-weight: 500; color: #A3ADA8; white-space: nowrap"><span>All accounts</span></span>
+          <span style="font-size: 22px; font-weight: 600; line-height: 1.1; letter-spacing: -0.02em">$391,405</span>
+          <span style="display: inline-flex; align-items: center; gap: 4px; font-size: 12px; font-weight: 600; color: #34D399"><svg width="10" height="8"><path d="M5 1l4 6H1z" style="fill: currentColor"></path></svg><span>+$9,258 (+2.4%)</span></span>
+          <span style="font-size: 11px; line-height: 1.3; color: #85908A">4 accounts · 2 with lifetime history</span>
+        </button>
+      
+        <button class="tile" aria-pressed="false" style="width: 196px; flex-shrink: 0; display: flex; flex-direction: column; gap: 6px; padding: 16px; min-height: 118px; box-sizing: border-box; background: #111614; border: 1px solid #242C28; border-radius: 14px">
+          <span style="display: flex; align-items: baseline; gap: 6px; min-width: 0; font-size: 13px; font-weight: 500; color: #A3ADA8; white-space: nowrap"><span>Chase Self-Directed</span><span class="mono" style="font-size: 11px; color: #85908A">····6850</span></span>
+          <span style="font-size: 22px; font-weight: 600; line-height: 1.1; letter-spacing: -0.02em">$312,480</span>
+          <span style="display: inline-flex; align-items: center; gap: 4px; font-size: 12px; font-weight: 600; color: #F0836F"><svg width="10" height="8"><path d="M5 7L1 1h8z" style="fill: currentColor"></path></svg><span>−$483 (−0.2%)</span></span>
+          <span style="font-size: 11px; line-height: 1.3; color: #85908A">+$4,691 since Aug 15 · earlier history not visible</span>
+        </button>
+      
+        <button class="tile" aria-pressed="false" style="width: 196px; flex-shrink: 0; display: flex; flex-direction: column; gap: 6px; padding: 16px; min-height: 118px; box-sizing: border-box; background: #111614; border: 1px solid #242C28; border-radius: 14px">
+          <span style="display: flex; align-items: baseline; gap: 6px; min-width: 0; font-size: 13px; font-weight: 500; color: #A3ADA8; white-space: nowrap"><span>Chase Self-Directed</span><span class="mono" style="font-size: 11px; color: #85908A">····6940</span></span>
+          <span style="font-size: 22px; font-weight: 600; line-height: 1.1; letter-spacing: -0.02em">$18,960</span>
+          <span style="display: inline-flex; align-items: center; gap: 4px; font-size: 12px; font-weight: 600; color: #34D399"><svg width="10" height="8"><path d="M5 1l4 6H1z" style="fill: currentColor"></path></svg><span>+$4,336 (+29.7%)</span></span>
+          <span style="font-size: 11px; line-height: 1.3; color: #85908A">−$440 since Aug 15 · earlier history not visible</span>
+        </button>
+      
+        <button class="tile" aria-pressed="false" style="width: 196px; flex-shrink: 0; display: flex; flex-direction: column; gap: 6px; padding: 16px; min-height: 118px; box-sizing: border-box; background: #111614; border: 1px solid #242C28; border-radius: 14px">
+          <span style="display: flex; align-items: baseline; gap: 6px; min-width: 0; font-size: 13px; font-weight: 500; color: #A3ADA8; white-space: nowrap"><span>Schwab Individual</span><span class="mono" style="font-size: 11px; color: #85908A">····5111</span></span>
+          <span style="font-size: 22px; font-weight: 600; line-height: 1.1; letter-spacing: -0.02em">$47,515</span>
+          <span style="display: inline-flex; align-items: center; gap: 4px; font-size: 12px; font-weight: 600; color: #34D399"><svg width="10" height="8"><path d="M5 1l4 6H1z" style="fill: currentColor"></path></svg><span>+$8,488 (+21.7%)</span></span>
+          <span style="font-size: 11px; line-height: 1.3; color: #85908A">+$12,515 lifetime on $35,000 in</span>
+        </button>
+      
+        <button class="tile" aria-pressed="false" style="width: 196px; flex-shrink: 0; display: flex; flex-direction: column; gap: 6px; padding: 16px; min-height: 118px; box-sizing: border-box; background: #111614; border: 1px solid #242C28; border-radius: 14px">
+          <span style="display: flex; align-items: baseline; gap: 6px; min-width: 0; font-size: 13px; font-weight: 500; color: #A3ADA8; white-space: nowrap"><span>Schwab Roth IRA</span><span class="mono" style="font-size: 11px; color: #85908A">····6093</span></span>
+          <span style="font-size: 22px; font-weight: 600; line-height: 1.1; letter-spacing: -0.02em">$12,449</span>
+          <span style="display: inline-flex; align-items: center; gap: 4px; font-size: 12px; font-weight: 600; color: #F0836F"><svg width="10" height="8"><path d="M5 7L1 1h8z" style="fill: currentColor"></path></svg><span>−$3,084 (−19.9%)</span></span>
+          <span style="font-size: 11px; line-height: 1.3; color: #85908A">−$5,051 lifetime on $17,500 in</span>
+        </button>
+      
+    </div>
+
+    <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px">
+      
+        <div style="display: flex; flex-direction: column; gap: 6px; padding: 16px; min-height: 110px; box-sizing: border-box; background: #111614; border: 1px solid #242C28; border-radius: 14px">
+          <span style="font-size: 13px; font-weight: 500; color: #A3ADA8">Market gain</span>
+          <span style="font-size: 24px; font-weight: 600; line-height: 1.1; letter-spacing: -0.02em">+$6,258</span>
+          <span style="display: flex; flex-wrap: wrap; align-items: center; gap: 2px 6px; font-size: 12px; line-height: 1.3; color: #85908A">
+            
+              <span style="display: inline-flex; align-items: center; gap: 3px; font-weight: 600; color: #34D399"><svg width="10" height="8"><path d="M5 1l4 6H1z" style="fill: currentColor"></path></svg><span>+1.6% return</span></span>
+            
+            <span>money-weighted, this range</span>
+          </span>
+        </div>
+      
+        <div style="display: flex; flex-direction: column; gap: 6px; padding: 16px; min-height: 110px; box-sizing: border-box; background: #111614; border: 1px solid #242C28; border-radius: 14px">
+          <span style="font-size: 13px; font-weight: 500; color: #A3ADA8">Net contributions</span>
+          <span style="font-size: 24px; font-weight: 600; line-height: 1.1; letter-spacing: -0.02em">+$3,000</span>
+          <span style="display: flex; flex-wrap: wrap; align-items: center; gap: 2px 6px; font-size: 12px; line-height: 1.3; color: #85908A">
+            
+            <span>1 deposit · 1 withdrawal</span>
+          </span>
+        </div>
+      
+        <div style="display: flex; flex-direction: column; gap: 6px; padding: 16px; min-height: 110px; box-sizing: border-box; background: #111614; border: 1px solid #242C28; border-radius: 14px">
+          <span style="font-size: 13px; font-weight: 500; color: #A3ADA8">Dividends &amp; interest</span>
+          <span style="font-size: 24px; font-weight: 600; line-height: 1.1; letter-spacing: -0.02em">$591.37</span>
+          <span style="display: flex; flex-wrap: wrap; align-items: center; gap: 2px 6px; font-size: 12px; line-height: 1.3; color: #85908A">
+            
+            <span>$773 trailing 12 months</span>
+          </span>
+        </div>
+      
+        <div style="display: flex; flex-direction: column; gap: 6px; padding: 16px; min-height: 110px; box-sizing: border-box; background: #111614; border: 1px solid #242C28; border-radius: 14px">
+          <span style="font-size: 13px; font-weight: 500; color: #A3ADA8">Realized gain</span>
+          <span style="font-size: 24px; font-weight: 600; line-height: 1.1; letter-spacing: -0.02em">+$2,670</span>
+          <span style="display: flex; flex-wrap: wrap; align-items: center; gap: 2px 6px; font-size: 12px; line-height: 1.3; color: #85908A">
+            
+            <span>4 closed lots · all short-term</span>
+          </span>
+        </div>
+      
+    </div>
+
+    <section aria-label="Holdings" style="background: #111614; border: 1px solid #242C28; border-radius: 16px; overflow: hidden">
+      <div style="display: flex; flex-direction: column; gap: 4px; padding: 16px 16px 12px">
+        <h2 style="margin: 0; font-family: 'Instrument Serif', Georgia, serif; font-weight: 400; font-size: 22px; line-height: 1.15">Holdings</h2>
+        <span style="font-size: 12px; color: #A3ADA8">7 positions and cash across 4 accounts · sorted by value</span>
+      </div>
+      <div role="group" aria-label="Security type" style="margin: 0 16px 12px; display: flex; padding: 3px; gap: 2px; background: #171D1A; border: 1px solid #242C28; border-radius: 10px">
+        
+          <button class="pill" aria-pressed="true" style="flex: 1; height: 44px; border-radius: 7px; background: #242C28; color: #EDF1EF; font-size: 12px; font-weight: 500; text-align: center">All</button>
+        
+          <button class="pill" aria-pressed="false" style="flex: 1; height: 44px; border-radius: 7px; background: transparent; color: #A3ADA8; font-size: 12px; font-weight: 500; text-align: center">Stocks</button>
+        
+          <button class="pill" aria-pressed="false" style="flex: 1; height: 44px; border-radius: 7px; background: transparent; color: #A3ADA8; font-size: 12px; font-weight: 500; text-align: center">ETFs</button>
+        
+          <button class="pill" aria-pressed="false" style="flex: 1; height: 44px; border-radius: 7px; background: transparent; color: #A3ADA8; font-size: 12px; font-weight: 500; text-align: center">Options</button>
+        
+          <button class="pill" aria-pressed="false" style="flex: 1; height: 44px; border-radius: 7px; background: transparent; color: #A3ADA8; font-size: 12px; font-weight: 500; text-align: center">Cash</button>
+        
+      </div>
+      
+        <div class="row" style="display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 12px; align-items: center; padding: 12px 16px; border-top: 1px solid #1B221E">
+          <span style="display: flex; flex-direction: column; gap: 2px; min-width: 0">
+            <span class="mono" style="font-size: 13px; font-weight: 600">VTI</span>
+            <span style="font-size: 12px; color: #A3ADA8; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">Vanguard Total Stock Market ETF</span>
+            <span style="display: flex; align-items: center; gap: 6px; font-size: 11px; color: #85908A; white-space: nowrap"><span>420 sh</span><span>·</span><span style="display: inline-flex; align-items: center; gap: 3px; font-weight: 600; color: #34D399"><svg width="10" height="8"><path d="M5 1l4 6H1z" style="fill: currentColor"></path></svg><span class="mono">+4.6%</span></span><span>3M</span></span>
+          </span>
+          <span style="display: flex; flex-direction: column; align-items: flex-end; gap: 2px">
+            <span class="mono" style="font-size: 14px">$131,208.00</span>
+            <span class="mono" style="font-size: 12px; font-weight: 600; color: #34D399">+$18,420</span>
+          </span>
+        </div>
+      
+        <div class="row" style="display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 12px; align-items: center; padding: 12px 16px; border-top: 1px solid #1B221E">
+          <span style="display: flex; flex-direction: column; gap: 2px; min-width: 0">
+            <span class="mono" style="font-size: 13px; font-weight: 600">AAPL</span>
+            <span style="font-size: 12px; color: #A3ADA8; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">Apple Inc.</span>
+            <span style="display: flex; align-items: center; gap: 6px; font-size: 11px; color: #85908A; white-space: nowrap"><span>180 sh</span><span>·</span><span style="display: inline-flex; align-items: center; gap: 3px; font-weight: 600; color: #34D399"><svg width="10" height="8"><path d="M5 1l4 6H1z" style="fill: currentColor"></path></svg><span class="mono">+5.4%</span></span><span>3M</span></span>
+          </span>
+          <span style="display: flex; flex-direction: column; align-items: flex-end; gap: 2px">
+            <span class="mono" style="font-size: 14px">$44,658.00</span>
+            <span class="mono" style="font-size: 12px; font-weight: 600; color: #34D399">+$9,152</span>
+          </span>
+        </div>
+      
+        <div class="row" style="display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 12px; align-items: center; padding: 12px 16px; border-top: 1px solid #1B221E">
+          <span style="display: flex; flex-direction: column; gap: 2px; min-width: 0">
+            <span class="mono" style="font-size: 13px; font-weight: 600">QQQ</span>
+            <span style="font-size: 12px; color: #A3ADA8; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">Invesco QQQ Trust</span>
+            <span style="display: flex; align-items: center; gap: 6px; font-size: 11px; color: #85908A; white-space: nowrap"><span>60 sh</span><span>·</span><span style="display: inline-flex; align-items: center; gap: 3px; font-weight: 600; color: #34D399"><svg width="10" height="8"><path d="M5 1l4 6H1z" style="fill: currentColor"></path></svg><span class="mono">+3.9%</span></span><span>3M</span></span>
+          </span>
+          <span style="display: flex; flex-direction: column; align-items: flex-end; gap: 2px">
+            <span class="mono" style="font-size: 14px">$35,178.00</span>
+            <span class="mono" style="font-size: 12px; font-weight: 600; color: #34D399">+$4,110</span>
+          </span>
+        </div>
+      
+        <div class="row" style="display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 12px; align-items: center; padding: 12px 16px; border-top: 1px solid #1B221E">
+          <span style="display: flex; flex-direction: column; gap: 2px; min-width: 0">
+            <span class="mono" style="font-size: 13px; font-weight: 600">NVDA</span>
+            <span style="font-size: 12px; color: #A3ADA8; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">NVIDIA Corp.</span>
+            <span style="display: flex; align-items: center; gap: 6px; font-size: 11px; color: #85908A; white-space: nowrap"><span>150 sh</span><span>·</span><span style="display: inline-flex; align-items: center; gap: 3px; font-weight: 600; color: #F0836F"><svg width="10" height="8"><path d="M5 7L1 1h8z" style="fill: currentColor"></path></svg><span class="mono">−1.9%</span></span><span>3M</span></span>
+          </span>
+          <span style="display: flex; flex-direction: column; align-items: flex-end; gap: 2px">
+            <span class="mono" style="font-size: 14px">$27,225.00</span>
+            <span class="mono" style="font-size: 12px; font-weight: 600; color: #34D399">+$3,549</span>
+          </span>
+        </div>
+      
+        <div class="row" style="display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 12px; align-items: center; padding: 12px 16px; border-top: 1px solid #1B221E">
+          <span style="display: flex; flex-direction: column; gap: 2px; min-width: 0">
+            <span class="mono" style="font-size: 13px; font-weight: 600">SCHD</span>
+            <span style="font-size: 12px; color: #A3ADA8; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">Schwab U.S. Dividend Equity ETF</span>
+            <span style="display: flex; align-items: center; gap: 6px; font-size: 11px; color: #85908A; white-space: nowrap"><span>400 sh</span><span>·</span><span style="display: inline-flex; align-items: center; gap: 3px; font-weight: 600; color: #34D399"><svg width="10" height="8"><path d="M5 1l4 6H1z" style="fill: currentColor"></path></svg><span class="mono">+5.6%</span></span><span>3M</span></span>
+          </span>
+          <span style="display: flex; flex-direction: column; align-items: flex-end; gap: 2px">
+            <span class="mono" style="font-size: 14px">$10,860.00</span>
+            <span class="mono" style="font-size: 12px; font-weight: 600; color: #34D399">+$640</span>
+          </span>
+        </div>
+      
+        <div class="row" style="display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 12px; align-items: center; padding: 12px 16px; border-top: 1px solid #1B221E">
+          <span style="display: flex; flex-direction: column; gap: 2px; min-width: 0">
+            <span class="mono" style="font-size: 13px; font-weight: 600">AAPL 260C</span>
+            <span style="font-size: 12px; color: #A3ADA8; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">Call · $260 strike · exp. Dec 18, 2026</span>
+            <span style="display: flex; align-items: center; gap: 6px; font-size: 11px; color: #85908A; white-space: nowrap"><span>5 contracts</span><span>·</span><span style="display: inline-flex; align-items: center; gap: 3px; font-weight: 600; color: #F0836F"><svg width="10" height="8"><path d="M5 7L1 1h8z" style="fill: currentColor"></path></svg><span class="mono">−45.1%</span></span><span>3M</span></span>
+          </span>
+          <span style="display: flex; flex-direction: column; align-items: flex-end; gap: 2px">
+            <span class="mono" style="font-size: 14px">$6,200.00</span>
+            <span class="mono" style="font-size: 12px; font-weight: 600; color: #F0836F">−$850</span>
+          </span>
+        </div>
+      
+        <div class="row" style="display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 12px; align-items: center; padding: 12px 16px; border-top: 1px solid #1B221E">
+          <span style="display: flex; flex-direction: column; gap: 2px; min-width: 0">
+            <span class="mono" style="font-size: 13px; font-weight: 600">CRWD</span>
+            <span style="font-size: 12px; color: #A3ADA8; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">CrowdStrike Holdings</span>
+            <span style="display: flex; align-items: center; gap: 6px; font-size: 11px; color: #85908A; white-space: nowrap"><span>10 sh</span><span>·</span><span style="display: inline-flex; align-items: center; gap: 3px; font-weight: 600; color: #F0836F"><svg width="10" height="8"><path d="M5 7L1 1h8z" style="fill: currentColor"></path></svg><span class="mono">−23.8%</span></span><span>3M</span></span>
+          </span>
+          <span style="display: flex; flex-direction: column; align-items: flex-end; gap: 2px">
+            <span class="mono" style="font-size: 14px">$4,342.00</span>
+            <span class="mono" style="font-size: 12px; font-weight: 600; color: #F0836F">−$648</span>
+          </span>
+        </div>
+      
+        <div class="row" style="display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 12px; align-items: center; padding: 12px 16px; border-top: 1px solid #1B221E">
+          <span style="display: flex; flex-direction: column; gap: 2px; min-width: 0">
+            <span class="mono" style="font-size: 13px; font-weight: 600">Cash</span>
+            <span style="font-size: 12px; color: #A3ADA8; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">Money market sweep</span>
+            <span style="display: flex; align-items: center; gap: 6px; font-size: 11px; color: #85908A; white-space: nowrap"><span>4 accounts</span></span>
+          </span>
+          <span style="display: flex; flex-direction: column; align-items: flex-end; gap: 2px">
+            <span class="mono" style="font-size: 14px">$131,733.58</span>
+            <span class="mono" style="font-size: 12px; font-weight: 600; color: #85908A">—</span>
+          </span>
+        </div>
+      
+      <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 16px; border-top: 1px solid #1B221E; font-size: 13px; font-weight: 600">
+        <span>Total</span>
+        <span style="display: flex; flex-direction: column; align-items: flex-end; gap: 2px">
+          <span class="mono" style="font-size: 14px">$391,404.58</span>
+          <span class="mono" style="font-size: 12px; color: #34D399">+$34,373 unrealized</span>
+        </span>
+      </div>
+    </section>
+
+    <section aria-label="Allocation" style="background: #111614; border: 1px solid #242C28; border-radius: 16px; padding: 16px 16px 20px; box-sizing: border-box; display: flex; flex-direction: column">
+      <h2 style="margin: 0; font-family: 'Instrument Serif', Georgia, serif; font-weight: 400; font-size: 22px; line-height: 1.15">Allocation</h2>
+      <span style="margin-top: 4px; font-size: 12px; color: #A3ADA8">By security type · $391,405 total</span>
+      <div aria-hidden="true" style="margin-top: 16px; display: flex; gap: 2px; height: 12px; border-radius: 6px; overflow: hidden">
+        
+          <span style="width: 45.28%; background: #3987e5"></span>
+        
+          <span style="width: 19.47%; background: #d95926"></span>
+        
+          <span style="width: 1.58%; background: #199e70"></span>
+        
+          <span style="width: 33.66%; background: #6b7280"></span>
+        
+      </div>
+      <div style="margin-top: 14px; display: flex; flex-direction: column; gap: 10px">
+        
+          <div style="display: flex; align-items: baseline; justify-content: space-between; gap: 12px; font-size: 13px">
+            <span style="display: flex; align-items: center; gap: 8px"><span aria-hidden="true" style="width: 8px; height: 8px; border-radius: 2px; background: #3987e5"></span><span>ETFs</span><span style="font-size: 11px; color: #85908A">×3</span></span>
+            <span style="display: flex; align-items: baseline; gap: 10px"><span class="mono" style="font-size: 12px; color: #A3ADA8">$177,246</span><span class="mono" style="width: 44px; text-align: right; font-size: 13px">45.3%</span></span>
+          </div>
+        
+          <div style="display: flex; align-items: baseline; justify-content: space-between; gap: 12px; font-size: 13px">
+            <span style="display: flex; align-items: center; gap: 8px"><span aria-hidden="true" style="width: 8px; height: 8px; border-radius: 2px; background: #d95926"></span><span>Single stocks</span><span style="font-size: 11px; color: #85908A">×3</span></span>
+            <span style="display: flex; align-items: baseline; gap: 10px"><span class="mono" style="font-size: 12px; color: #A3ADA8">$76,225</span><span class="mono" style="width: 44px; text-align: right; font-size: 13px">19.5%</span></span>
+          </div>
+        
+          <div style="display: flex; align-items: baseline; justify-content: space-between; gap: 12px; font-size: 13px">
+            <span style="display: flex; align-items: center; gap: 8px"><span aria-hidden="true" style="width: 8px; height: 8px; border-radius: 2px; background: #199e70"></span><span>Options</span><span style="font-size: 11px; color: #85908A">×1</span></span>
+            <span style="display: flex; align-items: baseline; gap: 10px"><span class="mono" style="font-size: 12px; color: #A3ADA8">$6,200</span><span class="mono" style="width: 44px; text-align: right; font-size: 13px">1.6%</span></span>
+          </div>
+        
+          <div style="display: flex; align-items: baseline; justify-content: space-between; gap: 12px; font-size: 13px">
+            <span style="display: flex; align-items: center; gap: 8px"><span aria-hidden="true" style="width: 8px; height: 8px; border-radius: 2px; background: #6b7280"></span><span>Cash</span><span style="font-size: 11px; color: #85908A"></span></span>
+            <span style="display: flex; align-items: baseline; gap: 10px"><span class="mono" style="font-size: 12px; color: #A3ADA8">$131,734</span><span class="mono" style="width: 44px; text-align: right; font-size: 13px">33.7%</span></span>
+          </div>
+        
+      </div>
+    </section>
+
+    <section aria-label="Activity" style="background: #111614; border: 1px solid #242C28; border-radius: 16px; overflow: hidden">
+      <div style="display: flex; flex-direction: column; gap: 4px; padding: 16px 16px 12px">
+        <h2 style="margin: 0; font-family: 'Instrument Serif', Georgia, serif; font-weight: 400; font-size: 22px; line-height: 1.15">Activity</h2>
+        <span style="font-size: 12px; color: #A3ADA8">Past 3 months · 16 events across all accounts</span>
+      </div>
+      
+        <div class="row" style="display: grid; grid-template-columns: 48px minmax(0, 1fr) auto; gap: 10px; align-items: center; padding: 11px 16px; border-top: 1px solid #1B221E">
+          <span class="mono" style="font-size: 12px; color: #85908A">Sep 26</span>
+          <span style="display: flex; flex-direction: column; gap: 2px; min-width: 0">
+            <span style="font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">Bought NVDA</span>
+            <span style="font-size: 11px; color: #85908A; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">Buy · 20 shares at $178.20 · Schwab ····5111</span>
+          </span>
+          <span class="mono" style="text-align: right; font-size: 13px">−$3,564.00</span>
+        </div>
+      
+        <div class="row" style="display: grid; grid-template-columns: 48px minmax(0, 1fr) auto; gap: 10px; align-items: center; padding: 11px 16px; border-top: 1px solid #1B221E">
+          <span class="mono" style="font-size: 12px; color: #85908A">Sep 24</span>
+          <span style="display: flex; flex-direction: column; gap: 2px; min-width: 0">
+            <span style="font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">Sold to close AAPL 10/17/26 $240 call</span>
+            <span style="font-size: 11px; color: #85908A; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">Sell · 3 contracts at $9.70 · Schwab ····5111</span>
+          </span>
+          <span class="mono" style="text-align: right; font-size: 13px">+$2,910.00</span>
+        </div>
+      
+        <div class="row" style="display: grid; grid-template-columns: 48px minmax(0, 1fr) auto; gap: 10px; align-items: center; padding: 11px 16px; border-top: 1px solid #1B221E">
+          <span class="mono" style="font-size: 12px; color: #85908A">Sep 19</span>
+          <span style="display: flex; flex-direction: column; gap: 2px; min-width: 0">
+            <span style="font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">SCHD dividend</span>
+            <span style="font-size: 11px; color: #85908A; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">Dividend · 400 shares · Chase ····6940</span>
+          </span>
+          <span class="mono" style="text-align: right; font-size: 13px">+$104.80</span>
+        </div>
+      
+        <div class="row" style="display: grid; grid-template-columns: 48px minmax(0, 1fr) auto; gap: 10px; align-items: center; padding: 11px 16px; border-top: 1px solid #1B221E">
+          <span class="mono" style="font-size: 12px; color: #85908A">Sep 15</span>
+          <span style="display: flex; flex-direction: column; gap: 2px; min-width: 0">
+            <span style="font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">Deposit from Chase checking</span>
+            <span style="font-size: 11px; color: #85908A; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">Deposit · Transfer · Chase ····6940</span>
+          </span>
+          <span class="mono" style="text-align: right; font-size: 13px">+$5,000.00</span>
+        </div>
+      
+        <div class="row" style="display: grid; grid-template-columns: 48px minmax(0, 1fr) auto; gap: 10px; align-items: center; padding: 11px 16px; border-top: 1px solid #1B221E">
+          <span class="mono" style="font-size: 12px; color: #85908A">Sep 12</span>
+          <span style="display: flex; flex-direction: column; gap: 2px; min-width: 0">
+            <span style="font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">Sweep interest</span>
+            <span style="font-size: 11px; color: #85908A; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">Interest · Money market · Chase ····6850</span>
+          </span>
+          <span class="mono" style="text-align: right; font-size: 13px">+$38.12</span>
+        </div>
+      
+        <div class="row" style="display: grid; grid-template-columns: 48px minmax(0, 1fr) auto; gap: 10px; align-items: center; padding: 11px 16px; border-top: 1px solid #1B221E">
+          <span class="mono" style="font-size: 12px; color: #85908A">Sep 8</span>
+          <span style="display: flex; flex-direction: column; gap: 2px; min-width: 0">
+            <span style="font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">Sold CRWD</span>
+            <span style="font-size: 11px; color: #85908A; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">Sell · 15 shares at $421.00 · Schwab ····6093</span>
+          </span>
+          <span class="mono" style="text-align: right; font-size: 13px">+$6,315.00</span>
+        </div>
+      
+      <div style="padding: 12px 16px 14px; border-top: 1px solid #1B221E; font-size: 12px; color: #85908A">Showing 6 of 16 in this range · newest first</div>
+    </section>
+
+  </main>
+</div>
+</body>
+</html>
