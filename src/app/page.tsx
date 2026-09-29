@@ -2,7 +2,6 @@
 
 import { useCallback, useEffect, useState } from "react";
 import {
-  BarChart3,
   BriefcaseBusiness,
   ChevronLeft,
   ChevronRight,
@@ -10,7 +9,6 @@ import {
   LayoutDashboard,
   ListOrdered,
 } from "lucide-react";
-import { NetWorthCard } from "@/components/dashboard/NetWorthCard";
 import { AccountsPanel } from "@/components/dashboard/AccountsPanel";
 import { TransactionsFeed } from "@/components/dashboard/TransactionsFeed";
 import { HoldingsPanel } from "@/components/dashboard/HoldingsPanel";
@@ -43,8 +41,7 @@ type NavDestination =
   | "dashboard"
   | "accounts"
   | "transactions"
-  | "investments"
-  | "analytics";
+  | "investments";
 
 const NAV_ITEMS: {
   id: NavDestination;
@@ -55,7 +52,6 @@ const NAV_ITEMS: {
   { id: "accounts", label: "Accounts", icon: CreditCard },
   { id: "transactions", label: "Transactions", icon: ListOrdered },
   { id: "investments", label: "Investments", icon: BriefcaseBusiness },
-  { id: "analytics", label: "Analytics", icon: BarChart3 },
 ];
 
 export default function Dashboard() {
@@ -204,27 +200,12 @@ export default function Dashboard() {
 
     if (activeDestination === "dashboard") {
       return (
-        <div className="space-y-6 animate-fade-in">
-          <NetWorthCard
-            accounts={visibleAccounts}
-            manualAccounts={visibleManualAccounts}
-            label={isHousehold ? "Household Net Worth" : undefined}
-          />
-          <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(320px,0.8fr)]">
-            <AccountsPanel
-              accounts={visibleAccounts}
-              manualAccounts={visibleManualAccounts}
-              itemStatuses={isHousehold ? [] : itemStatuses}
-              onReauthSuccess={handleRefresh}
-            />
-            {!isHousehold && <TransactionsFeed refreshKey={refreshKey} />}
-          </div>
-          {isHousehold && (
-            <p className="text-xs text-[var(--text-muted)]">
-              Note: If you and a group member share a joint account, it may appear twice.
-            </p>
-          )}
-        </div>
+        <AnalyticsView
+          accounts={visibleAccounts}
+          manualAccounts={visibleManualAccounts}
+          groupId={isHousehold ? group?.id : undefined}
+          refreshKey={refreshKey}
+        />
       );
     }
 
@@ -260,30 +241,19 @@ export default function Dashboard() {
       );
     }
 
-    if (activeDestination === "investments") {
-      return (
-        <div className="space-y-6 animate-fade-in">
-          {isHousehold ? (
-            <div className="rounded-xl border border-dashed border-[var(--border)] bg-[var(--bg-secondary)] p-8 text-center text-sm text-[var(--text-muted)]">
-              Household investment holdings are not available yet.
-            </div>
-          ) : (
-            <>
-              <InvestmentPerformancePanel refreshKey={refreshKey} />
-              <HoldingsPanel refreshKey={refreshKey} />
-            </>
-          )}
-        </div>
-      );
-    }
-
     return (
-      <AnalyticsView
-        accounts={visibleAccounts}
-        manualAccounts={visibleManualAccounts}
-        groupId={isHousehold ? group?.id : undefined}
-        refreshKey={refreshKey}
-      />
+      <div className="space-y-6 animate-fade-in">
+        {isHousehold ? (
+          <div className="rounded-xl border border-dashed border-[var(--border)] bg-[var(--bg-secondary)] p-8 text-center text-sm text-[var(--text-muted)]">
+            Household investment holdings are not available yet.
+          </div>
+        ) : (
+          <>
+            <InvestmentPerformancePanel refreshKey={refreshKey} />
+            <HoldingsPanel refreshKey={refreshKey} />
+          </>
+        )}
+      </div>
     );
   };
 

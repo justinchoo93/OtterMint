@@ -198,6 +198,10 @@ The approved visual design is a private design canvas at https://claude.ai/artif
 
   Date/Author: 2026-09-27, Claude.
 
+- Decision: The Dashboard destination renders `AnalyticsView`, and the Analytics navigation item and `NetWorthCard` are removed (2026-09-29, after deployment).
+  Rationale: the owner found the old Dashboard redundant once the redesign landed: its net-worth card was a weaker version of the new hero, and its accounts panel and transaction feed duplicate the Accounts and Transactions destinations. The Analytics tab is left out rather than kept empty until the owner decides what deeper analytics it should hold.
+  Date/Author: 2026-09-29, Claude.
+
 ## Outcomes & Retrospective
 
 Implementation (Milestones 1–7) is complete on `feat/analytics-redesign` as of 2026-09-28. The Analytics destination now leads with a net-worth hero whose change is always measured over a comparable stretch and labeled with its start date. One range control scopes everything, and cash flow is fetched once and sliced client-side. Stat tiles show comparisons only when real history covers the prior period. The diverging cash-flow chart doubles as a month filter, categories are ranked with an Other fold, and a details panel explains every figure. A baseline design system underpins it: semantic tokens with a contrast-guard test, eight primitives, a development gallery, and a written guide. The whole app shares the new theme.
@@ -719,3 +723,5 @@ Revision note (2026-09-27, later the same day): The user approved the app-wide t
 Revision note (2026-09-28): Implementation, review fixes and deployment are complete. Recorded the production-data verification, the Sep 5 normalization finding with its safeguard, the pre-deploy review with its seven fixes, and the live checks. Outcomes & Retrospective is written. The only open items are the follow-ups named there.
 
 Revision note (2026-09-28, later): The owner confirmed the Sep 5 manual-account re-creation was human error. Corrected the event in production (guarded, rehearsed, undo recorded above), and refined the contradiction check to judge each side of the ledger. The owner's data now shows no contradictions. Follow-ups updated.
+
+Revision note (2026-09-29): The analytics view now serves as the Dashboard and the Analytics tab is gone (see the Decision Log). The design README's verification step no longer says to click Analytics.

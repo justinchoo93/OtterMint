@@ -12,7 +12,7 @@ The app's auth middleware only checks that a UUID-shaped `session_id` cookie exi
 
 1. `npm run dev -- --port 3000`
 2. In a Playwright browser, run one harness file as a page function (with the Playwright MCP tool, pass `filename`; the tool only reads files inside the repository and its sandbox has no `URL` global, which the harness already avoids).
-3. Open `http://localhost:3000/`, click Analytics, wait about 5 seconds (Recharts animates in), and screenshot at 1440 × 1000 and 390 × 844. Compare with `desktop.html` and `phone.html` served from `docs/design`.
+3. Open `http://localhost:3000/` (the Dashboard opens on the analytics view), wait about 5 seconds (Recharts animates in), and screenshot at 1440 × 1000 and 390 × 844. Compare with `desktop.html` and `phone.html` served from `docs/design`.
 
 ## Intended deviations in the implementation
 
