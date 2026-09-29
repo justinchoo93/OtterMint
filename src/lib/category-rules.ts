@@ -26,11 +26,11 @@ export const CATEGORY_RULES: CategoryRule[] = [
       "Chase manual brokerage credits ('Manual CR-Bkrg') are money returning from a brokerage; Plaid tags them INCOME_CONTRACTOR.",
   },
   {
-    pattern: /^RIVER\. (SUPER|RECUR) BUY\b/i,
+    pattern: /^RIVER\b.*\bWEB ID\b/i,
     category: "TRANSFER_OUT",
     categoryDetailed: "TRANSFER_OUT_SAVINGS",
     reason:
-      "River (bitcoin exchange) recurring buys are savings, not spending; Plaid scatters them across Internet & Cable, Online Marketplaces, Casinos & Gambling, and General Services. TRANSFER_OUT_SAVINGS (not investment funds) keeps them out of investment-performance flows — River's balance is not a linked account. The anchored pattern skips River's inbound penny-verification credits ('... FROM: RIVER FINANCIAL ...').",
+      "River (bitcoin exchange) buys are savings, not spending; Plaid scatters them across Internet & Cable, Online Marketplaces, Casinos & Gambling, and General Services. TRANSFER_OUT_SAVINGS (not investment funds) keeps them out of investment-performance flows — River's balance is not a linked account. Every River debit is an ACH web debit whose descriptor starts with 'River' and carries 'Web ID' ('RIVER. RECUR BUY ... WEB ID: ...', 'RIVER. SUPER BUY ...', and the backfilled 'River <ref> (River) <ref> Web ID: ...'); the anchor and the 'Web ID' requirement skip River's inbound penny-verification credits ('... FROM: RIVER FINANCIAL ...') and any card purchase at a merchant named River.",
   },
 ];
 

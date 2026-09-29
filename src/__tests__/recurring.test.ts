@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { CashflowRow } from "@/lib/cashflow";
-import { addCadence, detectRecurringCharges, merchantKey } from "@/lib/recurring";
+import { merchantKey } from "@/lib/merchant";
+import { addCadence, detectRecurringCharges } from "@/lib/recurring";
 
 const TODAY = "2026-09-29";
 
@@ -97,7 +98,7 @@ function cardPayments(): CashflowRow[] {
 
 describe("merchantKey and addCadence", () => {
   it("normalizes merchant names so a bank descriptor and a clean name match", () => {
-    expect(merchantKey({ merchantName: null, name: "NETFLIX.COM 866-579-7172" })).toBe("netflixcom");
+    expect(merchantKey({ merchantName: null, name: "NETFLIX.COM 866-579-7172" })).toBe("netflix");
     expect(merchantKey({ merchantName: "Netflix", name: "NETFLIX.COM" })).toBe("netflix");
     expect(merchantKey({ merchantName: "  City Light & Power ", name: "x" })).toBe("city light power");
   });
@@ -160,6 +161,32 @@ describe("detectRecurringCharges", () => {
   it("accepts a yearly charge from two occurrences", () => {
     const { charges } = detectRecurringCharges(prime(), { today: TODAY, averageMonthlySpending: null });
     expect(charges[0]).toMatchObject({ cadence: "yearly", nextExpected: "2027-03-14", monthlyEquivalent: "11.58", isNew: false });
+  });
+
+  it("keeps two subscriptions billed under one merchant apart, and lists both when both are active", () => {
+    // Apple bills two things: $0.99 monthly all year, and $33.09 monthly that ended in December.
+    const months = ["2025-09", "2025-10", "2025-11", "2025-12", "2026-01", "2026-02", "2026-03", "2026-04", "2026-05", "2026-06", "2026-07", "2026-08", "2026-09"];
+    const cheap = months.map((m) => row(`${m}-09`, 0.99, { merchantName: "Apple" }));
+    const ended = months.slice(0, 4).map((m) => row(`${m}-14`, 33.09, { merchantName: "Apple" }));
+    const { charges } = detectRecurringCharges([...cheap, ...ended], { today: TODAY, averageMonthlySpending: null });
+    expect(charges).toHaveLength(1);
+    expect(charges[0]).toMatchObject({ key: "apple", merchant: "Apple", amount: "0.99", count: 13, firstDate: "2025-09-09" });
+
+    const both = [...cheap, ...months.map((m) => row(`${m}-14`, 33.09, { merchantName: "Apple" }))];
+    const active = detectRecurringCharges(both, { today: TODAY, averageMonthlySpending: null }).charges;
+    expect(active.map((c) => [c.key, c.amount])).toEqual([["apple 33.09", "33.09"], ["apple 0.99", "0.99"]]);
+  });
+
+  it("does not call two similar charges a year apart yearly when the amount drifts or it is food", () => {
+    const dinners = [
+      row("2025-09-11", 39.03, { merchantName: "Yeh Yeh's", category: "FOOD_AND_DRINK", categoryDetailed: "FOOD_AND_DRINK_RESTAURANT" }),
+      row("2026-09-08", 38.08, { merchantName: "Yeh Yeh's", category: "FOOD_AND_DRINK", categoryDetailed: "FOOD_AND_DRINK_RESTAURANT" }),
+    ];
+    expect(detectRecurringCharges(dinners, { today: TODAY, averageMonthlySpending: null }).charges).toEqual([]);
+    const drifted = [row("2025-09-11", 39.03, { merchantName: "Some Club" }), row("2026-09-08", 38.08, { merchantName: "Some Club" })];
+    expect(detectRecurringCharges(drifted, { today: TODAY, averageMonthlySpending: null }).charges).toEqual([]);
+    const exact = [row("2025-09-11", 39.03, { merchantName: "Some Club" }), row("2026-09-08", 39.03, { merchantName: "Some Club" })];
+    expect(detectRecurringCharges(exact, { today: TODAY, averageMonthlySpending: null }).charges).toHaveLength(1);
   });
 
   it("keeps a month-end charge monthly and clamps its next date", () => {

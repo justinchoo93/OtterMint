@@ -72,6 +72,9 @@ Pre-seeded from research; add implementation discoveries below.
 - Decision: `CashflowRow` gains three required fields (`name`, `merchantName`, `accountName`) rather than optional ones.
   Rationale: the route always supplies them; optional fields would force fallback rendering for a state that cannot occur. Test fixtures get a mechanical three-field addition.
   Date/Author: 2026-08-15 / Claude.
+- Decision: The River pattern widens from `^RIVER\. (SUPER|RECUR) BUY\b` to `^RIVER\b.*\bWEB ID\b`, so the backfilled statement descriptors ("River <ref> (River) <ref> Web ID: …", "River River <ref> Web ID: …") are corrected too.
+  Rationale: the statement backfill that added 2025 wrote River's ACH debits with those descriptors and the placeholder category `UNCATEGORIZED`, so 18 buys ($250 to $3,700 a month from September 2025 to April 2026) counted as spending, and once descriptors were joined to Plaid merchants (`docs/plans/descriptor-enrichment.md`) they would have inherited River's Plaid label, Internet & Cable. Every River debit is an ACH web debit whose descriptor starts with "River" and carries "Web ID"; the inbound penny-verification credit does not start with "River", and a card purchase at some "River Cafe" would carry no "Web ID", so both stay untouched. The change moves those buys from spending to savings in the affected months (for example November 2025 spending $13,031 to $9,331).
+  Date/Author: 2026-09-29 / Claude, while implementing descriptor enrichment.
 
 
 ## Outcomes & Retrospective
@@ -314,3 +317,5 @@ In `src/components/dashboard/CashflowPanel.tsx` (modified): drilldown state and 
 ---
 
 Revision note (2026-08-15): After the load-bearing analysis, the correction scope widened from analytics-only to every category-reading surface (`/api/transactions` and `/api/shared/[token]` added to Milestone 2), because the user judged a same-screen contradiction between the feed and the Cash Flow panel unacceptable. The CR-Bkrg semantics were confirmed by the account owner, and two future-vendor-behavior assumptions were accepted as residual risks with mitigations. All sections updated accordingly.
+
+Revision note (2026-09-29): The River pattern was widened to cover the backfilled statement descriptors (see the Decision Log entry of that date). The rule's test now includes those shapes and a "RIVER CAFE" look-alike.

@@ -189,6 +189,40 @@ describe("GET /api/analytics/cashflow", () => {
     });
   });
 
+  it("joins a backfilled descriptor to its Plaid merchant and fills its category", async () => {
+    // A statement-era row with the backfill's placeholder category joins the
+    // Plaid "Netflix" row (src/lib/descriptor-enrichment.ts), so the month
+    // has no Uncategorized spending and TV & movies covers both charges.
+    mockWhere.mockResolvedValueOnce([
+      fixtureRow({
+        amount: "17.99",
+        date: "2026-08-02",
+        name: "Netflix",
+        merchantName: "Netflix",
+        category: "ENTERTAINMENT",
+        categoryDetailed: "ENTERTAINMENT_TV_AND_MOVIES",
+        accountType: "credit",
+        accountSubtype: "credit card",
+        accountName: "CREDIT CARD",
+      }),
+      fixtureRow({
+        amount: "15.49",
+        date: "2026-08-04",
+        name: "NETFLIX.COM 866-579-7172 CA",
+        category: "UNCATEGORIZED",
+        categoryDetailed: null,
+        accountType: "credit",
+        accountSubtype: "credit card",
+        accountName: "CREDIT CARD",
+      }),
+    ]);
+    const body = await (await GET(request("?months=1"))).json();
+
+    expect(body.months[0].spendingByCategory).toEqual([
+      { key: "ENTERTAINMENT_TV_AND_MOVIES", primary: "ENTERTAINMENT", total: "33.48" },
+    ]);
+  });
+
   it("returns a zero-filled window for a user with no transactions", async () => {
     mockWhere.mockResolvedValueOnce([]);
     const body = await (await GET(request("?months=3"))).json();

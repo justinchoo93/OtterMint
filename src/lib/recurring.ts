@@ -3,6 +3,7 @@
 // are recorded in docs/plans/analytics-tab.md (Decision Log, Milestone 3).
 
 import { classifyTransaction, type CashflowRow } from "@/lib/cashflow";
+import { merchantKey } from "@/lib/merchant";
 
 export type Cadence = "weekly" | "biweekly" | "monthly" | "quarterly" | "yearly";
 
@@ -92,16 +93,6 @@ function dayNumber(date: string): number {
   return Math.round(Date.parse(`${date}T00:00:00Z`) / 86_400_000);
 }
 
-/** "NETFLIX.COM 866-579-7172" and "Netflix" both become "netflix". */
-export function merchantKey(row: Pick<CashflowRow, "merchantName" | "name">): string {
-  const base = row.merchantName?.trim() || row.name;
-  return base
-    .toLowerCase()
-    .replace(/[^a-z\s]/g, "")
-    .replace(/\s+/g, " ")
-    .trim();
-}
-
 function median(values: number[]): number {
   const sorted = [...values].sort((a, b) => a - b);
   const mid = Math.floor(sorted.length / 2);
@@ -159,6 +150,32 @@ function isSteady(amounts: number[]): boolean {
   return steps <= 1;
 }
 
+const byDate = (a: Charge, b: Charge) => a.date.localeCompare(b.date);
+
+/**
+ * One merchant can carry several subscriptions (Apple bills iCloud and Music
+ * separately under "Apple"). Cluster the charges by amount, then merge
+ * clusters that follow one another in time, which is a price change, and keep
+ * apart the ones that interleave, which are separate subscriptions.
+ */
+function splitByAmount(list: Charge[]): Charge[][] {
+  const clusters: Charge[][] = [];
+  for (const charge of [...list].sort((a, b) => a.cents - b.cents)) {
+    const last = clusters[clusters.length - 1];
+    if (last && Math.abs(charge.cents - last[0].cents) <= tolerance(last[0].cents)) last.push(charge);
+    else clusters.push([charge]);
+  }
+  for (const cluster of clusters) cluster.sort(byDate);
+  clusters.sort((a, b) => byDate(a[0], b[0]));
+  const series: Charge[][] = [];
+  for (const cluster of clusters) {
+    const current = series[series.length - 1];
+    if (current && cluster[0].date > current[current.length - 1].date) current.push(...cluster);
+    else series.push([...cluster]);
+  }
+  return series;
+}
+
 function priceChangeOf(list: Charge[]): RecurringCharge["priceChange"] {
   if (list.length < 2) return null;
   const latest = list[list.length - 1];
@@ -194,44 +211,59 @@ export function detectRecurringCharges(
   }
 
   const charges: RecurringCharge[] = [];
-  for (const [key, list] of groups) {
-    list.sort((a, b) => a.date.localeCompare(b.date));
-    if (list.length < 2) continue;
+  for (const [key, group] of groups) {
+    group.sort(byDate);
+    if (group.length < 2) continue;
+    // A bill's amount varies by design, so it stays one series.
+    const bill = isBill(categoryKeyOf(group[group.length - 1].row));
+    const found: RecurringCharge[] = [];
 
-    const gaps: number[] = [];
-    for (let i = 1; i < list.length; i++) gaps.push(dayNumber(list[i].date) - dayNumber(list[i - 1].date));
-    const { spec, inBand } = pickCadence(gaps);
-    const qualifies =
-      spec.id === "yearly"
-        ? inBand >= 1
-        : list.length >= 3 && inBand >= 2 && inBand >= Math.ceil(gaps.length * AGREEMENT);
-    if (!qualifies) continue;
+    for (const list of bill ? [group] : splitByAmount(group)) {
+      if (list.length < 2) continue;
+      const gaps: number[] = [];
+      for (let i = 1; i < list.length; i++) gaps.push(dayNumber(list[i].date) - dayNumber(list[i - 1].date));
+      const { spec, inBand } = pickCadence(gaps);
+      const latest = list[list.length - 1];
+      const amounts = list.map((c) => c.cents);
+      const categoryKey = categoryKeyOf(latest.row);
+      // Two charges a year apart are only a yearly charge when the amount is
+      // the same to within 1% (or ten cents) and it is not food or drink: a
+      // restaurant visited twice a year apart is not a membership.
+      const qualifies =
+        spec.id === "yearly"
+          ? inBand >= 1 &&
+            !categoryKey.startsWith("FOOD_AND_DRINK") &&
+            Math.abs(amounts[amounts.length - 1] - amounts[0]) <= Math.max(10, Math.round(median(amounts) * 0.01))
+          : list.length >= 3 && inBand >= 2 && inBand >= Math.ceil(gaps.length * AGREEMENT);
+      if (!qualifies) continue;
 
-    const latest = list[list.length - 1];
-    if (today - dayNumber(latest.date) > spec.activeWithin) continue;
+      if (today - dayNumber(latest.date) > spec.activeWithin) continue;
 
-    const amounts = list.map((c) => c.cents);
-    const steady = isSteady(amounts);
-    const categoryKey = categoryKeyOf(latest.row);
-    if (!steady && !(isBill(categoryKey) && spec.id === "monthly")) continue;
+      const steady = isSteady(amounts);
+      if (!steady && !(bill && spec.id === "monthly")) continue;
 
-    const first = list[0];
-    charges.push({
-      key,
-      merchant: latest.row.merchantName?.trim() || latest.row.name,
-      cadence: spec.id,
-      amount: fromCents(latest.cents),
-      monthlyEquivalent: fromCents(Math.round(latest.cents * spec.perMonth)),
-      firstDate: first.date,
-      lastDate: latest.date,
-      nextExpected: addCadence(latest.date, spec.id),
-      count: list.length,
-      varies: steady ? null : { min: fromCents(Math.min(...amounts)), max: fromCents(Math.max(...amounts)) },
-      priceChange: steady ? priceChangeOf(list) : null,
-      isNew: spec.id !== "yearly" && today - dayNumber(first.date) <= NEW_WITHIN_DAYS,
-      categoryKey,
-      accountName: latest.row.accountName,
-    });
+      const first = list[0];
+      found.push({
+        key,
+        merchant: latest.row.merchantName?.trim() || latest.row.name,
+        cadence: spec.id,
+        amount: fromCents(latest.cents),
+        monthlyEquivalent: fromCents(Math.round(latest.cents * spec.perMonth)),
+        firstDate: first.date,
+        lastDate: latest.date,
+        nextExpected: addCadence(latest.date, spec.id),
+        count: list.length,
+        varies: steady ? null : { min: fromCents(Math.min(...amounts)), max: fromCents(Math.max(...amounts)) },
+        priceChange: steady ? priceChangeOf(list) : null,
+        isNew: spec.id !== "yearly" && today - dayNumber(first.date) <= NEW_WITHIN_DAYS,
+        categoryKey,
+        accountName: latest.row.accountName,
+      });
+    }
+
+    // Several subscriptions at one merchant get distinct keys.
+    if (found.length > 1) for (const charge of found) charge.key = `${key} ${charge.amount}`;
+    charges.push(...found);
   }
 
   charges.sort(

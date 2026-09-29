@@ -88,10 +88,13 @@ const riverBuy = {
 };
 
 describe("applyCategoryRules: River recurring buys", () => {
-  it("corrects both River buy name variants to a savings transfer-out", () => {
+  it("corrects every River ACH debit shape to a savings transfer-out", () => {
     for (const name of [
       "RIVER. RECUR BUY PDSTYN6SEQ WEB ID: 4611920351",
       "RIVER. SUPER BUY 7AYU4ANTYY WEB ID: 4611920351",
+      // Backfilled statement descriptors (docs/plans/descriptor-enrichment.md).
+      "River Ukfqdgsnnq (River) Ukfqdgsnnq Web ID: 4611920351",
+      "River River Ukfqdgsnnq Web ID: 4611920351",
     ]) {
       const corrected = applyCategoryRules({ ...riverBuy, name });
       expect(corrected.category).toBe("TRANSFER_OUT");
@@ -103,6 +106,7 @@ describe("applyCategoryRules: River recurring buys", () => {
     for (const name of [
       "REAL TIME PAYMENT CREDIT RECD FROM: RIVER FINANCIAL REF: 7bd1b78c",
       "RIVERSIDE CAFE SEATTLE",
+      "RIVER CAFE SEATTLE WA",
     ]) {
       const row = { ...riverBuy, name };
       expect(applyCategoryRules(row)).toBe(row);

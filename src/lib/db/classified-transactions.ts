@@ -2,6 +2,7 @@ import { and, eq, gte } from "drizzle-orm";
 import { transactions, accounts, plaidItems } from "@/lib/db/schema";
 import type { WithUserTx } from "@/lib/db/with-user";
 import { applyCategoryRules } from "@/lib/category-rules";
+import { enrichDescriptors } from "@/lib/descriptor-enrichment";
 
 export interface ClassifiedTransactionRow {
   amount: string;
@@ -19,11 +20,12 @@ export interface ClassifiedTransactionRow {
 /**
  * The canonical analytics read of transaction rows: the transactions ⋈
  * accounts ⋈ plaid_items join scoped to the user (RLS also enforces the
- * boundary on every joined table), with category-correction rules applied.
- * Every analytics read goes through this helper — that is what guarantees
- * corrections from src/lib/category-rules.ts apply everywhere. Pending rows
- * are included; the pure aggregations skip them, keeping the pending policy
- * in one layer.
+ * boundary on every joined table), with backfilled bank descriptors joined to
+ * their Plaid merchants (src/lib/descriptor-enrichment.ts) and then the
+ * category-correction rules applied. Every analytics read goes through this
+ * helper — that is what guarantees the enrichment and the corrections from
+ * src/lib/category-rules.ts apply everywhere. Pending rows are included; the
+ * pure aggregations skip them, keeping the pending policy in one layer.
  */
 export async function selectClassifiedTransactionRows(
   tx: WithUserTx,
@@ -49,5 +51,5 @@ export async function selectClassifiedTransactionRows(
     .where(
       and(eq(plaidItems.userId, userId), gte(transactions.date, since))
     );
-  return rows.map(applyCategoryRules);
+  return enrichDescriptors(rows).map(applyCategoryRules);
 }
