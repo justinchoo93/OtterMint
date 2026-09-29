@@ -18,7 +18,7 @@ To see it working after implementation: sign in, click "Analytics" in the sideba
 - [x] (2026-09-29 19:30Z) Milestone 4: `TrendsView`, `SavingsRateCard`, `SavingsRateChart`, `CategoryTrendsCard` with `MiniColumns`, `YearToDateCard`, `RecurringChargesCard`; the Analytics nav item is back; 10 tests in `trends-view.test.tsx`.
 - [x] (2026-09-29 19:35Z) Milestone 5: both harness files serve data from Jan 2025 with `toDate` and answer `/api/analytics/recurring`; the page was screenshotted at 1440 and 390 with the prod fixtures and compared with the renders (section order, hero, line, nine trend rows, year card, twelve recurring rows all present; no horizontal overflow; range buttons 44 px on phones; Tab reaches the range buttons, the chart and both details summaries with the 2 px focus ring; no page errors). One fix: twelve month labels collided on the phone chart, so the axis now thins colliding labels (`interval="equidistantPreserveStart"`) and shows every other month at 390 px.
 - [x] (2026-09-29 19:45Z) Milestone 6, production check: the owner's last thirteen months of classified rows (1,388) were exported read-only and run through `aggregateCashflow`, `categoryTrends`, `yearToDate` and `detectRecurringCharges`; findings below. Merged to main after the check.
-- [ ] Milestone 6, deploy: waiting for the owner's go-ahead (`scripts/deploy.sh` from a checkout at `origin/main`), then the owner confirms the page.
+- [x] (2026-09-29 21:00Z) Milestone 6, deploy: deployed at `ea5d2ee` (with the descriptor-enrichment follow-up) via `scripts/deploy.sh`; health check `{"status":"ok","db":"ok"}`. The owner confirms the page.
 
 ## Surprises & Discoveries
 

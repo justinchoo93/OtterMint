@@ -15,7 +15,7 @@ To see it working: sign in, open Analytics, and press All. Category trends show 
 - [x] (2026-09-29 20:15Z) Milestone 1: `src/lib/merchant.ts` with `merchantTokens` and `merchantKey`; recurring detection uses it; `merchant.test.ts` and the updated `recurring.test.ts` pass.
 - [x] (2026-09-29 20:20Z) Milestone 2: `src/lib/descriptor-enrichment.ts` wired into `selectClassifiedTransactionRows` before the category rules; `descriptor-enrichment.test.ts` and a cash-flow route test pass.
 - [x] (2026-09-29 20:45Z) Milestone 3, production check: run before and after on the owner's 1,388 rows; three findings led to three refinements recorded below (the River rule, yearly tolerance, amount series). Full suite, type-check and lint clean; merged to main.
-- [ ] Milestone 3, deploy: waiting for the owner's go-ahead (`scripts/deploy.sh` from a checkout at `origin/main`).
+- [x] (2026-09-29 21:00Z) Milestone 3, deploy: deployed at `ea5d2ee` via `scripts/deploy.sh` on the owner's request; health check `{"status":"ok","db":"ok"}`.
 
 ## Surprises & Discoveries
 
