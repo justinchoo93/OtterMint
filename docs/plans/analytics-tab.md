@@ -17,12 +17,17 @@ To see it working after implementation: sign in, click "Analytics" in the sideba
 - [x] (2026-09-29 19:25Z) Milestone 3: `detectRecurringCharges` with its bands, steadiness and bill rules; `GET /api/analytics/recurring`; 17 tests across `recurring.test.ts` and `recurring-route.test.ts`.
 - [x] (2026-09-29 19:30Z) Milestone 4: `TrendsView`, `SavingsRateCard`, `SavingsRateChart`, `CategoryTrendsCard` with `MiniColumns`, `YearToDateCard`, `RecurringChargesCard`; the Analytics nav item is back; 10 tests in `trends-view.test.tsx`.
 - [x] (2026-09-29 19:35Z) Milestone 5: both harness files serve data from Jan 2025 with `toDate` and answer `/api/analytics/recurring`; the page was screenshotted at 1440 and 390 with the prod fixtures and compared with the renders (section order, hero, line, nine trend rows, year card, twelve recurring rows all present; no horizontal overflow; range buttons 44 px on phones; Tab reaches the range buttons, the chart and both details summaries with the 2 px focus ring; no page errors). One fix: twelve month labels collided on the phone chart, so the axis now thins colliding labels (`interval="equidistantPreserveStart"`) and shows every other month at 390 px.
-- [ ] Milestone 6: figures checked against production data read-only; merged to main; deployed on the owner's go-ahead.
+- [x] (2026-09-29 19:45Z) Milestone 6, production check: the owner's last thirteen months of classified rows (1,388) were exported read-only and run through `aggregateCashflow`, `categoryTrends`, `yearToDate` and `detectRecurringCharges`; findings below. Merged to main after the check.
+- [ ] Milestone 6, deploy: waiting for the owner's go-ahead (`scripts/deploy.sh` from a checkout at `origin/main`), then the owner confirms the page.
 
 ## Surprises & Discoveries
 
 - Observation: production transactions start on 2025-01-01, not 2026-01-01 as `docs/plans/analytics-redesign.md` recorded on 2026-09-27; a statement backfill added 2025.
   Evidence (2026-09-29, read-only over ssh): `kchoosun@gmail.com|2025|1322|2025-01-01|2025-12-31` and `kchoosun@gmail.com|2026|882|2026-01-01|2026-09-25`. So every range up to 1Y has a full prior period today, and a 24-month "All" reaches back to October 2024, of which only January 2025 onward has data.
+
+- Observation: the backfilled rows (before about mid-April 2026, when the Plaid connections took over) carry bank descriptors with no merchant name and often no category. A merchant therefore appears under two keys: "NETFLIX.COM 866-579-7172 CA" until March 2026 and, had it continued, "Netflix" after. Detection still finds every active subscription from the Plaid era (three or more charges since April), but `firstDate` and `count` start at the boundary and a price change across it is invisible. Category trends over windows that include the backfill months show "Uncategorized" as the second-largest row (average $1,901 a month over the last twelve months, all before May 2026).
+  Evidence (2026-09-29, production rows through the pure functions): recurring found 5 charges, $3,780.57 a month, 47% of the $7,999 average complete month: Bilt Rent (monthly, varies $3,465–$3,885, since June), Xfinity $51.59, YouTube Premium $29.83, Medium $5.00, Apple $0.99. Rejected steady groups all ended at the boundary: `MEDIUM MONTHLY MEDIUM.COM CA` x8 to 2026-04-17 (continues as "Medium"), `NETFLIX.COM` x7 to 2026-03-13, `HLU*HULUPLUS` x6 to 2026-02-27, `The Hemlock Rent` x7 to 2026-04-02 (replaced by Bilt). Groceries, Amazon, Costco and Uber were rejected for varying amounts, and a weekly chiropractor ($62–$270) for the same reason. The 1Y kept rate is 48.0%; year to date shows income $129,363, spending $64,447, saved $74,719, net $64,917, highest month March ($10,974), lowest May ($2,524).
+  Follow-up (outside this plan): normalize descriptor names so a backfill descriptor joins its Plaid merchant (strip ".com", store numbers, trailing city and state), and consider whether a weekly charge with a steady day but a varying amount (the chiropractor) should count as a bill.
 
 ## Decision Log
 
@@ -48,7 +53,11 @@ To see it working after implementation: sign in, click "Analytics" in the sideba
 
 ## Outcomes & Retrospective
 
-Not started.
+Implemented and verified on 2026-09-29 in the worktree branch `worktree-analytics-deeper`, merged to main the same day; deployment waits for the owner. The Analytics destination is back with the four cards the owner asked for, scoped by the Dashboard's range control where a window makes sense and fixed where it does not. Every figure comes from a pure, tested function (`src/lib/analytics-model.ts`, `src/lib/recurring.ts`), and the only API addition is one route plus one optional field on the cash-flow month. The database-free harness screenshots matched the design at both widths after one axis-label fix.
+
+What the production check taught: the data has a seam in April 2026 between backfilled statement rows and Plaid rows, and every feature that groups by merchant or category feels it. The recurring list is right about what is active today, but its history starts at the seam. Filling in merchant names and categories for the backfilled rows (or normalizing descriptors) would improve this page more than any further detection rule.
+
+Gaps: no account or category filter (the routes have no account parameter yet), and the details behind a trend row or a recurring charge are not clickable. Both are natural next steps once the owner has lived with the page.
 
 ## Context and Orientation
 
@@ -261,5 +270,7 @@ Components, all `"use client"` in `src/components/dashboard/`:
     RecurringChargesCard({ state: { status: "loading" | "ready" | "error"; summary: RecurringSummary | null } })
 
 Revision note (2026-09-29): Initial version, written after reading the cash-flow model, the analytics model, the routes, the Dashboard components, the tests and the harness, and after confirming the 2025 production history. No implementation yet.
+
+Revision note (2026-09-29, evening): Milestones 5 and 6 done except deployment. Recorded the harness comparison, the phone axis fix, the production check with its findings about the April 2026 data seam, and the retrospective.
 
 Revision note (2026-09-29, later): Milestones 1 to 4 implemented. Two refinements while implementing: `rateScale` starts at zero whenever no rate is negative (the earlier formula put a 2% rate on a -10 floor), and `MiniColumns` sizes its bars with CSS (`flex: 1`, max 24 px, percentage heights) instead of computing widths, which removed the `box` and `height` props and the width test. The recurring route takes no request argument. Progress and the interfaces reflect the code.
