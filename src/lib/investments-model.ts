@@ -410,9 +410,17 @@ export function parseOccSymbol(
   };
 }
 
-function longDate(date: string): string {
+/** "Dec 18, 2026" */
+export function formatLongDate(date: string): string {
   return `${SHORT_MONTHS[Number(date.slice(5, 7)) - 1]} ${Number(date.slice(8, 10))}, ${date.slice(0, 4)}`;
 }
+
+/** "Dec 18" */
+export function formatShortDate(date: string): string {
+  return `${SHORT_MONTHS[Number(date.slice(5, 7)) - 1]} ${Number(date.slice(8, 10))}`;
+}
+
+const longDate = formatLongDate;
 
 /** "AAPL $260 call" with "Expires Dec 18, 2026" for a parseable option; otherwise the ticker (or name) and the name. */
 export function formatSecurityLabel(
