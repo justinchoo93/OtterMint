@@ -8,7 +8,7 @@ The reference for the Analytics redesign (`docs/plans/analytics-redesign.md`). T
 
 ## Checking the implementation against the mock
 
-The app's auth middleware only checks that a UUID-shaped `session_id` cookie exists, so the real signed-in page renders locally with no database when every `/api/*` request is answered in the browser. `harness/prod-fixtures.js` answers with production-like data (transactions from January 2026, month-end estimates before July); `harness/mock-fixtures.js` answers with the mock's own sample data so screenshots are comparable number for number.
+The app's auth middleware only checks that a UUID-shaped `session_id` cookie exists, so the real signed-in page renders locally with no database when every `/api/*` request is answered in the browser. `harness/prod-fixtures.js` answers with production-like data (transactions from January 2025, month-end estimates before July 2026, and a recurring-charge list for the Analytics tab); `harness/mock-fixtures.js` answers with the mock's own sample data so screenshots are comparable number for number.
 
 1. `npm run dev -- --port 3000`
 2. In a Playwright browser, run one harness file as a page function (with the Playwright MCP tool, pass `filename`; the tool only reads files inside the repository and its sandbox has no `URL` global, which the harness already avoids).

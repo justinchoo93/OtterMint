@@ -194,6 +194,9 @@ function txRows(seed, merchants, month, avg, n, catName, accounts, plus) {
     cats.sort((a, b) => Number(b.total) - Number(a.total));
     return { month: key, partial: m.partial, income: fixed2(m.income), spending: fixed2(m.spending), savings: fixed2(m.saved),
       netCashFlow: fixed2(m.income - m.spending), spendingByCategory: cats,
+      // Month to date: the same figures through today's day of the month (85% of the month here).
+      toDate: { income: fixed2(m.income * 0.85), spending: fixed2(m.spending * 0.85), savings: fixed2(m.saved * 0.85),
+        netCashFlow: fixed2((m.income - m.spending) * 0.85), spendingByCategory: cats.map((c) => ({ ...c, total: fixed2(Number(c.total) * 0.85) })) },
       incomeItems: [
         { date: key + '-15', amount: fixed2(m.income * 0.47), name: 'Direct deposit · Payroll', merchantName: null, categoryKey: 'INCOME_WAGES', accountName: 'Checking ···4821' },
         { date: key + '-01', amount: fixed2(m.income * 0.04), name: 'Interest · High-yield savings', merchantName: null, categoryKey: 'INCOME_INTEREST_EARNED', accountName: 'Savings ···2290' }],
@@ -241,6 +244,28 @@ function txRows(seed, merchants, month, avg, n, catName, accounts, plus) {
         merchantName: ['Oddfellows Cafe','Tacos El Sol','Din Tai Fung','Blue Bottle Coffee','Sushi Kappo','Ramen House','Molly Moon\'s','Tacos El Sol','Din Tai Fung'][Math.floor((26 - d) / 3)], categoryKey: cats[0] ?? 'FOOD_AND_DRINK_RESTAURANTS', accountName: 'Sapphire' });
       const limit = Number(q.limit ?? 200);
       return json({ count: items.length + 30, total: '1234.56', items: items.slice(0, limit) });
+    }
+    if (p === '/api/analytics/recurring') {
+      const charge = (merchant, cadence, amount, last, next, extra) => ({ key: merchant.toLowerCase(), merchant, cadence, amount: fixed2(amount),
+        monthlyEquivalent: fixed2(cadence === 'yearly' ? amount / 12 : cadence === 'weekly' ? amount * 52 / 12 : amount),
+        firstDate: cadence === 'yearly' ? '2025-03-14' : '2025-10-' + last.slice(8), lastDate: last, nextExpected: next, count: cadence === 'yearly' ? 2 : 12,
+        varies: null, priceChange: null, isNew: false, categoryKey: 'GENERAL_SERVICES_OTHER_GENERAL_SERVICES', accountName: 'Sapphire ···0193', ...extra });
+      const charges = [
+        charge('Rent payment', 'monthly', 2850, '2026-09-01', '2026-10-01', { categoryKey: 'RENT_AND_UTILITIES_RENT', accountName: 'Checking ···4821' }),
+        charge('State Farm', 'monthly', 142.6, '2026-09-12', '2026-10-12', { categoryKey: 'GENERAL_SERVICES_INSURANCE' }),
+        charge('City Light & Power', 'monthly', 96.4, '2026-09-15', '2026-10-15', { varies: { min: '71.00', max: '138.00' }, categoryKey: 'RENT_AND_UTILITIES_GAS_AND_ELECTRICITY', accountName: 'Checking ···4821' }),
+        charge('Verizon Wireless', 'monthly', 85.12, '2026-09-18', '2026-10-18', { categoryKey: 'RENT_AND_UTILITIES_TELEPHONE' }),
+        charge('Xfinity', 'monthly', 79.99, '2026-09-08', '2026-10-08', { categoryKey: 'RENT_AND_UTILITIES_INTERNET_AND_CABLE' }),
+        charge('Gym membership', 'monthly', 49, '2026-09-03', '2026-10-03', { categoryKey: 'PERSONAL_CARE_GYMS_AND_FITNESS_CENTERS' }),
+        charge('ChatGPT Plus', 'monthly', 20, '2026-09-20', '2026-10-20', { firstDate: '2026-08-20', count: 2, isNew: true }),
+        charge('Netflix', 'monthly', 17.99, '2026-09-22', '2026-10-22', { priceChange: { from: '15.49', to: '17.99', since: '2026-07-22' }, categoryKey: 'ENTERTAINMENT_TV_AND_MOVIES' }),
+        charge('The New York Times', 'monthly', 17, '2026-09-05', '2026-10-05', {}),
+        charge('Spotify', 'monthly', 11.99, '2026-09-10', '2026-10-10', { categoryKey: 'ENTERTAINMENT_MUSIC_AND_AUDIO' }),
+        charge('Amazon Prime', 'yearly', 139, '2026-03-14', '2027-03-14', { categoryKey: 'GENERAL_MERCHANDISE_ONLINE_MARKETPLACES' }),
+        charge('iCloud+', 'monthly', 2.99, '2026-09-26', '2026-10-26', {}),
+      ];
+      const monthly = charges.reduce((sum, c) => sum + Number(c.monthlyEquivalent), 0);
+      return json({ charges, monthlyTotal: fixed2(monthly), yearlyTotal: fixed2(monthly * 12), shareOfSpending: Math.round(monthly / 7300 * 100), asOf: iso(TODAY) });
     }
     if (p === '/api/transactions') return json({ transactions: [] });
     if (p === '/api/holdings') return json({ holdings: [] });

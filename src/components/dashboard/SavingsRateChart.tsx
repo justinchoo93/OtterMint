@@ -49,7 +49,8 @@ export function SavingsRateChart({ months }: SavingsRateChartProps) {
           <CartesianGrid stroke="var(--chart-grid)" vertical={false} />
           <XAxis
             dataKey="month"
-            interval={dense ? 2 : 0}
+            // Dense ranges label every third month; otherwise labels that would collide (phones) are thinned.
+            interval={dense ? 2 : "equidistantPreserveStart"}
             tick={TICK}
             tickLine={false}
             axisLine={false}
