@@ -185,6 +185,7 @@ export function summaryTiles(model: ScopeModel): SummaryTileData[] {
   const unrealizedGain = toNumber(model.unrealized.total.gain);
   const unrealizedCost = toNumber(model.unrealized.total.cost);
   const excluded = toNumber(model.unrealized.total.excludedValue);
+  const invested = model.groups.some((g) => !g.isCash);
   return [
     {
       label: "Market gain",
@@ -209,7 +210,14 @@ export function summaryTiles(model: ScopeModel): SummaryTileData[] {
         unrealizedCost > 0
           ? signedDelta(unrealizedGain, `${formatSignedPercent((unrealizedGain / unrealizedCost) * 100)} vs cost`)
           : undefined,
-      note: excluded > 0 ? `${formatWholeCurrency(excluded)} without cost basis excluded` : unrealizedCost > 0 ? "" : "no cost basis available",
+      note:
+        excluded > 0
+          ? `${formatWholeCurrency(excluded)} without cost basis excluded`
+          : unrealizedCost > 0
+            ? ""
+            : invested
+              ? "no cost basis available"
+              : "all cash, nothing invested",
     },
   ];
 }
