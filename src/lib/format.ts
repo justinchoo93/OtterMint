@@ -61,3 +61,11 @@ export function formatSignedPercent(value: number, digits = 1): string {
   if (rounded === 0) return `${(0).toFixed(digits)}%`;
   return `${rounded > 0 ? "+" : "-"}${Math.abs(rounded).toFixed(digits)}%`;
 }
+
+/** A change in percentage points: "+4.5 pts", "-0.8 pts", "0.0 pts". */
+export function formatSignedPoints(value: number, digits = 1): string {
+  const rounded = Number(value.toFixed(digits));
+  const body =
+    rounded === 0 ? (0).toFixed(digits) : `${rounded > 0 ? "+" : "-"}${Math.abs(rounded).toFixed(digits)}`;
+  return `${body} pts`;
+}

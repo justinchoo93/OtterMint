@@ -1,0 +1,777 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Analytics tab · phone mock</title>
+<!-- Static render of the approved design canvas board; see README.md. -->
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&amp;family=Instrument+Serif:ital@0;1&amp;family=JetBrains+Mono:wght@400;500;600&amp;display=swap">
+<style>
+body{margin:0;background:#0A0D0C;color:#EDF1EF;font-family:'DM Sans',system-ui,-apple-system,sans-serif;-webkit-font-smoothing:antialiased}
+a{color:#34D399}a:hover{color:#6EE7B7}
+button{font:inherit;color:inherit;background:none;border:0;padding:0;margin:0;cursor:pointer;text-align:left}
+button:focus-visible,a:focus-visible{outline:2px solid #34D399;outline-offset:2px}
+.mono{font-family:'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,monospace;font-variant-numeric:tabular-nums}
+.nav-item:hover{background:#171D1A;color:#EDF1EF}
+.ghost:hover{background:#1C2320;color:#EDF1EF}
+</style>
+</head>
+<body>
+<div style="width: 390px; height: 2720px; box-sizing: border-box; display: flex; flex-direction: column; background: #0A0D0C; color: #EDF1EF; font-family: 'DM Sans', system-ui, sans-serif; font-size: 14px; line-height: 1.4">
+
+  <header style="display: flex; justify-content: space-between; align-items: center; padding: 20px 16px 0">
+    <div style="display: flex; flex-direction: column; gap: 4px">
+      <h1 style="margin: 0; font-family: 'Instrument Serif', Georgia, serif; font-weight: 400; font-size: 30px; line-height: 1; letter-spacing: -0.01em">Analytics</h1>
+      <span style="color: #A3ADA8; font-size: 12px">What is changing, and what repeats</span>
+    </div>
+    <button aria-label="Account menu" style="width: 44px; height: 44px; border-radius: 50%; display: flex; align-items: center; justify-content: center">
+      <span style="width: 32px; height: 32px; border-radius: 50%; background: #242C28; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600; color: #A3ADA8">SU</span>
+    </button>
+  </header>
+
+  <div role="group" aria-label="Time range" style="display: flex; margin: 16px 16px 0; padding: 3px; gap: 2px; background: #111614; border: 1px solid #242C28; border-radius: 12px">
+    
+      <button aria-pressed="false" style="flex: 1; height: 38px; border-radius: 9px; background: transparent; color: #A3ADA8; font-size: 13px; font-weight: 500; text-align: center">3M</button>
+    
+      <button aria-pressed="false" style="flex: 1; height: 38px; border-radius: 9px; background: transparent; color: #A3ADA8; font-size: 13px; font-weight: 500; text-align: center">6M</button>
+    
+      <button aria-pressed="true" style="flex: 1; height: 38px; border-radius: 9px; background: #1C2320; color: #EDF1EF; font-size: 13px; font-weight: 500; text-align: center">1Y</button>
+    
+      <button aria-pressed="false" style="flex: 1; height: 38px; border-radius: 9px; background: transparent; color: #A3ADA8; font-size: 13px; font-weight: 500; text-align: center">All</button>
+    
+  </div>
+  <span style="margin: 8px 16px 0; font-size: 12px; color: #85908A">Compared with the previous 12 months · sets the window for the two cards below</span>
+
+  <section aria-label="Savings rate" style="margin: 16px 16px 0; background: #111614; border: 1px solid #242C28; border-radius: 16px; padding: 20px; box-sizing: border-box; display: flex; flex-direction: column">
+    <span style="font-size: 13px; font-weight: 500; color: #A3ADA8">Savings rate</span>
+    <span style="margin-top: 6px; font-size: 40px; font-weight: 600; line-height: 1.05; letter-spacing: -0.025em">19%</span>
+    <span style="margin-top: 6px; font-size: 13px; color: #A3ADA8">of income kept · Oct 2025–Sep 2026</span>
+    <div style="margin-top: 8px; display: flex; align-items: center; gap: 8px; font-size: 13px; flex-wrap: wrap">
+      
+        <span style="display: flex; align-items: center; gap: 5px; font-weight: 600; color: #34D399">
+          <svg width="10" height="8"><path d="M5 1l4 6H1z" style="fill: currentColor"></path></svg>
+          <span>+4.5 pts</span>
+        </span>
+      
+      <span style="color: #A3ADA8">vs the previous 12 months</span>
+    </div>
+    <div style="margin-top: 14px; display: flex; justify-content: space-between; font-size: 11px; color: #A3ADA8">
+      <span>Best Jun 2026 · 31%</span>
+      <span>Lowest May 2026 · −6%</span>
+    </div>
+    <div style="position: relative; width: 318px; height: 176px; margin-top: 8px">
+      
+        <div style="position: absolute; left: 0; right: 0; top: 166.0px; height: 0">
+          <span class="mono" style="position: absolute; left: 0; top: -6px; font-size: 10px; color: #85908A">−20%</span>
+          <div style="position: absolute; left: 36px; right: 44px; top: 0; height: 1px; background: #1E2622"></div>
+        </div>
+      
+        <div style="position: absolute; left: 0; right: 0; top: 140.3px; height: 0">
+          <span class="mono" style="position: absolute; left: 0; top: -6px; font-size: 10px; color: #85908A">−10%</span>
+          <div style="position: absolute; left: 36px; right: 44px; top: 0; height: 1px; background: #1E2622"></div>
+        </div>
+      
+        <div style="position: absolute; left: 0; right: 0; top: 114.7px; height: 0">
+          <span class="mono" style="position: absolute; left: 0; top: -6px; font-size: 10px; color: #85908A">0%</span>
+          <div style="position: absolute; left: 36px; right: 44px; top: 0; height: 1px; background: #2E3833"></div>
+        </div>
+      
+        <div style="position: absolute; left: 0; right: 0; top: 89.0px; height: 0">
+          <span class="mono" style="position: absolute; left: 0; top: -6px; font-size: 10px; color: #85908A">10%</span>
+          <div style="position: absolute; left: 36px; right: 44px; top: 0; height: 1px; background: #1E2622"></div>
+        </div>
+      
+        <div style="position: absolute; left: 0; right: 0; top: 63.3px; height: 0">
+          <span class="mono" style="position: absolute; left: 0; top: -6px; font-size: 10px; color: #85908A">20%</span>
+          <div style="position: absolute; left: 36px; right: 44px; top: 0; height: 1px; background: #1E2622"></div>
+        </div>
+      
+        <div style="position: absolute; left: 0; right: 0; top: 37.7px; height: 0">
+          <span class="mono" style="position: absolute; left: 0; top: -6px; font-size: 10px; color: #85908A">30%</span>
+          <div style="position: absolute; left: 36px; right: 44px; top: 0; height: 1px; background: #1E2622"></div>
+        </div>
+      
+        <div style="position: absolute; left: 0; right: 0; top: 12.0px; height: 0">
+          <span class="mono" style="position: absolute; left: 0; top: -6px; font-size: 10px; color: #85908A">40%</span>
+          <div style="position: absolute; left: 36px; right: 44px; top: 0; height: 1px; background: #1E2622"></div>
+        </div>
+      
+      <svg width="318" height="176" style="position: absolute; left: 0; top: 0; overflow: visible">
+        <path d="M36.0 65.9 L57.6 78.7 L79.3 91.6 L100.9 58.2 L122.5 47.9 L144.2 68.5 L165.8 53.1 L187.5 130.1 L209.1 35.1 L230.7 55.6 L252.4 71.0 L274.0 42.8 L274.0 114.7 L36.0 114.7 Z" style="fill: #34D399; opacity: 0.1"></path>
+        <path d="M36.0 65.9 L57.6 78.7 L79.3 91.6 L100.9 58.2 L122.5 47.9 L144.2 68.5 L165.8 53.1 L187.5 130.1 L209.1 35.1 L230.7 55.6 L252.4 71.0 L274.0 42.8" style="fill: none; stroke: #34D399; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round"></path>
+        <line x1="209.1" x2="209.1" y1="12" y2="166" style="stroke: #3A453F; stroke-width: 1"></line>
+        <circle cx="209.1" cy="35.1" r="5" style="fill: #34D399; stroke: #111614; stroke-width: 2"></circle>
+        <circle cx="274.0" cy="42.8" r="4" style="fill: #34D399; stroke: #111614; stroke-width: 2"></circle>
+      </svg>
+      <span style="position: absolute; left: 284.0px; top: 33.8px; font-size: 11px; font-weight: 600; white-space: nowrap">28%</span>
+      <div style="position: absolute; left: 79.1px; top: 0.0px; width: 116px; box-sizing: border-box; padding: 6px 8px; background: #171D1A; border: 1px solid #2A332E; border-radius: 8px; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35); display: flex; flex-direction: column; gap: 2px">
+        <span style="font-size: 10px; color: #A3ADA8">Jun 2026</span>
+        <span style="font-size: 13px; font-weight: 600">31% kept</span>
+      </div>
+    </div>
+    <div class="mono" style="position: relative; height: 20px; font-size: 9px; color: #85908A">
+      
+        <span style="position: absolute; left: 36.0px; top: 6px; transform: translateX(-50%); white-space: nowrap">Oct</span>
+      
+        <span style="position: absolute; left: 57.6px; top: 6px; transform: translateX(-50%); white-space: nowrap">Nov</span>
+      
+        <span style="position: absolute; left: 79.3px; top: 6px; transform: translateX(-50%); white-space: nowrap">Dec</span>
+      
+        <span style="position: absolute; left: 100.9px; top: 6px; transform: translateX(-50%); white-space: nowrap">Jan</span>
+      
+        <span style="position: absolute; left: 122.5px; top: 6px; transform: translateX(-50%); white-space: nowrap">Feb</span>
+      
+        <span style="position: absolute; left: 144.2px; top: 6px; transform: translateX(-50%); white-space: nowrap">Mar</span>
+      
+        <span style="position: absolute; left: 165.8px; top: 6px; transform: translateX(-50%); white-space: nowrap">Apr</span>
+      
+        <span style="position: absolute; left: 187.5px; top: 6px; transform: translateX(-50%); white-space: nowrap">May</span>
+      
+        <span style="position: absolute; left: 209.1px; top: 6px; transform: translateX(-50%); white-space: nowrap">Jun</span>
+      
+        <span style="position: absolute; left: 230.7px; top: 6px; transform: translateX(-50%); white-space: nowrap">Jul</span>
+      
+        <span style="position: absolute; left: 252.4px; top: 6px; transform: translateX(-50%); white-space: nowrap">Aug</span>
+      
+        <span style="position: absolute; left: 274.0px; top: 6px; transform: translateX(-50%); white-space: nowrap">Sep</span>
+      
+    </div>
+    <div style="margin-top: 16px; padding-top: 14px; border-top: 1px solid #1B221E; display: flex; flex-direction: column; gap: 8px; font-size: 13px">
+      <div style="display: flex; justify-content: space-between; align-items: center">
+        <span style="color: #A3ADA8">Income</span>
+        <span style="font-weight: 600">$111,794</span>
+      </div>
+      <div style="display: flex; justify-content: space-between; align-items: center">
+        <span style="color: #A3ADA8">Kept</span>
+        <span style="font-weight: 600">$21,731</span>
+      </div>
+      <div style="display: flex; justify-content: space-between; align-items: center">
+        <span style="color: #A3ADA8">Moved to savings</span>
+        <span style="display: flex; align-items: baseline; gap: 6px"><span style="font-weight: 600">$10,789</span><span style="font-size: 11px; color: #85908A">10% of income</span></span>
+      </div>
+      <span style="font-size: 12px; color: #85908A; line-height: 1.45">Kept is income minus spending. The current month is month to date. <a href="#">About this chart</a></span>
+    </div>
+  </section>
+
+  <section aria-label="Category trends" style="margin: 16px 16px 0; background: #111614; border: 1px solid #242C28; border-radius: 16px; padding: 20px; box-sizing: border-box; display: flex; flex-direction: column">
+    <div style="display: flex; flex-direction: column; gap: 4px">
+      <h2 style="margin: 0; font-family: 'Instrument Serif', Georgia, serif; font-weight: 400; font-size: 22px; line-height: 1.1">Category trends</h2>
+      <span style="font-size: 12px; color: #A3ADA8">Monthly spending by category · growing fastest first · Oct–Sep, change vs previous 12 mo</span>
+    </div>
+    <div style="margin-top: 10px; display: flex; flex-direction: column">
+      
+        <div aria-label="Online marketplaces, average $676 a month, +18% vs the previous 12 months" style="display: grid; grid-template-columns: minmax(0, 1fr) 106px 60px; gap: 12px; align-items: center; height: 52px; border-bottom: 1px solid #1B221E">
+          <span style="display: flex; flex-direction: column; gap: 3px; min-width: 0">
+            <span style="font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">Online marketplaces</span>
+            <span class="mono" style="font-size: 11px; color: #85908A">$676/mo</span>
+          </span>
+          <span style="display: flex; align-items: flex-end; gap: 2px; height: 24px; width: 106px">
+            
+              <span style="width: 7px; height: 13px; background: #d95926; border-radius: 2px 2px 0 0; opacity: 1"></span>
+            
+              <span style="width: 7px; height: 12px; background: #d95926; border-radius: 2px 2px 0 0; opacity: 1"></span>
+            
+              <span style="width: 7px; height: 24px; background: #d95926; border-radius: 2px 2px 0 0; opacity: 1"></span>
+            
+              <span style="width: 7px; height: 12px; background: #d95926; border-radius: 2px 2px 0 0; opacity: 1"></span>
+            
+              <span style="width: 7px; height: 13px; background: #d95926; border-radius: 2px 2px 0 0; opacity: 1"></span>
+            
+              <span style="width: 7px; height: 14px; background: #d95926; border-radius: 2px 2px 0 0; opacity: 1"></span>
+            
+              <span style="width: 7px; height: 13px; background: #d95926; border-radius: 2px 2px 0 0; opacity: 1"></span>
+            
+              <span style="width: 7px; height: 14px; background: #d95926; border-radius: 2px 2px 0 0; opacity: 1"></span>
+            
+              <span style="width: 7px; height: 15px; background: #d95926; border-radius: 2px 2px 0 0; opacity: 1"></span>
+            
+              <span style="width: 7px; height: 17px; background: #d95926; border-radius: 2px 2px 0 0; opacity: 1"></span>
+            
+              <span style="width: 7px; height: 17px; background: #d95926; border-radius: 2px 2px 0 0; opacity: 1"></span>
+            
+              <span style="width: 7px; height: 14px; background: #d95926; border-radius: 2px 2px 0 0; opacity: 0.55"></span>
+            
+          </span>
+          <span style="display: flex; justify-content: flex-end; align-items: center; gap: 4px; font-size: 13px; font-weight: 600; color: #F0836F">
+            <svg width="10" height="8"><path d="M5 1l4 6H1z" style="fill: currentColor"></path></svg>
+            <span>+18%</span>
+          </span>
+        </div>
+      
+        <div aria-label="Restaurants, average $1,262 a month, +16% vs the previous 12 months" style="display: grid; grid-template-columns: minmax(0, 1fr) 106px 60px; gap: 12px; align-items: center; height: 52px; border-bottom: 1px solid #1B221E">
+          <span style="display: flex; flex-direction: column; gap: 3px; min-width: 0">
+            <span style="font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">Restaurants</span>
+            <span class="mono" style="font-size: 11px; color: #85908A">$1,262/mo</span>
+          </span>
+          <span style="display: flex; align-items: flex-end; gap: 2px; height: 24px; width: 106px">
+            
+              <span style="width: 7px; height: 15px; background: #d95926; border-radius: 2px 2px 0 0; opacity: 1"></span>
+            
+              <span style="width: 7px; height: 15px; background: #d95926; border-radius: 2px 2px 0 0; opacity: 1"></span>
+            
+              <span style="width: 7px; height: 24px; background: #d95926; border-radius: 2px 2px 0 0; opacity: 1"></span>
+            
+              <span style="width: 7px; height: 14px; background: #d95926; border-radius: 2px 2px 0 0; opacity: 1"></span>
+            
+              <span style="width: 7px; height: 14px; background: #d95926; border-radius: 2px 2px 0 0; opacity: 1"></span>
+            
+              <span style="width: 7px; height: 16px; background: #d95926; border-radius: 2px 2px 0 0; opacity: 1"></span>
+            
+              <span style="width: 7px; height: 15px; background: #d95926; border-radius: 2px 2px 0 0; opacity: 1"></span>
+            
+              <span style="width: 7px; height: 16px; background: #d95926; border-radius: 2px 2px 0 0; opacity: 1"></span>
+            
+              <span style="width: 7px; height: 17px; background: #d95926; border-radius: 2px 2px 0 0; opacity: 1"></span>
+            
+              <span style="width: 7px; height: 16px; background: #d95926; border-radius: 2px 2px 0 0; opacity: 1"></span>
+            
+              <span style="width: 7px; height: 18px; background: #d95926; border-radius: 2px 2px 0 0; opacity: 1"></span>
+            
+              <span style="width: 7px; height: 15px; background: #d95926; border-radius: 2px 2px 0 0; opacity: 0.55"></span>
+            
+          </span>
+          <span style="display: flex; justify-content: flex-end; align-items: center; gap: 4px; font-size: 13px; font-weight: 600; color: #F0836F">
+            <svg width="10" height="8"><path d="M5 1l4 6H1z" style="fill: currentColor"></path></svg>
+            <span>+16%</span>
+          </span>
+        </div>
+      
+        <div aria-label="Groceries, average $998 a month, +8% vs the previous 12 months" style="display: grid; grid-template-columns: minmax(0, 1fr) 106px 60px; gap: 12px; align-items: center; height: 52px; border-bottom: 1px solid #1B221E">
+          <span style="display: flex; flex-direction: column; gap: 3px; min-width: 0">
+            <span style="font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">Groceries</span>
+            <span class="mono" style="font-size: 11px; color: #85908A">$998/mo</span>
+          </span>
+          <span style="display: flex; align-items: flex-end; gap: 2px; height: 24px; width: 106px">
+            
+              <span style="width: 7px; height: 23px; background: #d95926; border-radius: 2px 2px 0 0; opacity: 1"></span>
+            
+              <span style="width: 7px; height: 22px; background: #d95926; border-radius: 2px 2px 0 0; opacity: 1"></span>
+            
+              <span style="width: 7px; height: 22px; background: #d95926; border-radius: 2px 2px 0 0; opacity: 1"></span>
+            
+              <span style="width: 7px; height: 22px; background: #d95926; border-radius: 2px 2px 0 0; opacity: 1"></span>
+            
+              <span style="width: 7px; height: 23px; background: #d95926; border-radius: 2px 2px 0 0; opacity: 1"></span>
+            
+              <span style="width: 7px; height: 23px; background: #d95926; border-radius: 2px 2px 0 0; opacity: 1"></span>
+            
+              <span style="width: 7px; height: 23px; background: #d95926; border-radius: 2px 2px 0 0; opacity: 1"></span>
+            
+              <span style="width: 7px; height: 24px; background: #d95926; border-radius: 2px 2px 0 0; opacity: 1"></span>
+            
+              <span style="width: 7px; height: 24px; background: #d95926; border-radius: 2px 2px 0 0; opacity: 1"></span>
+            
+              <span style="width: 7px; height: 23px; background: #d95926; border-radius: 2px 2px 0 0; opacity: 1"></span>
+            
+              <span style="width: 7px; height: 24px; background: #d95926; border-radius: 2px 2px 0 0; opacity: 1"></span>
+            
+              <span style="width: 7px; height: 21px; background: #d95926; border-radius: 2px 2px 0 0; opacity: 0.55"></span>
+            
+          </span>
+          <span style="display: flex; justify-content: flex-end; align-items: center; gap: 4px; font-size: 13px; font-weight: 600; color: #F0836F">
+            <svg width="10" height="8"><path d="M5 1l4 6H1z" style="fill: currentColor"></path></svg>
+            <span>+8%</span>
+          </span>
+        </div>
+      
+        <div aria-label="Rent, average $2,850 a month, flat vs the previous 12 months" style="display: grid; grid-template-columns: minmax(0, 1fr) 106px 60px; gap: 12px; align-items: center; height: 52px; border-bottom: 1px solid #1B221E">
+          <span style="display: flex; flex-direction: column; gap: 3px; min-width: 0">
+            <span style="font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">Rent</span>
+            <span class="mono" style="font-size: 11px; color: #85908A">$2,850/mo</span>
+          </span>
+          <span style="display: flex; align-items: flex-end; gap: 2px; height: 24px; width: 106px">
+            
+              <span style="width: 7px; height: 24px; background: #d95926; border-radius: 2px 2px 0 0; opacity: 1"></span>
+            
+              <span style="width: 7px; height: 24px; background: #d95926; border-radius: 2px 2px 0 0; opacity: 1"></span>
+            
+              <span style="width: 7px; height: 24px; background: #d95926; border-radius: 2px 2px 0 0; opacity: 1"></span>
+            
+              <span style="width: 7px; height: 24px; background: #d95926; border-radius: 2px 2px 0 0; opacity: 1"></span>
+            
+              <span style="width: 7px; height: 24px; background: #d95926; border-radius: 2px 2px 0 0; opacity: 1"></span>
+            
+              <span style="width: 7px; height: 24px; background: #d95926; border-radius: 2px 2px 0 0; opacity: 1"></span>
+            
+              <span style="width: 7px; height: 24px; background: #d95926; border-radius: 2px 2px 0 0; opacity: 1"></span>
+            
+              <span style="width: 7px; height: 24px; background: #d95926; border-radius: 2px 2px 0 0; opacity: 1"></span>
+            
+              <span style="width: 7px; height: 24px; background: #d95926; border-radius: 2px 2px 0 0; opacity: 1"></span>
+            
+              <span style="width: 7px; height: 24px; background: #d95926; border-radius: 2px 2px 0 0; opacity: 1"></span>
+            
+              <span style="width: 7px; height: 24px; background: #d95926; border-radius: 2px 2px 0 0; opacity: 1"></span>
+            
+              <span style="width: 7px; height: 20px; background: #d95926; border-radius: 2px 2px 0 0; opacity: 0.55"></span>
+            
+          </span>
+          <span style="display: flex; justify-content: flex-end; align-items: center; gap: 4px; font-size: 13px; font-weight: 600; color: #85908A">
+            <svg width="10" height="8"><path d="" style="fill: currentColor"></path></svg>
+            <span>Flat</span>
+          </span>
+        </div>
+      
+        <div aria-label="Insurance, average $305 a month, flat vs the previous 12 months" style="display: grid; grid-template-columns: minmax(0, 1fr) 106px 60px; gap: 12px; align-items: center; height: 52px; border-bottom: 1px solid #1B221E">
+          <span style="display: flex; flex-direction: column; gap: 3px; min-width: 0">
+            <span style="font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">Insurance</span>
+            <span class="mono" style="font-size: 11px; color: #85908A">$305/mo</span>
+          </span>
+          <span style="display: flex; align-items: flex-end; gap: 2px; height: 24px; width: 106px">
+            
+              <span style="width: 7px; height: 24px; background: #d95926; border-radius: 2px 2px 0 0; opacity: 1"></span>
+            
+              <span style="width: 7px; height: 24px; background: #d95926; border-radius: 2px 2px 0 0; opacity: 1"></span>
+            
+              <span style="width: 7px; height: 24px; background: #d95926; border-radius: 2px 2px 0 0; opacity: 1"></span>
+            
+              <span style="width: 7px; height: 24px; background: #d95926; border-radius: 2px 2px 0 0; opacity: 1"></span>
+            
+              <span style="width: 7px; height: 24px; background: #d95926; border-radius: 2px 2px 0 0; opacity: 1"></span>
+            
+              <span style="width: 7px; height: 24px; background: #d95926; border-radius: 2px 2px 0 0; opacity: 1"></span>
+            
+              <span style="width: 7px; height: 24px; background: #d95926; border-radius: 2px 2px 0 0; opacity: 1"></span>
+            
+              <span style="width: 7px; height: 24px; background: #d95926; border-radius: 2px 2px 0 0; opacity: 1"></span>
+            
+              <span style="width: 7px; height: 24px; background: #d95926; border-radius: 2px 2px 0 0; opacity: 1"></span>
+            
+              <span style="width: 7px; height: 24px; background: #d95926; border-radius: 2px 2px 0 0; opacity: 1"></span>
+            
+              <span style="width: 7px; height: 24px; background: #d95926; border-radius: 2px 2px 0 0; opacity: 1"></span>
+            
+              <span style="width: 7px; height: 20px; background: #d95926; border-radius: 2px 2px 0 0; opacity: 0.55"></span>
+            
+          </span>
+          <span style="display: flex; justify-content: flex-end; align-items: center; gap: 4px; font-size: 13px; font-weight: 600; color: #85908A">
+            <svg width="10" height="8"><path d="" style="fill: currentColor"></path></svg>
+            <span>Flat</span>
+          </span>
+        </div>
+      
+        <div aria-label="Transportation, average $434 a month, flat vs the previous 12 months" style="display: grid; grid-template-columns: minmax(0, 1fr) 106px 60px; gap: 12px; align-items: center; height: 52px; border-bottom: 1px solid #1B221E">
+          <span style="display: flex; flex-direction: column; gap: 3px; min-width: 0">
+            <span style="font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">Transportation</span>
+            <span class="mono" style="font-size: 11px; color: #85908A">$434/mo</span>
+          </span>
+          <span style="display: flex; align-items: flex-end; gap: 2px; height: 24px; width: 106px">
+            
+              <span style="width: 7px; height: 24px; background: #d95926; border-radius: 2px 2px 0 0; opacity: 1"></span>
+            
+              <span style="width: 7px; height: 21px; background: #d95926; border-radius: 2px 2px 0 0; opacity: 1"></span>
+            
+              <span style="width: 7px; height: 20px; background: #d95926; border-radius: 2px 2px 0 0; opacity: 1"></span>
+            
+              <span style="width: 7px; height: 23px; background: #d95926; border-radius: 2px 2px 0 0; opacity: 1"></span>
+            
+              <span style="width: 7px; height: 22px; background: #d95926; border-radius: 2px 2px 0 0; opacity: 1"></span>
+            
+              <span style="width: 7px; height: 23px; background: #d95926; border-radius: 2px 2px 0 0; opacity: 1"></span>
+            
+              <span style="width: 7px; height: 22px; background: #d95926; border-radius: 2px 2px 0 0; opacity: 1"></span>
+            
+              <span style="width: 7px; height: 20px; background: #d95926; border-radius: 2px 2px 0 0; opacity: 1"></span>
+            
+              <span style="width: 7px; height: 20px; background: #d95926; border-radius: 2px 2px 0 0; opacity: 1"></span>
+            
+              <span style="width: 7px; height: 24px; background: #d95926; border-radius: 2px 2px 0 0; opacity: 1"></span>
+            
+              <span style="width: 7px; height: 20px; background: #d95926; border-radius: 2px 2px 0 0; opacity: 1"></span>
+            
+              <span style="width: 7px; height: 17px; background: #d95926; border-radius: 2px 2px 0 0; opacity: 0.55"></span>
+            
+          </span>
+          <span style="display: flex; justify-content: flex-end; align-items: center; gap: 4px; font-size: 13px; font-weight: 600; color: #85908A">
+            <svg width="10" height="8"><path d="" style="fill: currentColor"></path></svg>
+            <span>Flat</span>
+          </span>
+        </div>
+      
+        <div aria-label="Utilities, average $364 a month, −9% vs the previous 12 months" style="display: grid; grid-template-columns: minmax(0, 1fr) 106px 60px; gap: 12px; align-items: center; height: 52px; border-bottom: 1px solid #1B221E">
+          <span style="display: flex; flex-direction: column; gap: 3px; min-width: 0">
+            <span style="font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">Utilities</span>
+            <span class="mono" style="font-size: 11px; color: #85908A">$364/mo</span>
+          </span>
+          <span style="display: flex; align-items: flex-end; gap: 2px; height: 24px; width: 106px">
+            
+              <span style="width: 7px; height: 22px; background: #d95926; border-radius: 2px 2px 0 0; opacity: 1"></span>
+            
+              <span style="width: 7px; height: 23px; background: #d95926; border-radius: 2px 2px 0 0; opacity: 1"></span>
+            
+              <span style="width: 7px; height: 24px; background: #d95926; border-radius: 2px 2px 0 0; opacity: 1"></span>
+            
+              <span style="width: 7px; height: 24px; background: #d95926; border-radius: 2px 2px 0 0; opacity: 1"></span>
+            
+              <span style="width: 7px; height: 23px; background: #d95926; border-radius: 2px 2px 0 0; opacity: 1"></span>
+            
+              <span style="width: 7px; height: 23px; background: #d95926; border-radius: 2px 2px 0 0; opacity: 1"></span>
+            
+              <span style="width: 7px; height: 24px; background: #d95926; border-radius: 2px 2px 0 0; opacity: 1"></span>
+            
+              <span style="width: 7px; height: 23px; background: #d95926; border-radius: 2px 2px 0 0; opacity: 1"></span>
+            
+              <span style="width: 7px; height: 23px; background: #d95926; border-radius: 2px 2px 0 0; opacity: 1"></span>
+            
+              <span style="width: 7px; height: 22px; background: #d95926; border-radius: 2px 2px 0 0; opacity: 1"></span>
+            
+              <span style="width: 7px; height: 21px; background: #d95926; border-radius: 2px 2px 0 0; opacity: 1"></span>
+            
+              <span style="width: 7px; height: 17px; background: #d95926; border-radius: 2px 2px 0 0; opacity: 0.55"></span>
+            
+          </span>
+          <span style="display: flex; justify-content: flex-end; align-items: center; gap: 4px; font-size: 13px; font-weight: 600; color: #34D399">
+            <svg width="10" height="8"><path d="M5 7L1 1h8z" style="fill: currentColor"></path></svg>
+            <span>−9%</span>
+          </span>
+        </div>
+      
+        <div aria-label="Entertainment, average $255 a month, −17% vs the previous 12 months" style="display: grid; grid-template-columns: minmax(0, 1fr) 106px 60px; gap: 12px; align-items: center; height: 52px; border-bottom: 1px solid #1B221E">
+          <span style="display: flex; flex-direction: column; gap: 3px; min-width: 0">
+            <span style="font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">Entertainment</span>
+            <span class="mono" style="font-size: 11px; color: #85908A">$255/mo</span>
+          </span>
+          <span style="display: flex; align-items: flex-end; gap: 2px; height: 24px; width: 106px">
+            
+              <span style="width: 7px; height: 24px; background: #d95926; border-radius: 2px 2px 0 0; opacity: 1"></span>
+            
+              <span style="width: 7px; height: 19px; background: #d95926; border-radius: 2px 2px 0 0; opacity: 1"></span>
+            
+              <span style="width: 7px; height: 21px; background: #d95926; border-radius: 2px 2px 0 0; opacity: 1"></span>
+            
+              <span style="width: 7px; height: 20px; background: #d95926; border-radius: 2px 2px 0 0; opacity: 1"></span>
+            
+              <span style="width: 7px; height: 19px; background: #d95926; border-radius: 2px 2px 0 0; opacity: 1"></span>
+            
+              <span style="width: 7px; height: 18px; background: #d95926; border-radius: 2px 2px 0 0; opacity: 1"></span>
+            
+              <span style="width: 7px; height: 18px; background: #d95926; border-radius: 2px 2px 0 0; opacity: 1"></span>
+            
+              <span style="width: 7px; height: 17px; background: #d95926; border-radius: 2px 2px 0 0; opacity: 1"></span>
+            
+              <span style="width: 7px; height: 17px; background: #d95926; border-radius: 2px 2px 0 0; opacity: 1"></span>
+            
+              <span style="width: 7px; height: 16px; background: #d95926; border-radius: 2px 2px 0 0; opacity: 1"></span>
+            
+              <span style="width: 7px; height: 15px; background: #d95926; border-radius: 2px 2px 0 0; opacity: 1"></span>
+            
+              <span style="width: 7px; height: 14px; background: #d95926; border-radius: 2px 2px 0 0; opacity: 0.55"></span>
+            
+          </span>
+          <span style="display: flex; justify-content: flex-end; align-items: center; gap: 4px; font-size: 13px; font-weight: 600; color: #34D399">
+            <svg width="10" height="8"><path d="M5 7L1 1h8z" style="fill: currentColor"></path></svg>
+            <span>−17%</span>
+          </span>
+        </div>
+      
+        <div aria-label="Other, average $444 a month, +19% vs the previous 12 months" style="display: grid; grid-template-columns: minmax(0, 1fr) 106px 60px; gap: 12px; align-items: center; height: 52px; border-bottom: 1px solid #1B221E">
+          <span style="display: flex; flex-direction: column; gap: 3px; min-width: 0">
+            <span style="font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">Other</span>
+            <span class="mono" style="font-size: 11px; color: #85908A">$444/mo</span>
+          </span>
+          <span style="display: flex; align-items: flex-end; gap: 2px; height: 24px; width: 106px">
+            
+              <span style="width: 7px; height: 12px; background: #d95926; border-radius: 2px 2px 0 0; opacity: 1"></span>
+            
+              <span style="width: 7px; height: 9px; background: #d95926; border-radius: 2px 2px 0 0; opacity: 1"></span>
+            
+              <span style="width: 7px; height: 11px; background: #d95926; border-radius: 2px 2px 0 0; opacity: 1"></span>
+            
+              <span style="width: 7px; height: 12px; background: #d95926; border-radius: 2px 2px 0 0; opacity: 1"></span>
+            
+              <span style="width: 7px; height: 12px; background: #d95926; border-radius: 2px 2px 0 0; opacity: 1"></span>
+            
+              <span style="width: 7px; height: 13px; background: #d95926; border-radius: 2px 2px 0 0; opacity: 1"></span>
+            
+              <span style="width: 7px; height: 9px; background: #d95926; border-radius: 2px 2px 0 0; opacity: 1"></span>
+            
+              <span style="width: 7px; height: 24px; background: #d95926; border-radius: 2px 2px 0 0; opacity: 1"></span>
+            
+              <span style="width: 7px; height: 11px; background: #d95926; border-radius: 2px 2px 0 0; opacity: 1"></span>
+            
+              <span style="width: 7px; height: 10px; background: #d95926; border-radius: 2px 2px 0 0; opacity: 1"></span>
+            
+              <span style="width: 7px; height: 13px; background: #d95926; border-radius: 2px 2px 0 0; opacity: 1"></span>
+            
+              <span style="width: 7px; height: 11px; background: #d95926; border-radius: 2px 2px 0 0; opacity: 0.55"></span>
+            
+          </span>
+          <span style="display: flex; justify-content: flex-end; align-items: center; gap: 4px; font-size: 13px; font-weight: 600; color: #F0836F">
+            <svg width="10" height="8"><path d="M5 1l4 6H1z" style="fill: currentColor"></path></svg>
+            <span>+19%</span>
+          </span>
+        </div>
+      
+    </div>
+    <span style="margin-top: 12px; font-size: 12px; color: #85908A; line-height: 1.45">Each row's bars use their own scale. The lighter bar is the current month to date.</span>
+  </section>
+
+  <section aria-label="Year to date" style="margin: 16px 16px 0; background: #111614; border: 1px solid #242C28; border-radius: 16px; padding: 20px; box-sizing: border-box; display: flex; flex-direction: column">
+    <div style="display: flex; flex-direction: column; gap: 4px">
+      <h2 style="margin: 0; font-family: 'Instrument Serif', Georgia, serif; font-weight: 400; font-size: 22px; line-height: 1.1">2026 so far</h2>
+      <span style="font-size: 12px; color: #A3ADA8">Jan–Sep 2026 compared with Jan–Sep 2025</span>
+    </div>
+    <div style="margin-top: 14px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px">
+      <div style="padding: 12px 14px; background: #171D1A; border-radius: 14px; display: flex; flex-direction: column; gap: 4px">
+        <span style="font-size: 12px; font-weight: 500; color: #A3ADA8">Income</span>
+        <span style="font-size: 22px; font-weight: 600; line-height: 1.1; letter-spacing: -0.02em">$84,821</span>
+        <span style="display: flex; align-items: center; gap: 5px; font-size: 11px; color: #85908A; white-space: nowrap">
+          <span style="display: flex; align-items: center; gap: 3px; font-weight: 600; color: #34D399"><svg width="10" height="8"><path d="M5 1l4 6H1z" style="fill: currentColor"></path></svg><span>+11%</span></span>
+          <span>vs 2025</span>
+        </span>
+        <span style="font-size: 11px; color: #85908A">$9,425 a month</span>
+      </div>
+      <div style="padding: 12px 14px; background: #171D1A; border-radius: 14px; display: flex; flex-direction: column; gap: 4px">
+        <span style="font-size: 12px; font-weight: 500; color: #A3ADA8">Spending</span>
+        <span style="font-size: 22px; font-weight: 600; line-height: 1.1; letter-spacing: -0.02em">$66,859</span>
+        <span style="display: flex; align-items: center; gap: 5px; font-size: 11px; color: #85908A; white-space: nowrap">
+          <span style="display: flex; align-items: center; gap: 3px; font-weight: 600; color: #F0836F"><svg width="10" height="8"><path d="M5 1l4 6H1z" style="fill: currentColor"></path></svg><span>+5%</span></span>
+          <span>vs 2025</span>
+        </span>
+        <span style="font-size: 11px; color: #85908A">$7,429 a month</span>
+      </div>
+      <div style="padding: 12px 14px; background: #171D1A; border-radius: 14px; display: flex; flex-direction: column; gap: 4px">
+        <span style="font-size: 12px; font-weight: 500; color: #A3ADA8">Saved</span>
+        <span style="font-size: 22px; font-weight: 600; line-height: 1.1; letter-spacing: -0.02em">$7,994</span>
+        <span style="display: flex; align-items: center; gap: 5px; font-size: 11px; color: #85908A; white-space: nowrap">
+          <span style="display: flex; align-items: center; gap: 3px; font-weight: 600; color: #F0836F"><svg width="10" height="8"><path d="M5 7L1 1h8z" style="fill: currentColor"></path></svg><span>−3%</span></span>
+          <span>vs 2025</span>
+        </span>
+        <span style="font-size: 11px; color: #85908A">9% of income</span>
+      </div>
+      <div style="padding: 12px 14px; background: #171D1A; border-radius: 14px; display: flex; flex-direction: column; gap: 4px">
+        <span style="font-size: 12px; font-weight: 500; color: #A3ADA8">Net cash flow</span>
+        <span style="font-size: 22px; font-weight: 600; line-height: 1.1; letter-spacing: -0.02em">+$17,962</span>
+        <span style="display: flex; align-items: center; gap: 5px; font-size: 11px; color: #85908A; white-space: nowrap">
+          <span style="display: flex; align-items: center; gap: 3px; font-weight: 600; color: #34D399"><svg width="10" height="8"><path d="M5 1l4 6H1z" style="fill: currentColor"></path></svg><span>+40%</span></span>
+          <span>vs 2025</span>
+        </span>
+        <span style="font-size: 11px; color: #85908A">21% of income kept</span>
+      </div>
+    </div>
+    <div style="margin-top: 14px; padding-top: 12px; border-top: 1px solid #1B221E; display: flex; flex-direction: column; gap: 8px; font-size: 13px">
+      <div style="display: flex; justify-content: space-between; gap: 12px">
+        <span style="color: #A3ADA8">Highest month</span>
+        <span style="font-weight: 600; white-space: nowrap">May 2026 · $7,908</span>
+      </div>
+      <div style="display: flex; justify-content: space-between; gap: 12px">
+        <span style="color: #A3ADA8">Lowest month</span>
+        <span style="font-weight: 600; white-space: nowrap">Apr 2026 · $7,293</span>
+      </div>
+    </div>
+    <div style="margin-top: 16px; display: flex; flex-direction: column; gap: 6px">
+      <span style="font-size: 12px; color: #A3ADA8">Spending by month</span>
+      <div style="display: flex; align-items: flex-end; gap: 4px; height: 44px">
+        
+          <span style="flex: 1; height: 41px; background: #d95926; border-radius: 2px 2px 0 0; opacity: 1"></span>
+        
+          <span style="flex: 1; height: 41px; background: #d95926; border-radius: 2px 2px 0 0; opacity: 1"></span>
+        
+          <span style="flex: 1; height: 42px; background: #d95926; border-radius: 2px 2px 0 0; opacity: 1"></span>
+        
+          <span style="flex: 1; height: 41px; background: #d95926; border-radius: 2px 2px 0 0; opacity: 1"></span>
+        
+          <span style="flex: 1; height: 44px; background: #d95926; border-radius: 2px 2px 0 0; opacity: 1"></span>
+        
+          <span style="flex: 1; height: 42px; background: #d95926; border-radius: 2px 2px 0 0; opacity: 1"></span>
+        
+          <span style="flex: 1; height: 42px; background: #d95926; border-radius: 2px 2px 0 0; opacity: 1"></span>
+        
+          <span style="flex: 1; height: 43px; background: #d95926; border-radius: 2px 2px 0 0; opacity: 1"></span>
+        
+          <span style="flex: 1; height: 37px; background: #d95926; border-radius: 2px 2px 0 0; opacity: 0.55"></span>
+        
+          <span style="flex: 1; height: 0px; background: #d95926; border-radius: 2px 2px 0 0; opacity: 1"></span>
+        
+          <span style="flex: 1; height: 0px; background: #d95926; border-radius: 2px 2px 0 0; opacity: 1"></span>
+        
+          <span style="flex: 1; height: 0px; background: #d95926; border-radius: 2px 2px 0 0; opacity: 1"></span>
+        
+      </div>
+      <div class="mono" style="display: flex; gap: 4px; font-size: 10px">
+        
+          <span style="flex: 1; text-align: center; color: #85908A">J</span>
+        
+          <span style="flex: 1; text-align: center; color: #85908A">F</span>
+        
+          <span style="flex: 1; text-align: center; color: #85908A">M</span>
+        
+          <span style="flex: 1; text-align: center; color: #85908A">A</span>
+        
+          <span style="flex: 1; text-align: center; color: #85908A">M</span>
+        
+          <span style="flex: 1; text-align: center; color: #85908A">J</span>
+        
+          <span style="flex: 1; text-align: center; color: #85908A">J</span>
+        
+          <span style="flex: 1; text-align: center; color: #85908A">A</span>
+        
+          <span style="flex: 1; text-align: center; color: #85908A">S</span>
+        
+          <span style="flex: 1; text-align: center; color: #3A453F">O</span>
+        
+          <span style="flex: 1; text-align: center; color: #3A453F">N</span>
+        
+          <span style="flex: 1; text-align: center; color: #3A453F">D</span>
+        
+      </div>
+    </div>
+    <span style="margin-top: 12px; font-size: 12px; color: #85908A; line-height: 1.45">2025 is counted through the same day of the month, so the current month compares like for like.</span>
+  </section>
+
+  <section aria-label="Recurring charges" style="margin: 16px 16px 24px; background: #111614; border: 1px solid #242C28; border-radius: 16px; padding: 20px; box-sizing: border-box; display: flex; flex-direction: column">
+    <div style="display: flex; flex-direction: column; gap: 4px">
+      <h2 style="margin: 0; font-family: 'Instrument Serif', Georgia, serif; font-weight: 400; font-size: 22px; line-height: 1.1">Recurring charges</h2>
+      <span style="font-size: 12px; color: #A3ADA8">Charges that repeat on a steady schedule · as of today · 12 found</span>
+    </div>
+    <div style="margin-top: 14px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px">
+      <span style="display: flex; flex-direction: column; gap: 2px"><span style="font-size: 11px; color: #85908A">Per month</span><span style="font-size: 18px; font-weight: 600; line-height: 1.1">$3,385</span></span>
+      <span style="display: flex; flex-direction: column; gap: 2px"><span style="font-size: 11px; color: #85908A">Per year</span><span style="font-size: 18px; font-weight: 600; line-height: 1.1">$40,616</span></span>
+      <span style="display: flex; flex-direction: column; gap: 2px"><span style="font-size: 11px; color: #85908A">Of spending</span><span style="font-size: 18px; font-weight: 600; line-height: 1.1">45%</span></span>
+    </div>
+    <div style="margin-top: 12px; display: flex; flex-direction: column">
+      
+        <div style="display: flex; justify-content: space-between; align-items: center; gap: 12px; min-height: 54px; border-bottom: 1px solid #1B221E">
+          <span style="display: flex; flex-direction: column; gap: 3px; min-width: 0">
+            <span style="font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">Rent payment</span>
+            <span style="font-size: 11px; color: #85908A">Monthly · next Oct 1</span>
+          </span>
+          <span style="display: flex; flex-direction: column; align-items: flex-end; gap: 3px; flex-shrink: 0">
+            <span class="mono" style="font-size: 13px">$2,850.00</span>
+            
+          </span>
+        </div>
+      
+        <div style="display: flex; justify-content: space-between; align-items: center; gap: 12px; min-height: 54px; border-bottom: 1px solid #1B221E">
+          <span style="display: flex; flex-direction: column; gap: 3px; min-width: 0">
+            <span style="font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">State Farm</span>
+            <span style="font-size: 11px; color: #85908A">Monthly · next Oct 12</span>
+          </span>
+          <span style="display: flex; flex-direction: column; align-items: flex-end; gap: 3px; flex-shrink: 0">
+            <span class="mono" style="font-size: 13px">$142.60</span>
+            
+          </span>
+        </div>
+      
+        <div style="display: flex; justify-content: space-between; align-items: center; gap: 12px; min-height: 54px; border-bottom: 1px solid #1B221E">
+          <span style="display: flex; flex-direction: column; gap: 3px; min-width: 0">
+            <span style="font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">City Light &amp; Power</span>
+            <span style="font-size: 11px; color: #85908A">Monthly · next Oct 15</span>
+          </span>
+          <span style="display: flex; flex-direction: column; align-items: flex-end; gap: 3px; flex-shrink: 0">
+            <span class="mono" style="font-size: 13px">$96.40</span>
+            
+              <span style="display: inline-flex; align-items: center; height: 18px; padding: 0 7px; border-radius: 6px; background: #1C2320; font-size: 10px; font-weight: 600; white-space: nowrap">Varies</span>
+            
+          </span>
+        </div>
+      
+        <div style="display: flex; justify-content: space-between; align-items: center; gap: 12px; min-height: 54px; border-bottom: 1px solid #1B221E">
+          <span style="display: flex; flex-direction: column; gap: 3px; min-width: 0">
+            <span style="font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">Verizon Wireless</span>
+            <span style="font-size: 11px; color: #85908A">Monthly · next Oct 18</span>
+          </span>
+          <span style="display: flex; flex-direction: column; align-items: flex-end; gap: 3px; flex-shrink: 0">
+            <span class="mono" style="font-size: 13px">$85.12</span>
+            
+          </span>
+        </div>
+      
+        <div style="display: flex; justify-content: space-between; align-items: center; gap: 12px; min-height: 54px; border-bottom: 1px solid #1B221E">
+          <span style="display: flex; flex-direction: column; gap: 3px; min-width: 0">
+            <span style="font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">Xfinity</span>
+            <span style="font-size: 11px; color: #85908A">Monthly · next Oct 8</span>
+          </span>
+          <span style="display: flex; flex-direction: column; align-items: flex-end; gap: 3px; flex-shrink: 0">
+            <span class="mono" style="font-size: 13px">$79.99</span>
+            
+          </span>
+        </div>
+      
+        <div style="display: flex; justify-content: space-between; align-items: center; gap: 12px; min-height: 54px; border-bottom: 1px solid #1B221E">
+          <span style="display: flex; flex-direction: column; gap: 3px; min-width: 0">
+            <span style="font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">Gym membership</span>
+            <span style="font-size: 11px; color: #85908A">Monthly · next Oct 3</span>
+          </span>
+          <span style="display: flex; flex-direction: column; align-items: flex-end; gap: 3px; flex-shrink: 0">
+            <span class="mono" style="font-size: 13px">$49.00</span>
+            
+          </span>
+        </div>
+      
+        <div style="display: flex; justify-content: space-between; align-items: center; gap: 12px; min-height: 54px; border-bottom: 1px solid #1B221E">
+          <span style="display: flex; flex-direction: column; gap: 3px; min-width: 0">
+            <span style="font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">ChatGPT Plus</span>
+            <span style="font-size: 11px; color: #85908A">Monthly · next Oct 20</span>
+          </span>
+          <span style="display: flex; flex-direction: column; align-items: flex-end; gap: 3px; flex-shrink: 0">
+            <span class="mono" style="font-size: 13px">$20.00</span>
+            
+              <span style="display: inline-flex; align-items: center; height: 18px; padding: 0 7px; border-radius: 6px; background: #1C2320; font-size: 10px; font-weight: 600; white-space: nowrap">New</span>
+            
+          </span>
+        </div>
+      
+        <div style="display: flex; justify-content: space-between; align-items: center; gap: 12px; min-height: 54px; border-bottom: 1px solid #1B221E">
+          <span style="display: flex; flex-direction: column; gap: 3px; min-width: 0">
+            <span style="font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">Netflix</span>
+            <span style="font-size: 11px; color: #85908A">Monthly · next Oct 22</span>
+          </span>
+          <span style="display: flex; flex-direction: column; align-items: flex-end; gap: 3px; flex-shrink: 0">
+            <span class="mono" style="font-size: 13px">$17.99</span>
+            
+              <span style="display: inline-flex; align-items: center; height: 18px; padding: 0 7px; border-radius: 6px; background: #1C2320; font-size: 10px; font-weight: 600; white-space: nowrap">Price up</span>
+            
+          </span>
+        </div>
+      
+        <div style="display: flex; justify-content: space-between; align-items: center; gap: 12px; min-height: 54px; border-bottom: 1px solid #1B221E">
+          <span style="display: flex; flex-direction: column; gap: 3px; min-width: 0">
+            <span style="font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">The New York Times</span>
+            <span style="font-size: 11px; color: #85908A">Monthly · next Oct 5</span>
+          </span>
+          <span style="display: flex; flex-direction: column; align-items: flex-end; gap: 3px; flex-shrink: 0">
+            <span class="mono" style="font-size: 13px">$17.00</span>
+            
+          </span>
+        </div>
+      
+        <div style="display: flex; justify-content: space-between; align-items: center; gap: 12px; min-height: 54px; border-bottom: 1px solid #1B221E">
+          <span style="display: flex; flex-direction: column; gap: 3px; min-width: 0">
+            <span style="font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">Spotify</span>
+            <span style="font-size: 11px; color: #85908A">Monthly · next Oct 10</span>
+          </span>
+          <span style="display: flex; flex-direction: column; align-items: flex-end; gap: 3px; flex-shrink: 0">
+            <span class="mono" style="font-size: 13px">$11.99</span>
+            
+          </span>
+        </div>
+      
+        <div style="display: flex; justify-content: space-between; align-items: center; gap: 12px; min-height: 54px; border-bottom: 1px solid #1B221E">
+          <span style="display: flex; flex-direction: column; gap: 3px; min-width: 0">
+            <span style="font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">Amazon Prime</span>
+            <span style="font-size: 11px; color: #85908A">Yearly · next Mar 14, 2027</span>
+          </span>
+          <span style="display: flex; flex-direction: column; align-items: flex-end; gap: 3px; flex-shrink: 0">
+            <span class="mono" style="font-size: 13px">$139.00</span>
+            
+          </span>
+        </div>
+      
+        <div style="display: flex; justify-content: space-between; align-items: center; gap: 12px; min-height: 54px; border-bottom: 1px solid #1B221E">
+          <span style="display: flex; flex-direction: column; gap: 3px; min-width: 0">
+            <span style="font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">iCloud+</span>
+            <span style="font-size: 11px; color: #85908A">Monthly · next Oct 26</span>
+          </span>
+          <span style="display: flex; flex-direction: column; align-items: flex-end; gap: 3px; flex-shrink: 0">
+            <span class="mono" style="font-size: 13px">$2.99</span>
+            
+          </span>
+        </div>
+      
+    </div>
+    <span style="margin-top: 12px; font-size: 12px; color: #85908A; line-height: 1.45">Detected from 12 months of transactions. A charge counts once it has repeated three times at a steady interval. <a href="#">How detection works</a></span>
+  </section>
+
+</div>
+</body>
+</html>

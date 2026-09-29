@@ -49,6 +49,15 @@ export interface CashflowCategoryTotal {
   total: string;
 }
 
+/** A month's totals counting only days up to and including today's day of the month. */
+export interface CashflowToDate {
+  income: string;
+  spending: string;
+  savings: string;
+  netCashFlow: string;
+  spendingByCategory: CashflowCategoryTotal[];
+}
+
 export interface CashflowMonth {
   /** "YYYY-MM". */
   month: string;
@@ -63,6 +72,12 @@ export interface CashflowMonth {
   incomeItems: CashflowLineItem[];
   /** The line items behind the savings total, date-ascending. */
   savingsItems: CashflowLineItem[];
+  /**
+   * The same figures counting only days up to and including today's day of
+   * the month, so a complete month can be compared like for like with the
+   * current, partial one. Optional so older fixtures still type-check.
+   */
+  toDate?: CashflowToDate;
 }
 
 // Plaid's primary personal-finance categories. Used to derive the primary
@@ -227,28 +242,52 @@ export function aggregateCashflow(
 ): CashflowMonth[] {
   const window = monthWindow(options.today, options.months);
   const currentMonth = options.today.slice(0, 7);
+  const todayDay = Number.parseInt(options.today.slice(8, 10), 10);
+
+  type Totals = {
+    income: number;
+    spending: number;
+    savings: number;
+    byCategory: Map<string, { primary: string; cents: number }>;
+  };
+  const emptyTotals = (): Totals => ({ income: 0, spending: 0, savings: 0, byCategory: new Map() });
 
   const buckets = new Map<
     string,
     {
-      income: number;
-      spending: number;
-      savings: number;
-      byCategory: Map<string, { primary: string; cents: number }>;
+      whole: Totals;
+      /** Days up to and including today's day of the month. */
+      toDate: Totals;
       incomeItems: CashflowLineItem[];
       savingsItems: CashflowLineItem[];
     }
   >();
   for (const month of window) {
     buckets.set(month, {
-      income: 0,
-      spending: 0,
-      savings: 0,
-      byCategory: new Map(),
+      whole: emptyTotals(),
+      toDate: emptyTotals(),
       incomeItems: [],
       savingsItems: [],
     });
   }
+
+  const add = (totals: Totals, row: CashflowRow, flow: FlowType, cents: number) => {
+    if (flow === "income") {
+      // Inflows are negative in Plaid's convention; flip the sign.
+      totals.income += -cents;
+    } else if (flow === "savings") {
+      // Signed sum: contributions (outflows) add, withdrawals subtract.
+      totals.savings += cents;
+    } else if (flow === "spending") {
+      totals.spending += cents;
+      const key = categoryKeyOf(row);
+      const primary = primaryOf(row) ?? "UNCATEGORIZED";
+      const entry = totals.byCategory.get(key) ?? { primary, cents: 0 };
+      entry.cents += cents;
+      totals.byCategory.set(key, entry);
+    }
+    // internal: excluded from every total.
+  };
 
   for (const row of rows) {
     if (row.pending) continue;
@@ -258,48 +297,46 @@ export function aggregateCashflow(
     const cents = toCents(row.amount);
     const flow = classifyTransaction(row);
 
-    if (flow === "income") {
-      // Inflows are negative in Plaid's convention; flip the sign.
-      bucket.income += -cents;
-      bucket.incomeItems.push(toLineItem(row, -cents));
-    } else if (flow === "savings") {
-      // Signed sum: contributions (outflows) add, withdrawals subtract.
-      bucket.savings += cents;
-      bucket.savingsItems.push(toLineItem(row, cents));
-    } else if (flow === "spending") {
-      bucket.spending += cents;
-      const key = categoryKeyOf(row);
-      const primary = primaryOf(row) ?? "UNCATEGORIZED";
-      const entry = bucket.byCategory.get(key) ?? { primary, cents: 0 };
-      entry.cents += cents;
-      bucket.byCategory.set(key, entry);
+    add(bucket.whole, row, flow, cents);
+    if (Number.parseInt(row.date.slice(8, 10), 10) <= todayDay) {
+      add(bucket.toDate, row, flow, cents);
     }
-    // internal: excluded from every total.
+    if (flow === "income") bucket.incomeItems.push(toLineItem(row, -cents));
+    else if (flow === "savings") bucket.savingsItems.push(toLineItem(row, cents));
   }
 
   const byDateThenName = (a: CashflowLineItem, b: CashflowLineItem) =>
     a.date.localeCompare(b.date) || a.name.localeCompare(b.name);
 
+  const categoryTotals = (totals: Totals): CashflowCategoryTotal[] =>
+    [...totals.byCategory.entries()]
+      .map(([key, { primary, cents }]) => ({
+        key,
+        primary,
+        total: fromCents(cents),
+      }))
+      .sort((a, b) => Number.parseFloat(b.total) - Number.parseFloat(a.total));
+
   return window.map((month) => {
     const bucket = buckets.get(month)!;
+    const { whole, toDate } = bucket;
     return {
       month,
       partial: month === currentMonth,
-      income: fromCents(bucket.income),
-      spending: fromCents(bucket.spending),
-      savings: fromCents(bucket.savings),
-      netCashFlow: fromCents(bucket.income - bucket.spending),
+      income: fromCents(whole.income),
+      spending: fromCents(whole.spending),
+      savings: fromCents(whole.savings),
+      netCashFlow: fromCents(whole.income - whole.spending),
       incomeItems: bucket.incomeItems.sort(byDateThenName),
       savingsItems: bucket.savingsItems.sort(byDateThenName),
-      spendingByCategory: [...bucket.byCategory.entries()]
-        .map(([key, { primary, cents }]) => ({
-          key,
-          primary,
-          total: fromCents(cents),
-        }))
-        .sort(
-          (a, b) => Number.parseFloat(b.total) - Number.parseFloat(a.total)
-        ),
+      spendingByCategory: categoryTotals(whole),
+      toDate: {
+        income: fromCents(toDate.income),
+        spending: fromCents(toDate.spending),
+        savings: fromCents(toDate.savings),
+        netCashFlow: fromCents(toDate.income - toDate.spending),
+        spendingByCategory: categoryTotals(toDate),
+      },
     };
   });
 }

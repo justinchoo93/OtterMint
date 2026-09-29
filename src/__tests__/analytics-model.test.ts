@@ -2,20 +2,28 @@ import { describe, expect, it } from "vitest";
 import type { CashflowMonth } from "@/lib/cashflow";
 import type { NetWorthSnapshotRow } from "@/lib/net-worth-history";
 import {
+  asToDate,
+  categoryTrends,
   comparableChange,
   firstDataMonthIndex,
   categoryRowFor,
   layoutCashflowColumns,
+  likeForLikePrior,
+  monthRate,
   netWorthDaysForRange,
   netWorthDomain,
   netWorthScale,
   normalizationContradictions,
   periodDelta,
   rankCategories,
+  rateScale,
   resolvePeriod,
+  savingsRateSummary,
   sinceLabel,
   sparklineSeries,
   sumPeriod,
+  windowRate,
+  yearToDate,
 } from "@/lib/analytics-model";
 
 function monthKeys(from: string, count: number): string[] {
@@ -457,5 +465,160 @@ describe("sinceLabel", () => {
   it("omits the year when it matches today", () => {
     expect(sinceLabel("2026-07-01", "2026-09-26")).toBe("since Jul 1");
     expect(sinceLabel("2025-03-31", "2026-09-26")).toBe("since Mar 31, 2025");
+  });
+});
+
+// A month with month-to-date figures at 60% of the whole month.
+function monthToDate(key: string, partial = false): CashflowMonth {
+  return {
+    ...month(key, {
+      income: 1000,
+      spending: 600,
+      savings: 100,
+      partial,
+      cats: { RENT_AND_UTILITIES_RENT: 400, FOOD_AND_DRINK_RESTAURANTS: 200 },
+    }),
+    toDate: {
+      income: "600.00",
+      spending: "360.00",
+      savings: "60.00",
+      netCashFlow: "240.00",
+      spendingByCategory: [
+        { key: "RENT_AND_UTILITIES_RENT", primary: "RENT_AND_UTILITIES", total: "240.00" },
+        { key: "FOOD_AND_DRINK_RESTAURANTS", primary: "FOOD_AND_DRINK", total: "120.00" },
+      ],
+    },
+  };
+}
+
+describe("asToDate and likeForLikePrior", () => {
+  it("swaps in the month-to-date figures and leaves a month without them alone", () => {
+    const m = asToDate(monthToDate("2026-03"));
+    expect(m).toMatchObject({ income: "600.00", spending: "360.00", netCashFlow: "240.00" });
+    expect(m.spendingByCategory[0].total).toBe("240.00");
+    const plain = month("2026-03", { income: 5 });
+    expect(asToDate(plain)).toBe(plain);
+  });
+
+  it("adjusts only the prior window's last month, and only when the period ends in a partial month", () => {
+    const months = monthKeys("2026-01", 6).map((k, i) => monthToDate(k, i === 5));
+    const period = resolvePeriod(months, { range: "3M", month: null });
+    expect(likeForLikePrior(period)!.map((m) => m.income)).toEqual(["1000.00", "1000.00", "600.00"]);
+    const may = resolvePeriod(months, { range: "3M", month: "2026-05" });
+    expect(likeForLikePrior(may)!.map((m) => m.income)).toEqual(["1000.00"]);
+    expect(likeForLikePrior({ ...period, priorMonths: null })).toBeNull();
+  });
+});
+
+describe("savings rate", () => {
+  it("rates a month and a window by the share of income kept", () => {
+    expect(monthRate(month("2026-01", { income: 1000, spending: 750 }))).toBeCloseTo(25);
+    expect(monthRate(month("2026-01"))).toBeNull();
+    expect(
+      windowRate([month("2026-01", { income: 1000, spending: 900 }), month("2026-02", { income: 1000, spending: 700 })])
+    ).toBeCloseTo(20);
+  });
+
+  it("summarizes a window against its prior in points and names the best and lowest complete months", () => {
+    const window = [
+      month("2026-04", { income: 1000, spending: 800 }),
+      month("2026-05", { income: 1000, spending: 1060 }),
+      month("2026-06", { income: 1000, spending: 690 }),
+      month("2026-07", { income: 1000, spending: 500, partial: true }),
+    ];
+    const prior = monthKeys("2025-12", 4).map((k) => month(k, { income: 1000, spending: 850 }));
+    const s = savingsRateSummary(window, prior);
+    expect(s.rate).toBeCloseTo(23.75);
+    expect(s.deltaPoints).toBeCloseTo(8.75);
+    expect(s.best?.month).toBe("2026-06");
+    expect(s.best?.rate).toBeCloseTo(31);
+    expect(s.lowest?.month).toBe("2026-05");
+    expect(s.lowest?.rate).toBeCloseTo(-6);
+  });
+
+  it("has no delta without a prior and no figures without income", () => {
+    const s = savingsRateSummary([month("2026-01", { income: 1000, spending: 800 })], null);
+    expect(s.deltaPoints).toBeNull();
+    const none = savingsRateSummary([month("2026-01", { spending: 5 })], null);
+    expect(none.rate).toBeNull();
+    expect(none.best).toBeNull();
+  });
+
+  it("scales rates in ten-point steps from zero, or from ten below the lowest negative rate", () => {
+    expect(rateScale([9, 22, 31])).toEqual({ domain: [0, 40], ticks: [0, 10, 20, 30, 40] });
+    expect(rateScale([-6, 31]).domain).toEqual([-10, 40]);
+    expect(rateScale([]).domain).toEqual([0, 10]);
+  });
+});
+
+describe("categoryTrends", () => {
+  const cats = (rent: number, food: number) => ({ RENT_AND_UTILITIES_RENT: rent, FOOD_AND_DRINK_RESTAURANTS: food });
+
+  it("adds a per-month series and an average over complete months, and sorts fastest-growing first", () => {
+    const window = [
+      month("2026-07", { cats: cats(1000, 100) }),
+      month("2026-08", { cats: cats(1000, 200) }),
+      month("2026-09", { cats: cats(1000, 400), partial: true }),
+    ];
+    const prior = monthKeys("2026-04", 3).map((k) => month(k, { cats: cats(1000, 200) }));
+    const rows = categoryTrends(window, prior);
+    expect(rows.map((r) => r.key)).toEqual(["FOOD_AND_DRINK_RESTAURANTS", "RENT_AND_UTILITIES_RENT"]);
+    expect(rows[0].series).toEqual([100, 200, 400]);
+    expect(rows[0].average).toBe(150);
+    expect(rows[0].delta!.pct).toBeCloseTo(((700 - 600) / 600) * 100);
+    expect(rows[1].delta).toMatchObject({ direction: "flat" });
+  });
+
+  it("keeps Other last whatever its change, and ranks by size without a comparison", () => {
+    const many = (scale: number) =>
+      Object.fromEntries(Array.from({ length: 9 }, (_, i) => [`CAT_${i}`, (i + 1) * 10 * scale]));
+    const window = [month("2026-08", { cats: many(1) })];
+    const prior = [month("2026-07", { cats: { ...many(1), CAT_0: 1 } })];
+    const rows = categoryTrends(window, prior);
+    expect(rows).toHaveLength(9);
+    expect(rows.at(-1)!.key).toBe("OTHER");
+    expect(rows.at(-1)!.delta!.pct).toBeCloseTo(900);
+    const noPrior = categoryTrends(window, null);
+    expect(noPrior[0].key).toBe("CAT_8");
+    expect(noPrior[0].delta).toBeNull();
+  });
+});
+
+describe("yearToDate", () => {
+  const TODAY = "2026-09-26";
+  const build = (dataFrom: string) =>
+    monthKeys("2024-10", 24).map((key) => (key >= dataFrom ? monthToDate(key, key === "2026-09") : month(key)));
+
+  it("compares January through the current month with the same months last year, the last one to the same day", () => {
+    const y = yearToDate(build("2025-01"), TODAY)!;
+    expect(y.thisYear.map((m) => m.month)).toEqual(monthKeys("2026-01", 9));
+    expect(y.lastYear!.map((m) => m.month)).toEqual(monthKeys("2025-01", 9));
+    expect(y.totals.income).toBe(9000);
+    expect(y.lastTotals!.income).toBe(8600); // eight whole months plus September to date
+    expect(y.deltas.income!.pct).toBeCloseTo((400 / 8600) * 100);
+    expect(y.deltas.spending!.good).toBe(false);
+    expect(y.label).toBe("Jan–Sep 2026");
+    expect(y.comparisonLabel).toBe("Compared with Jan–Sep 2025");
+    expect(y.note).toMatch(/^2025 is counted through the same day/);
+    expect(y.strip.slice(0, 9).every((v) => v === 600)).toBe(true);
+    expect(y.strip.slice(9)).toEqual([null, null, null]);
+  });
+
+  it("names the highest and lowest complete months by spending", () => {
+    const months = build("2025-01").map((m) =>
+      m.month === "2026-03" ? { ...m, spending: "900.00" } : m.month === "2026-05" ? { ...m, spending: "400.00" } : m
+    );
+    const y = yearToDate(months, TODAY)!;
+    expect(y.highest).toEqual({ month: "2026-03", total: 900 });
+    expect(y.lowest).toEqual({ month: "2026-05", total: 400 });
+  });
+
+  it("has no comparison when history starts this year, and is null with no data this year", () => {
+    const y = yearToDate(build("2026-01"), TODAY)!;
+    expect(y.lastYear).toBeNull();
+    expect(y.deltas.income).toBeNull();
+    expect(y.comparisonLabel).toBeNull();
+    expect(y.note).toBe("History starts Jan 2026");
+    expect(yearToDate(build("2027-01"), TODAY)).toBeNull();
   });
 });

@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import {
+  BarChart3,
   BriefcaseBusiness,
   ChevronLeft,
   ChevronRight,
@@ -14,6 +15,7 @@ import { TransactionsFeed } from "@/components/dashboard/TransactionsFeed";
 import { HoldingsPanel } from "@/components/dashboard/HoldingsPanel";
 import { ManualAccountsPanel } from "@/components/manual/ManualAccountsPanel";
 import { AnalyticsView } from "@/components/dashboard/AnalyticsView";
+import { TrendsView } from "@/components/dashboard/TrendsView";
 import { InvestmentPerformancePanel } from "@/components/dashboard/InvestmentPerformancePanel";
 import { RefreshButton } from "@/components/dashboard/RefreshButton";
 import { PlaidLinkButton } from "@/components/plaid/PlaidLinkButton";
@@ -41,7 +43,8 @@ type NavDestination =
   | "dashboard"
   | "accounts"
   | "transactions"
-  | "investments";
+  | "investments"
+  | "analytics";
 
 const NAV_ITEMS: {
   id: NavDestination;
@@ -52,6 +55,7 @@ const NAV_ITEMS: {
   { id: "accounts", label: "Accounts", icon: CreditCard },
   { id: "transactions", label: "Transactions", icon: ListOrdered },
   { id: "investments", label: "Investments", icon: BriefcaseBusiness },
+  { id: "analytics", label: "Analytics", icon: BarChart3 },
 ];
 
 export default function Dashboard() {
@@ -241,19 +245,28 @@ export default function Dashboard() {
       );
     }
 
+    if (activeDestination === "investments") {
+      return (
+        <div className="space-y-6 animate-fade-in">
+          {isHousehold ? (
+            <div className="rounded-xl border border-dashed border-[var(--border)] bg-[var(--bg-secondary)] p-8 text-center text-sm text-[var(--text-muted)]">
+              Household investment holdings are not available yet.
+            </div>
+          ) : (
+            <>
+              <InvestmentPerformancePanel refreshKey={refreshKey} />
+              <HoldingsPanel refreshKey={refreshKey} />
+            </>
+          )}
+        </div>
+      );
+    }
+
     return (
-      <div className="space-y-6 animate-fade-in">
-        {isHousehold ? (
-          <div className="rounded-xl border border-dashed border-[var(--border)] bg-[var(--bg-secondary)] p-8 text-center text-sm text-[var(--text-muted)]">
-            Household investment holdings are not available yet.
-          </div>
-        ) : (
-          <>
-            <InvestmentPerformancePanel refreshKey={refreshKey} />
-            <HoldingsPanel refreshKey={refreshKey} />
-          </>
-        )}
-      </div>
+      <TrendsView
+        groupId={isHousehold ? group?.id : undefined}
+        refreshKey={refreshKey}
+      />
     );
   };
 

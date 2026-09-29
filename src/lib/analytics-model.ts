@@ -527,3 +527,224 @@ export function sinceLabel(fromDate: string, today: string): string {
   const day = Number(fromDate.slice(8, 10));
   return year === today.slice(0, 4) ? `since ${month} ${day}` : `since ${month} ${day}, ${year}`;
 }
+
+// ---------------------------------------------------------------------------
+// The Analytics tab (docs/plans/analytics-tab.md): like-for-like comparisons,
+// the savings rate, category trends and the year-to-date comparison.
+
+/** The month's figures counted only through today's day of the month, when the API supplied them. */
+export function asToDate(month: CashflowMonth): CashflowMonth {
+  if (!month.toDate) return month;
+  return {
+    ...month,
+    income: month.toDate.income,
+    spending: month.toDate.spending,
+    savings: month.toDate.savings,
+    netCashFlow: month.toDate.netCashFlow,
+    spendingByCategory: month.toDate.spendingByCategory,
+  };
+}
+
+/**
+ * The prior window with its last month counted through the same day of the
+ * month when the period ends in the current, partial month, so a partial
+ * September compares with a partial March rather than a whole one.
+ */
+export function likeForLikePrior(period: ResolvedPeriod): CashflowMonth[] | null {
+  const prior = period.priorMonths;
+  if (!prior || prior.length === 0) return prior;
+  const last = period.periodMonths[period.periodMonths.length - 1];
+  if (!last?.partial) return prior;
+  return [...prior.slice(0, -1), asToDate(prior[prior.length - 1])];
+}
+
+/** Share of the month's income kept (net cash flow over income, in percent); null without income. */
+export function monthRate(month: CashflowMonth): number | null {
+  const income = toCents(month.income);
+  if (income === 0) return null;
+  return (toCents(month.netCashFlow) / income) * 100;
+}
+
+/** Share of income kept across the months as a whole; null without income. */
+export function windowRate(months: CashflowMonth[]): number | null {
+  const totals = sumPeriod(months);
+  if (totals.income === 0) return null;
+  return (totals.netCashFlow / totals.income) * 100;
+}
+
+export interface SavingsRateSummary {
+  rate: number | null;
+  /** Change in percentage points against the prior window; null without one. */
+  deltaPoints: number | null;
+  best: { month: string; rate: number } | null;
+  lowest: { month: string; rate: number } | null;
+}
+
+/** The savings-rate card's figures: the window's rate, its change, and the best and lowest complete months. */
+export function savingsRateSummary(
+  window: CashflowMonth[],
+  prior: CashflowMonth[] | null
+): SavingsRateSummary {
+  const rate = windowRate(window);
+  const priorRate = prior ? windowRate(prior) : null;
+  const complete = window.filter((m) => !m.partial);
+  const candidates = (complete.length > 0 ? complete : window)
+    .map((m) => ({ month: m.month, rate: monthRate(m) }))
+    .filter((p): p is { month: string; rate: number } => p.rate !== null);
+  let best: { month: string; rate: number } | null = null;
+  let lowest: { month: string; rate: number } | null = null;
+  for (const p of candidates) {
+    if (!best || p.rate > best.rate) best = p;
+    if (!lowest || p.rate < lowest.rate) lowest = p;
+  }
+  return {
+    rate,
+    deltaPoints: rate !== null && priorRate !== null ? rate - priorRate : null,
+    best,
+    lowest,
+  };
+}
+
+/**
+ * Ticks every ten points for a rate line: from zero (or ten below the lowest
+ * negative rate) to ten above the highest, so the baseline is always drawn and
+ * the line never touches the top.
+ */
+export function rateScale(values: number[]): { domain: [number, number]; ticks: number[] } {
+  const finite = values.filter((v) => Number.isFinite(v));
+  const min = finite.length ? Math.min(...finite) : 0;
+  const max = finite.length ? Math.max(...finite) : 0;
+  const lo = min >= 0 ? 0 : Math.floor((min - 4) / 10) * 10;
+  const hi = Math.max(lo + 10, Math.ceil((max + 4) / 10) * 10);
+  const ticks: number[] = [];
+  for (let t = lo; t <= hi; t += 10) ticks.push(t);
+  return { domain: [lo, hi], ticks };
+}
+
+export interface CategoryTrendRow extends CategoryRow {
+  /** Spending per window month, oldest first, summed over memberKeys, in dollars. */
+  series: number[];
+  /** Mean per month over the window's complete months (all months when none is complete). */
+  average: number;
+}
+
+function categoryCentsIn(month: CashflowMonth, keys: Set<string>): number {
+  let cents = 0;
+  for (const c of month.spendingByCategory) if (keys.has(c.key)) cents += toCents(c.total);
+  return cents;
+}
+
+/**
+ * The category-trends rows: the ranking's rows with a per-month series and an
+ * average, sorted fastest-growing first when there is a comparison (rows
+ * without one after them, Other always last) and by size otherwise.
+ */
+export function categoryTrends(
+  window: CashflowMonth[],
+  prior: CashflowMonth[] | null,
+  top = 8
+): CategoryTrendRow[] {
+  const complete = window.filter((m) => !m.partial);
+  const averaging = complete.length > 0 ? complete : window;
+  const rows = rankCategories(window, prior, top).map((row) => {
+    const keys = new Set(row.memberKeys);
+    const series = window.map((m) => categoryCentsIn(m, keys) / 100);
+    const averageCents = averaging.reduce((sum, m) => sum + categoryCentsIn(m, keys), 0);
+    return { ...row, series, average: averaging.length ? averageCents / averaging.length / 100 : 0 };
+  });
+  if (!prior) return rows;
+  const bucket = (r: CategoryTrendRow) => (r.key === "OTHER" ? 2 : r.delta ? 0 : 1);
+  return rows.sort(
+    (a, b) => bucket(a) - bucket(b) || (b.delta?.pct ?? 0) - (a.delta?.pct ?? 0) || b.total - a.total
+  );
+}
+
+export interface YearToDate {
+  /** January through the current month of this year. */
+  thisYear: CashflowMonth[];
+  /** The same months of last year, the last one counted to the same day; null when data does not cover them. */
+  lastYear: CashflowMonth[] | null;
+  totals: PeriodTotals;
+  lastTotals: PeriodTotals | null;
+  deltas: {
+    income: Delta | null;
+    spending: Delta | null;
+    savings: Delta | null;
+    netCashFlow: Delta | null;
+  };
+  highest: { month: string; total: number } | null;
+  lowest: { month: string; total: number } | null;
+  /** Spending per calendar month of this year, January first; null for months not reached yet. */
+  strip: Array<number | null>;
+  /** "Jan–Sep 2026" */
+  label: string;
+  /** "Compared with Jan–Sep 2025", or null. */
+  comparisonLabel: string | null;
+  /** Why the comparison is like for like, or why there is none. */
+  note: string | null;
+}
+
+/** This year so far against the same months of last year. Null when this year has no data yet. */
+export function yearToDate(months: CashflowMonth[], today: string): YearToDate | null {
+  const year = today.slice(0, 4);
+  const first = firstDataMonthIndex(months);
+  const thisYear = months.filter((m) => m.month.startsWith(year) && m.month <= today.slice(0, 7));
+  if (first === null || thisYear.length === 0) return null;
+  if (months.indexOf(thisYear[thisYear.length - 1]) < first) return null;
+
+  const lastYearKey = String(Number(year) - 1);
+  const found = thisYear.map((m) => months.find((x) => x.month === `${lastYearKey}${m.month.slice(4)}`) ?? null);
+  const covered =
+    found.every((m): m is CashflowMonth => m !== null) && months.indexOf(found[0] as CashflowMonth) >= first;
+  const current = thisYear[thisYear.length - 1];
+  let lastYear: CashflowMonth[] | null = null;
+  if (covered) {
+    const whole = found as CashflowMonth[];
+    lastYear = current.partial ? [...whole.slice(0, -1), asToDate(whole[whole.length - 1])] : whole;
+  }
+
+  const totals = sumPeriod(thisYear);
+  const lastTotals = lastYear ? sumPeriod(lastYear) : null;
+  const delta = (key: keyof PeriodTotals, upIsGood: boolean) =>
+    lastTotals ? periodDelta(totals[key], lastTotals[key], upIsGood) : null;
+
+  let highest: { month: string; total: number } | null = null;
+  let lowest: { month: string; total: number } | null = null;
+  for (const m of thisYear) {
+    if (m.partial) continue;
+    const total = sumPeriod([m]).spending;
+    if (!highest || total > highest.total) highest = { month: m.month, total };
+    if (!lowest || total < lowest.total) lowest = { month: m.month, total };
+  }
+
+  const strip = Array.from({ length: 12 }, (_, i) => {
+    const key = `${year}-${String(i + 1).padStart(2, "0")}`;
+    const m = thisYear.find((x) => x.month === key);
+    return m ? sumPeriod([m]).spending : null;
+  });
+
+  const note = lastYear
+    ? current.partial
+      ? `${lastYearKey} is counted through the same day of the month, so the current month compares like for like.`
+      : null
+    : `History starts ${monthShortLabel(months[first].month)} ${months[first].month.slice(0, 4)}`;
+
+  return {
+    thisYear,
+    lastYear,
+    totals,
+    lastTotals,
+    deltas: {
+      income: delta("income", true),
+      spending: delta("spending", false),
+      savings: delta("savings", true),
+      netCashFlow: delta("netCashFlow", true),
+    },
+    highest,
+    lowest,
+    strip,
+    label: spanLabel(thisYear),
+    comparisonLabel: lastYear ? `Compared with ${spanLabel(lastYear)}` : null,
+    note,
+  };
+}

@@ -90,8 +90,12 @@ ${document.body.innerHTML.trim()}
   console.log("wrote", outPath, html.length, "bytes; leftover holes:", (html.match(/\{\{/g) || []).length);
 }
 
-const dir = path.join(__dirname, "source");
-const out = __dirname;
+// Usage: node docs/design/analytics-redesign/render.mjs [design folder]
+// The folder holds source/desktop.dc.html and source/phone.dc.html; the
+// static renders land beside its source/. Defaults to this script's folder.
+const out = process.argv[2] ? path.resolve(process.argv[2]) : __dirname;
+const dir = path.join(out, "source");
+const name = path.basename(out).replace(/-/g, " ").replace(/^./, (c) => c.toUpperCase());
 fs.mkdirSync(out, { recursive: true });
-render(`${dir}/desktop.dc.html`, `${out}/desktop.html`, { accent: "#34D399", serifTitles: true }, "Analytics redesign · desktop mock");
-render(`${dir}/phone.dc.html`, `${out}/phone.html`, { accent: "#34D399", serifTitles: true }, "Analytics redesign · phone mock");
+render(`${dir}/desktop.dc.html`, `${out}/desktop.html`, { accent: "#34D399", serifTitles: true }, `${name} · desktop mock`);
+render(`${dir}/phone.dc.html`, `${out}/phone.html`, { accent: "#34D399", serifTitles: true }, `${name} · phone mock`);

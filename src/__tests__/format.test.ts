@@ -42,6 +42,7 @@ describe("formatCurrency", () => {
 import {
   formatCompactCurrency,
   formatSignedPercent,
+  formatSignedPoints,
   formatSignedWholeCurrency,
   formatWholeCurrency,
 } from "@/lib/format";
@@ -85,5 +86,14 @@ describe("formatSignedPercent", () => {
     expect(formatSignedPercent(-8.24)).toBe("-8.2%");
     expect(formatSignedPercent(0.04)).toBe("0.0%");
     expect(formatSignedPercent(13.6, 0)).toBe("+14%");
+  });
+});
+
+describe("formatSignedPoints", () => {
+  it("signs a change in percentage points", () => {
+    expect(formatSignedPoints(4.46)).toBe("+4.5 pts");
+    expect(formatSignedPoints(-0.84)).toBe("-0.8 pts");
+    expect(formatSignedPoints(0.04)).toBe("0.0 pts");
+    expect(formatSignedPoints(3.6, 0)).toBe("+4 pts");
   });
 });

@@ -1,0 +1,521 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>OtterMint Analytics on phone</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&amp;family=Instrument+Serif:ital@0;1&amp;family=JetBrains+Mono:wght@400;500;600&amp;display=swap">
+<style>
+body{margin:0;background:#0A0D0C;color:#EDF1EF;font-family:'DM Sans',system-ui,-apple-system,sans-serif;-webkit-font-smoothing:antialiased}
+a{color:#34D399}a:hover{color:#6EE7B7}
+button{font:inherit;color:inherit;background:none;border:0;padding:0;margin:0;cursor:pointer;text-align:left}
+button:focus-visible,a:focus-visible{outline:2px solid #34D399;outline-offset:2px}
+.mono{font-family:'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,monospace;font-variant-numeric:tabular-nums}
+.nav-item:hover{background:#171D1A;color:#EDF1EF}
+.ghost:hover{background:#1C2320;color:#EDF1EF}
+</style>
+</helmet>
+<div style="width: 390px; height: 2720px; box-sizing: border-box; display: flex; flex-direction: column; background: #0A0D0C; color: #EDF1EF; font-family: 'DM Sans', system-ui, sans-serif; font-size: 14px; line-height: 1.4">
+
+  <header style="display: flex; justify-content: space-between; align-items: center; padding: 20px 16px 0">
+    <div style="display: flex; flex-direction: column; gap: 4px">
+      <h1 style="margin: 0; font-family: {{ titleFont }}; font-weight: 400; font-size: {{ h1Phone }}px; line-height: 1; letter-spacing: -0.01em">Analytics</h1>
+      <span style="color: #A3ADA8; font-size: 12px">What is changing, and what repeats</span>
+    </div>
+    <button aria-label="Account menu" style="width: 44px; height: 44px; border-radius: 50%; display: flex; align-items: center; justify-content: center">
+      <span style="width: 32px; height: 32px; border-radius: 50%; background: #242C28; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600; color: #A3ADA8">SU</span>
+    </button>
+  </header>
+
+  <div role="group" aria-label="Time range" style="display: flex; margin: 16px 16px 0; padding: 3px; gap: 2px; background: #111614; border: 1px solid #242C28; border-radius: 12px">
+    <sc-for list="{{ ranges }}" as="r" hint-placeholder-count="4">
+      <button onClick="{{ r.pick }}" aria-pressed="{{ r.active }}" style="flex: 1; height: 38px; border-radius: 9px; background: {{ r.bg }}; color: {{ r.fg }}; font-size: 13px; font-weight: 500; text-align: center">{{ r.label }}</button>
+    </sc-for>
+  </div>
+  <span style="margin: 8px 16px 0; font-size: 12px; color: #85908A">{{ caption }} · sets the window for the two cards below</span>
+
+  <section aria-label="Savings rate" style="margin: 16px 16px 0; background: #111614; border: 1px solid #242C28; border-radius: 16px; padding: 20px; box-sizing: border-box; display: flex; flex-direction: column">
+    <span style="font-size: 13px; font-weight: 500; color: #A3ADA8">Savings rate</span>
+    <span style="margin-top: 6px; font-size: 40px; font-weight: 600; line-height: 1.05; letter-spacing: -0.025em">{{ srHero }}</span>
+    <span style="margin-top: 6px; font-size: 13px; color: #A3ADA8">{{ srSub }}</span>
+    <div style="margin-top: 8px; display: flex; align-items: center; gap: 8px; font-size: 13px; flex-wrap: wrap">
+      <sc-if value="{{ srHasDelta }}" hint-placeholder-val="{{ true }}">
+        <span style="display: flex; align-items: center; gap: 5px; font-weight: 600; color: {{ srDeltaColor }}">
+          <svg width="10" height="8"><path d="{{ srDeltaIcon }}" style="fill: currentColor"/></svg>
+          <span>{{ srDelta }}</span>
+        </span>
+      </sc-if>
+      <span style="color: #A3ADA8">{{ srDeltaSub }}</span>
+    </div>
+    <div style="margin-top: 14px; display: flex; justify-content: space-between; font-size: 11px; color: #A3ADA8">
+      <span>Best {{ srBest }}</span>
+      <span>Lowest {{ srLowest }}</span>
+    </div>
+    <div style="position: relative; width: 318px; height: 176px; margin-top: 8px">
+      <sc-for list="{{ srTicks }}" as="t" hint-placeholder-count="6">
+        <div style="position: absolute; left: 0; right: 0; top: {{ t.top }}px; height: 0">
+          <span class="mono" style="position: absolute; left: 0; top: -6px; font-size: 10px; color: #85908A">{{ t.label }}</span>
+          <div style="position: absolute; left: 36px; right: 44px; top: 0; height: 1px; background: {{ t.color }}"></div>
+        </div>
+      </sc-for>
+      <svg width="318" height="176" style="position: absolute; left: 0; top: 0; overflow: visible">
+        <path d="{{ srArea }}" style="fill: {{ accent }}; opacity: 0.1"/>
+        <path d="{{ srLine }}" style="fill: none; stroke: {{ accent }}; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round"/>
+        <line x1="{{ hovX }}" x2="{{ hovX }}" y1="{{ plotTop }}" y2="{{ plotBottom }}" style="stroke: #3A453F; stroke-width: 1"/>
+        <circle cx="{{ hovX }}" cy="{{ hovY }}" r="5" style="fill: {{ accent }}; stroke: #111614; stroke-width: 2"/>
+        <circle cx="{{ endX }}" cy="{{ endY }}" r="4" style="fill: {{ accent }}; stroke: #111614; stroke-width: 2"/>
+      </svg>
+      <span style="position: absolute; left: {{ endLabelLeft }}px; top: {{ endLabelTop }}px; font-size: 11px; font-weight: 600; white-space: nowrap">{{ endLabel }}</span>
+      <div style="position: absolute; left: {{ tipLeft }}px; top: {{ tipTop }}px; width: 116px; box-sizing: border-box; padding: 6px 8px; background: #171D1A; border: 1px solid #2A332E; border-radius: 8px; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35); display: flex; flex-direction: column; gap: 2px">
+        <span style="font-size: 10px; color: #A3ADA8">{{ hovDate }}</span>
+        <span style="font-size: 13px; font-weight: 600">{{ hovValue }}</span>
+      </div>
+    </div>
+    <div class="mono" style="position: relative; height: 20px; font-size: 9px; color: #85908A">
+      <sc-for list="{{ srLabels }}" as="l" hint-placeholder-count="12">
+        <span style="position: absolute; left: {{ l.left }}px; top: 6px; transform: translateX(-50%); white-space: nowrap">{{ l.text }}</span>
+      </sc-for>
+    </div>
+    <div style="margin-top: 16px; padding-top: 14px; border-top: 1px solid #1B221E; display: flex; flex-direction: column; gap: 8px; font-size: 13px">
+      <div style="display: flex; justify-content: space-between; align-items: center">
+        <span style="color: #A3ADA8">Income</span>
+        <span style="font-weight: 600">{{ srIncome }}</span>
+      </div>
+      <div style="display: flex; justify-content: space-between; align-items: center">
+        <span style="color: #A3ADA8">Kept</span>
+        <span style="font-weight: 600">{{ srKept }}</span>
+      </div>
+      <div style="display: flex; justify-content: space-between; align-items: center">
+        <span style="color: #A3ADA8">Moved to savings</span>
+        <span style="display: flex; align-items: baseline; gap: 6px"><span style="font-weight: 600">{{ srSaved }}</span><span style="font-size: 11px; color: #85908A">{{ srSavedPct }}</span></span>
+      </div>
+      <span style="font-size: 12px; color: #85908A; line-height: 1.45">Kept is income minus spending. The current month is month to date. <a href="#">About this chart</a></span>
+    </div>
+  </section>
+
+  <section aria-label="Category trends" style="margin: 16px 16px 0; background: #111614; border: 1px solid #242C28; border-radius: 16px; padding: 20px; box-sizing: border-box; display: flex; flex-direction: column">
+    <div style="display: flex; flex-direction: column; gap: 4px">
+      <h2 style="margin: 0; font-family: {{ titleFont }}; font-weight: 400; font-size: {{ h2Phone }}px; line-height: 1.1">Category trends</h2>
+      <span style="font-size: 12px; color: #A3ADA8">{{ trendSub }} · {{ spanShort }}, change {{ cmpHeader }}</span>
+    </div>
+    <div style="margin-top: 10px; display: flex; flex-direction: column">
+      <sc-for list="{{ trendRows }}" as="r" hint-placeholder-count="9">
+        <div aria-label="{{ r.aria }}" style="display: grid; grid-template-columns: minmax(0, 1fr) 106px 60px; gap: 12px; align-items: center; height: 52px; border-bottom: 1px solid #1B221E">
+          <span style="display: flex; flex-direction: column; gap: 3px; min-width: 0">
+            <span style="font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{ r.name }}</span>
+            <span class="mono" style="font-size: 11px; color: #85908A">{{ r.avgShort }}</span>
+          </span>
+          <span style="display: flex; align-items: flex-end; gap: 2px; height: 24px; width: 106px">
+            <sc-for list="{{ r.bars }}" as="b" hint-placeholder-count="12">
+              <span style="width: {{ b.w }}px; height: {{ b.h }}px; background: #d95926; border-radius: 2px 2px 0 0; opacity: {{ b.op }}"></span>
+            </sc-for>
+          </span>
+          <span style="display: flex; justify-content: flex-end; align-items: center; gap: 4px; font-size: 13px; font-weight: 600; color: {{ r.deltaColor }}">
+            <svg width="10" height="8"><path d="{{ r.deltaIcon }}" style="fill: currentColor"/></svg>
+            <span>{{ r.delta }}</span>
+          </span>
+        </div>
+      </sc-for>
+    </div>
+    <span style="margin-top: 12px; font-size: 12px; color: #85908A; line-height: 1.45">Each row's bars use their own scale. The lighter bar is the current month to date.</span>
+  </section>
+
+  <section aria-label="Year to date" style="margin: 16px 16px 0; background: #111614; border: 1px solid #242C28; border-radius: 16px; padding: 20px; box-sizing: border-box; display: flex; flex-direction: column">
+    <div style="display: flex; flex-direction: column; gap: 4px">
+      <h2 style="margin: 0; font-family: {{ titleFont }}; font-weight: 400; font-size: {{ h2Phone }}px; line-height: 1.1">2026 so far</h2>
+      <span style="font-size: 12px; color: #A3ADA8">{{ ytdSub }}</span>
+    </div>
+    <div style="margin-top: 14px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px">
+      <div style="padding: 12px 14px; background: #171D1A; border-radius: 14px; display: flex; flex-direction: column; gap: 4px">
+        <span style="font-size: 12px; font-weight: 500; color: #A3ADA8">Income</span>
+        <span style="font-size: 22px; font-weight: 600; line-height: 1.1; letter-spacing: -0.02em">{{ yIncome }}</span>
+        <span style="display: flex; align-items: center; gap: 5px; font-size: 11px; color: #85908A; white-space: nowrap">
+          <span style="display: flex; align-items: center; gap: 3px; font-weight: 600; color: {{ yIncColor }}"><svg width="10" height="8"><path d="{{ yIncIcon }}" style="fill: currentColor"/></svg><span>{{ yIncDelta }}</span></span>
+          <span>vs 2025</span>
+        </span>
+        <span style="font-size: 11px; color: #85908A">{{ yAvgIncome }} a month</span>
+      </div>
+      <div style="padding: 12px 14px; background: #171D1A; border-radius: 14px; display: flex; flex-direction: column; gap: 4px">
+        <span style="font-size: 12px; font-weight: 500; color: #A3ADA8">Spending</span>
+        <span style="font-size: 22px; font-weight: 600; line-height: 1.1; letter-spacing: -0.02em">{{ ySpending }}</span>
+        <span style="display: flex; align-items: center; gap: 5px; font-size: 11px; color: #85908A; white-space: nowrap">
+          <span style="display: flex; align-items: center; gap: 3px; font-weight: 600; color: {{ ySpColor }}"><svg width="10" height="8"><path d="{{ ySpIcon }}" style="fill: currentColor"/></svg><span>{{ ySpDelta }}</span></span>
+          <span>vs 2025</span>
+        </span>
+        <span style="font-size: 11px; color: #85908A">{{ yAvgSpending }} a month</span>
+      </div>
+      <div style="padding: 12px 14px; background: #171D1A; border-radius: 14px; display: flex; flex-direction: column; gap: 4px">
+        <span style="font-size: 12px; font-weight: 500; color: #A3ADA8">Saved</span>
+        <span style="font-size: 22px; font-weight: 600; line-height: 1.1; letter-spacing: -0.02em">{{ ySaved }}</span>
+        <span style="display: flex; align-items: center; gap: 5px; font-size: 11px; color: #85908A; white-space: nowrap">
+          <span style="display: flex; align-items: center; gap: 3px; font-weight: 600; color: {{ ySvColor }}"><svg width="10" height="8"><path d="{{ ySvIcon }}" style="fill: currentColor"/></svg><span>{{ ySvDelta }}</span></span>
+          <span>vs 2025</span>
+        </span>
+        <span style="font-size: 11px; color: #85908A">{{ ySavedPct }}</span>
+      </div>
+      <div style="padding: 12px 14px; background: #171D1A; border-radius: 14px; display: flex; flex-direction: column; gap: 4px">
+        <span style="font-size: 12px; font-weight: 500; color: #A3ADA8">Net cash flow</span>
+        <span style="font-size: 22px; font-weight: 600; line-height: 1.1; letter-spacing: -0.02em">{{ yNet }}</span>
+        <span style="display: flex; align-items: center; gap: 5px; font-size: 11px; color: #85908A; white-space: nowrap">
+          <span style="display: flex; align-items: center; gap: 3px; font-weight: 600; color: {{ yNetColor }}"><svg width="10" height="8"><path d="{{ yNetIcon }}" style="fill: currentColor"/></svg><span>{{ yNetDelta }}</span></span>
+          <span>vs 2025</span>
+        </span>
+        <span style="font-size: 11px; color: #85908A">{{ yKept }}</span>
+      </div>
+    </div>
+    <div style="margin-top: 14px; padding-top: 12px; border-top: 1px solid #1B221E; display: flex; flex-direction: column; gap: 8px; font-size: 13px">
+      <div style="display: flex; justify-content: space-between; gap: 12px">
+        <span style="color: #A3ADA8">Highest month</span>
+        <span style="font-weight: 600; white-space: nowrap">{{ yHigh }}</span>
+      </div>
+      <div style="display: flex; justify-content: space-between; gap: 12px">
+        <span style="color: #A3ADA8">Lowest month</span>
+        <span style="font-weight: 600; white-space: nowrap">{{ yLow }}</span>
+      </div>
+    </div>
+    <div style="margin-top: 16px; display: flex; flex-direction: column; gap: 6px">
+      <span style="font-size: 12px; color: #A3ADA8">Spending by month</span>
+      <div style="display: flex; align-items: flex-end; gap: 4px; height: 44px">
+        <sc-for list="{{ strip }}" as="s" hint-placeholder-count="12">
+          <span style="flex: 1; height: {{ s.h }}px; background: #d95926; border-radius: 2px 2px 0 0; opacity: {{ s.op }}"></span>
+        </sc-for>
+      </div>
+      <div class="mono" style="display: flex; gap: 4px; font-size: 10px">
+        <sc-for list="{{ strip }}" as="s" hint-placeholder-count="12">
+          <span style="flex: 1; text-align: center; color: {{ s.labelColor }}">{{ s.letter }}</span>
+        </sc-for>
+      </div>
+    </div>
+    <span style="margin-top: 12px; font-size: 12px; color: #85908A; line-height: 1.45">2025 is counted through the same day of the month, so the current month compares like for like.</span>
+  </section>
+
+  <section aria-label="Recurring charges" style="margin: 16px 16px 24px; background: #111614; border: 1px solid #242C28; border-radius: 16px; padding: 20px; box-sizing: border-box; display: flex; flex-direction: column">
+    <div style="display: flex; flex-direction: column; gap: 4px">
+      <h2 style="margin: 0; font-family: {{ titleFont }}; font-weight: 400; font-size: {{ h2Phone }}px; line-height: 1.1">Recurring charges</h2>
+      <span style="font-size: 12px; color: #A3ADA8">Charges that repeat on a steady schedule · as of today · {{ recCount }}</span>
+    </div>
+    <div style="margin-top: 14px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px">
+      <span style="display: flex; flex-direction: column; gap: 2px"><span style="font-size: 11px; color: #85908A">Per month</span><span style="font-size: 18px; font-weight: 600; line-height: 1.1">{{ recMonthly }}</span></span>
+      <span style="display: flex; flex-direction: column; gap: 2px"><span style="font-size: 11px; color: #85908A">Per year</span><span style="font-size: 18px; font-weight: 600; line-height: 1.1">{{ recYearly }}</span></span>
+      <span style="display: flex; flex-direction: column; gap: 2px"><span style="font-size: 11px; color: #85908A">Of spending</span><span style="font-size: 18px; font-weight: 600; line-height: 1.1">{{ recShare }}</span></span>
+    </div>
+    <div style="margin-top: 12px; display: flex; flex-direction: column">
+      <sc-for list="{{ recRows }}" as="r" hint-placeholder-count="12">
+        <div style="display: flex; justify-content: space-between; align-items: center; gap: 12px; min-height: 54px; border-bottom: 1px solid #1B221E">
+          <span style="display: flex; flex-direction: column; gap: 3px; min-width: 0">
+            <span style="font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{ r.name }}</span>
+            <span style="font-size: 11px; color: #85908A">{{ r.caption }}</span>
+          </span>
+          <span style="display: flex; flex-direction: column; align-items: flex-end; gap: 3px; flex-shrink: 0">
+            <span class="mono" style="font-size: 13px">{{ r.amount }}</span>
+            <sc-if value="{{ r.hasTag }}" hint-placeholder-val="{{ false }}">
+              <span style="display: inline-flex; align-items: center; height: 18px; padding: 0 7px; border-radius: 6px; background: #1C2320; font-size: 10px; font-weight: 600; white-space: nowrap">{{ r.tag }}</span>
+            </sc-if>
+          </span>
+        </div>
+      </sc-for>
+    </div>
+    <span style="margin-top: 12px; font-size: 12px; color: #85908A; line-height: 1.45">Detected from 12 months of transactions. A charge counts once it has repeated three times at a steady interval. <a href="#">How detection works</a></span>
+  </section>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#34D399","options":["#34D399","#3987e5","#9085e9","#c98500"],"section":"Theme"},"serifTitles":{"editor":"boolean","default":true,"section":"Theme"},"$preview":{"width":390,"height":2720}}'>
+const C = {
+  ground: '#0A0D0C', surface: '#111614', raised: '#171D1A', hover: '#1C2320', border: '#242C28',
+  grid: '#1E2622', base: '#2E3833', mutedLine: '#3A453F', text: '#EDF1EF', text2: '#A3ADA8', text3: '#85908A',
+  up: '#34D399', down: '#F0836F', spending: '#d95926'
+};
+const TRI_UP = 'M5 1l4 6H1z';
+const TRI_DOWN = 'M5 7L1 1h8z';
+const MONTH_NAMES = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+// The same ranges as the Dashboard; All is the 24 months the app fetches.
+const RANGES = [
+  { id: '3M', label: '3M', months: 3 },
+  { id: '6M', label: '6M', months: 6 },
+  { id: '1Y', label: '1Y', months: 12 },
+  { id: 'All', label: 'All', months: 24 }
+];
+// Share of income kept each month, Oct 2024 through Sep 2026 (Sep is month to date).
+const RATES = [
+  0.14, 0.10, 0.04, 0.17, 0.19, 0.12, 0.18, 0.15, 0.22, 0.19, 0.13, 0.15,
+  0.19, 0.14, 0.09, 0.22, 0.26, 0.18, 0.24, -0.06, 0.31, 0.23, 0.17, 0.28
+];
+// Sample categories: a typical monthly amount, a drift that plays out over the last twelve months, and noise.
+const CATS = [
+  { key: 'rent', name: 'Rent', base: 2850, trend: 0, noise: 0 },
+  { key: 'restaurants', name: 'Restaurants', base: 1050, trend: 0.26, noise: 0.16 },
+  { key: 'groceries', name: 'Groceries', base: 940, trend: 0.08, noise: 0.12 },
+  { key: 'shopping', name: 'Online marketplaces', base: 520, trend: 0.42, noise: 0.22 },
+  { key: 'transport', name: 'Transportation', base: 430, trend: 0.02, noise: 0.2 },
+  { key: 'utilities', name: 'Utilities', base: 390, trend: -0.16, noise: 0.16 },
+  { key: 'entertainment', name: 'Entertainment', base: 310, trend: -0.3, noise: 0.22 },
+  { key: 'insurance', name: 'Insurance', base: 305, trend: 0, noise: 0 },
+  { key: 'other', name: 'Other', base: 380, trend: 0.06, noise: 0.35 }
+];
+// Sample recurring charges detected from the last 12 months.
+const RECURRING = [
+  { name: 'Rent payment', cadence: 'Monthly', amount: 2850, last: 'Sep 1', next: 'Oct 1', tag: '', detail: '' },
+  { name: 'State Farm', cadence: 'Monthly', amount: 142.6, last: 'Sep 12', next: 'Oct 12', tag: '', detail: '' },
+  { name: 'City Light & Power', cadence: 'Monthly', amount: 96.4, last: 'Sep 15', next: 'Oct 15', tag: 'Varies', detail: '$71–$138 over the year' },
+  { name: 'Verizon Wireless', cadence: 'Monthly', amount: 85.12, last: 'Sep 18', next: 'Oct 18', tag: '', detail: '' },
+  { name: 'Xfinity', cadence: 'Monthly', amount: 79.99, last: 'Sep 8', next: 'Oct 8', tag: '', detail: '' },
+  { name: 'Gym membership', cadence: 'Monthly', amount: 49, last: 'Sep 3', next: 'Oct 3', tag: '', detail: '' },
+  { name: 'ChatGPT Plus', cadence: 'Monthly', amount: 20, last: 'Sep 20', next: 'Oct 20', tag: 'New', detail: 'first seen Aug 20' },
+  { name: 'Netflix', cadence: 'Monthly', amount: 17.99, last: 'Sep 22', next: 'Oct 22', tag: 'Price up', detail: 'was $15.49 until Jul' },
+  { name: 'The New York Times', cadence: 'Monthly', amount: 17, last: 'Sep 5', next: 'Oct 5', tag: '', detail: '' },
+  { name: 'Spotify', cadence: 'Monthly', amount: 11.99, last: 'Sep 10', next: 'Oct 10', tag: '', detail: '' },
+  { name: 'Amazon Prime', cadence: 'Yearly', amount: 139, last: 'Mar 14', next: 'Mar 14, 2027', tag: '', detail: '' },
+  { name: 'iCloud+', cadence: 'Monthly', amount: 2.99, last: 'Sep 26', next: 'Oct 26', tag: '', detail: '' }
+];
+
+function lcg(seed) {
+  let s = seed >>> 0;
+  return function () { s = (Math.imul(s, 1664525) + 1013904223) >>> 0; return s / 4294967296; };
+}
+function money(n) {
+  const a = Math.abs(Math.round(n));
+  return (n < 0 ? '−' : '') + '$' + a.toLocaleString('en-US');
+}
+function money2(n) {
+  const a = Math.abs(n);
+  return (n < 0 ? '−' : '') + '$' + a.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+function signedMoney(n) { return (n >= 0 ? '+' : '−') + '$' + Math.abs(Math.round(n)).toLocaleString('en-US'); }
+function pct0(n) { return (n >= 0 ? '+' : '−') + Math.abs(Math.round(n)) + '%'; }
+function plainPct(n) { return (n < 0 ? '−' : '') + Math.abs(Math.round(n)) + '%'; }
+function pctDelta(a, b) { return b ? (a - b) / Math.abs(b) * 100 : 0; }
+function sum(arr, f) { let s = 0; for (let i = 0; i < arr.length; i++) s += f(arr[i]); return s; }
+function rateOf(m) { return (m.income - m.spending) / m.income * 100; }
+function maxOf(arr) { let mx = -Infinity; for (let i = 0; i < arr.length; i++) if (arr[i] > mx) mx = arr[i]; return mx; }
+function spanLabel(months) {
+  const a = months[0], b = months[months.length - 1];
+  if (months.length === 1) return b.long;
+  return a.y === b.y ? a.label + '–' + b.label + ' ' + b.y : a.label + ' ' + a.y + '–' + b.label + ' ' + b.y;
+}
+function shortSpan(months) {
+  const a = months[0], b = months[months.length - 1];
+  return months.length === 1 ? b.label : a.label + '–' + b.label;
+}
+function scaleMonth(m, f) {
+  const cats = {};
+  for (const k in m.cats) cats[k] = m.cats[k] * f;
+  return { y: m.y, m: m.m, income: m.income * f, spending: m.spending * f, saved: m.saved * f, cats: cats, partial: m.partial, label: m.label, long: m.long, short: m.short };
+}
+function deltaOf(cur, prev, upGood) {
+  const d = pctDelta(cur, prev);
+  const good = upGood ? d >= 0 : d <= 0;
+  return { text: pct0(d), color: good ? C.up : C.down, icon: d >= 0 ? TRI_UP : TRI_DOWN };
+}
+
+// 24 sample months ending Sep 2026 (the current, partial month).
+function buildMonths() {
+  const rnd = lcg(7);
+  const out = [];
+  for (let i = 0; i < 24; i++) {
+    const y = i < 3 ? 2024 : i < 15 ? 2025 : 2026;
+    const m = (9 + i) % 12;
+    const partial = i === 23;
+    const cats = {};
+    let spending = 0;
+    for (let c = 0; c < CATS.length; c++) {
+      const cat = CATS[c];
+      let v = cat.base * (1 + cat.trend * Math.max(0, (i - 11) / 12)) * (1 + (rnd() - 0.5) * cat.noise);
+      if (m === 11 && (cat.key === 'shopping' || cat.key === 'restaurants')) v *= 1.7;
+      if (i === 19 && cat.key === 'other') v *= 2.6;
+      if (partial) v *= 0.85;
+      v = Math.round(v);
+      cats[cat.key] = v;
+      spending += v;
+    }
+    const income = Math.round(spending / (1 - RATES[i]));
+    let saved = Math.round(income * (0.11 + (rnd() - 0.5) * 0.04));
+    if (i === 19) saved = -800;
+    out.push({ y: y, m: m, income: income, spending: spending, saved: saved, cats: cats, partial: partial, label: MONTH_NAMES[m], long: MONTH_NAMES[m] + ' ' + y, short: MONTH_NAMES[m] + ' ’' + String(y).slice(2) });
+  }
+  return out;
+}
+const MONTHS = buildMonths();
+
+// Savings-rate line geometry for a plot box of G.w by G.h.
+function rateChart(G, M, tipW) {
+  const plotW = G.w - G.left - G.right, plotH = G.h - G.top - G.bottom;
+  const rates = M.map(rateOf);
+  let mn = Infinity, mx = -Infinity;
+  for (let i = 0; i < rates.length; i++) { if (rates[i] < mn) mn = rates[i]; if (rates[i] > mx) mx = rates[i]; }
+  const lo = Math.min(0, Math.floor((mn - 4) / 10) * 10), hi = Math.ceil((mx + 4) / 10) * 10;
+  const xf = function (i) { return G.left + (M.length > 1 ? i / (M.length - 1) : 0.5) * plotW; };
+  const yf = function (v) { return G.top + (hi - v) / (hi - lo) * plotH; };
+  const ticks = [];
+  for (let t = lo; t <= hi + 1e-6; t += 10) ticks.push({ top: yf(t).toFixed(1), label: plainPct(t), color: t === 0 ? C.base : C.grid });
+  let line = '';
+  for (let i = 0; i < rates.length; i++) line += (i ? ' L' : 'M') + xf(i).toFixed(1) + ' ' + yf(rates[i]).toFixed(1);
+  const y0 = yf(0).toFixed(1);
+  const area = line + ' L' + xf(M.length - 1).toFixed(1) + ' ' + y0 + ' L' + xf(0).toFixed(1) + ' ' + y0 + ' Z';
+  let bi = -1, li = -1;
+  for (let i = 0; i < M.length; i++) {
+    if (M[i].partial && M.length > 1) continue;
+    if (bi < 0 || rates[i] > rates[bi]) bi = i;
+    if (li < 0 || rates[i] < rates[li]) li = i;
+  }
+  const endX = xf(M.length - 1), endY = yf(rates[M.length - 1]);
+  const hovX = xf(bi), hovY = yf(rates[bi]);
+  const tipLeft = hovX > G.w - tipW - 48 ? hovX - tipW - 14 : hovX + 14;
+  const tipTop = Math.max(0, hovY - 58);
+  const step = M.length > 12 ? 3 : 1;
+  const labels = [];
+  for (let i = 0; i < M.length; i += step) labels.push({ text: M.length > 12 ? M[i].short : M[i].label, left: xf(i).toFixed(1) });
+  return {
+    ticks: ticks, line: line, area: area, plotBottom: G.top + plotH, plotTop: G.top,
+    endX: endX.toFixed(1), endY: endY.toFixed(1), endLabel: plainPct(rates[M.length - 1]),
+    endLabelLeft: (endX + 10).toFixed(1), endLabelTop: (endY - 9).toFixed(1),
+    hovX: hovX.toFixed(1), hovY: hovY.toFixed(1), tipLeft: tipLeft.toFixed(1), tipTop: tipTop.toFixed(1),
+    hovDate: M[bi].long, hovValue: plainPct(rates[bi]) + ' kept',
+    best: M[bi].long + ' · ' + plainPct(rates[bi]), lowest: M[li].long + ' · ' + plainPct(rates[li]),
+    labels: labels
+  };
+}
+
+function buildVals(props, rangeId, pickRange, G, tipW, barH, barBox, stripH) {
+  const accent = props.accent || '#34D399';
+  const serif = props.serifTitles !== false;
+  const titleFont = serif ? "'Instrument Serif', Georgia, serif" : "'DM Sans', system-ui, sans-serif";
+  let range = RANGES[2];
+  for (let i = 0; i < RANGES.length; i++) if (RANGES[i].id === rangeId) range = RANGES[i];
+  const N = range.months;
+  const win = MONTHS.slice(MONTHS.length - N);
+  const priorRaw = N * 2 <= MONTHS.length ? MONTHS.slice(MONTHS.length - 2 * N, MONTHS.length - N) : null;
+  // The window ends in a partial month, so the prior window's last month is counted to the same day.
+  const prior = priorRaw ? priorRaw.map(function (m, i) { return i === priorRaw.length - 1 ? scaleMonth(m, 0.85) : m; }) : null;
+  const span = spanLabel(win);
+  const ranges = RANGES.map(function (r) {
+    const active = r.id === range.id;
+    return { label: r.label, active: active, bg: active ? C.hover : 'transparent', fg: active ? C.text : C.text2,
+      pick: function () { pickRange(r.id); } };
+  });
+  const caption = prior ? 'Compared with the previous ' + N + ' months' : 'History starts ' + MONTHS[0].long;
+
+  // Savings rate over the window.
+  const totInc = sum(win, function (m) { return m.income; });
+  const totSp = sum(win, function (m) { return m.spending; });
+  const totSv = sum(win, function (m) { return m.saved; });
+  const kept = totInc - totSp;
+  const rate = kept / totInc * 100;
+  let srDelta = '', srDeltaColor = C.text3, srDeltaIcon = '';
+  if (prior) {
+    const pInc = sum(prior, function (m) { return m.income; });
+    const pRate = (pInc - sum(prior, function (m) { return m.spending; })) / pInc * 100;
+    const pts = rate - pRate;
+    srDelta = (pts >= 0 ? '+' : '−') + Math.abs(pts).toFixed(1) + ' pts';
+    srDeltaColor = pts >= 0 ? C.up : C.down;
+    srDeltaIcon = pts >= 0 ? TRI_UP : TRI_DOWN;
+  }
+  const chart = rateChart(G, win, tipW);
+
+  // Category trends: the window against the equal window before it.
+  const barW = Math.min(24, Math.floor((barBox - (N - 1) * 2) / N));
+  const trendRows = CATS.map(function (cat) {
+    const vals = win.map(function (m) { return m.cats[cat.key]; });
+    const max = maxOf(vals) || 1;
+    const bars = vals.map(function (v, i) { return { h: Math.max(2, Math.round(v / max * barH)), op: win[i].partial ? 0.55 : 1, w: barW }; });
+    const full = win.filter(function (m) { return !m.partial; });
+    const avg = sum(full.length ? full : win, function (m) { return m.cats[cat.key]; }) / (full.length || win.length);
+    const a = sum(win, function (m) { return m.cats[cat.key]; });
+    const b = prior ? sum(prior, function (m) { return m.cats[cat.key]; }) : 0;
+    const d = prior ? pctDelta(a, b) : 0;
+    const flat = prior && Math.abs(d) < 1;
+    return {
+      name: cat.name, bars: bars, avg: money(avg), avgShort: money(avg) + '/mo',
+      delta: !prior ? '—' : flat ? 'Flat' : pct0(d),
+      deltaColor: !prior || flat ? C.text3 : d > 0 ? C.down : C.up,
+      deltaIcon: !prior || flat ? '' : d > 0 ? TRI_UP : TRI_DOWN,
+      d: prior ? d : -avg, other: cat.key === 'other' ? 1 : 0,
+      aria: cat.name + ', average ' + money(avg) + ' a month' + (prior ? ', ' + (flat ? 'flat' : pct0(d)) + ' vs the previous ' + N + ' months' : '')
+    };
+  }).sort(function (x, y) { return x.other - y.other || y.d - x.d; });
+  const cmpHeader = prior ? 'vs previous ' + N + ' mo' : 'Change';
+  const trendSub = prior ? 'Monthly spending by category · growing fastest first' : 'Monthly spending by category · largest first';
+
+  // This year against the same months last year (2025 counted through the same day).
+  const ytd = MONTHS.filter(function (m) { return m.y === 2026; });
+  const lastMonth = ytd[ytd.length - 1].m;
+  const ly = MONTHS.filter(function (m) { return m.y === 2025 && m.m <= lastMonth; })
+    .map(function (m) { return m.m === lastMonth ? scaleMonth(m, 0.85) : m; });
+  const yInc = sum(ytd, function (m) { return m.income; }), lInc = sum(ly, function (m) { return m.income; });
+  const ySp = sum(ytd, function (m) { return m.spending; }), lSp = sum(ly, function (m) { return m.spending; });
+  const ySv = sum(ytd, function (m) { return m.saved; }), lSv = sum(ly, function (m) { return m.saved; });
+  const yNet = yInc - ySp, lNet = lInc - lSp;
+  const ytdFull = ytd.filter(function (m) { return !m.partial; });
+  let hiM = ytdFull[0], loM = ytdFull[0];
+  for (let i = 1; i < ytdFull.length; i++) { if (ytdFull[i].spending > hiM.spending) hiM = ytdFull[i]; if (ytdFull[i].spending < loM.spending) loM = ytdFull[i]; }
+  const stripMax = maxOf(ytd.map(function (m) { return m.spending; })) || 1;
+  const strip = [];
+  for (let k = 0; k < 12; k++) {
+    let month = null;
+    for (let i = 0; i < ytd.length; i++) if (ytd[i].m === k) month = ytd[i];
+    strip.push({
+      letter: MONTH_NAMES[k].charAt(0),
+      h: month ? Math.max(2, Math.round(month.spending / stripMax * stripH)) : 0,
+      op: month && month.partial ? 0.55 : 1,
+      labelColor: month ? C.text3 : C.mutedLine
+    });
+  }
+  const dInc = deltaOf(yInc, lInc, true), dSp = deltaOf(ySp, lSp, false), dSv = deltaOf(ySv, lSv, true), dNet = deltaOf(yNet, lNet, true);
+
+  // Recurring charges, largest monthly cost first. Not scoped by the range.
+  const rec = RECURRING.map(function (r) {
+    const monthly = r.cadence === 'Yearly' ? r.amount / 12 : r.amount;
+    return {
+      name: r.name, cadence: r.cadence, amount: money2(r.amount), last: r.last, next: r.next, monthly: monthly,
+      hasTag: !!r.tag, tag: r.tag, detail: r.detail, caption: r.cadence + ' · next ' + r.next
+    };
+  }).sort(function (a, b) { return b.monthly - a.monthly; });
+  const recMonthly = sum(rec, function (r) { return r.monthly; });
+  const last12 = MONTHS.slice(MONTHS.length - 12).filter(function (m) { return !m.partial; });
+  const avgSpending = sum(last12, function (m) { return m.spending; }) / last12.length;
+
+  return {
+    accent: accent, titleFont: titleFont, h1Size: serif ? 38 : 30, h2Size: serif ? 24 : 19, h1Phone: serif ? 30 : 24, h2Phone: serif ? 22 : 18,
+    ranges: ranges, caption: caption, span: span, spanShort: shortSpan(win),
+    srHero: plainPct(rate), srSub: 'of income kept · ' + span,
+    srHasDelta: !!prior, srDelta: srDelta, srDeltaColor: srDeltaColor, srDeltaIcon: srDeltaIcon,
+    srDeltaSub: prior ? 'vs the previous ' + N + ' months' : 'no earlier months to compare',
+    srIncome: money(totInc), srKept: money(kept), srSaved: money(totSv), srSavedPct: Math.round(totSv / totInc * 100) + '% of income',
+    srTicks: chart.ticks, srLine: chart.line, srArea: chart.area, plotBottom: chart.plotBottom, plotTop: chart.plotTop,
+    endX: chart.endX, endY: chart.endY, endLabel: chart.endLabel, endLabelLeft: chart.endLabelLeft, endLabelTop: chart.endLabelTop,
+    hovX: chart.hovX, hovY: chart.hovY, tipLeft: chart.tipLeft, tipTop: chart.tipTop, hovDate: chart.hovDate, hovValue: chart.hovValue,
+    srBest: chart.best, srLowest: chart.lowest, srLabels: chart.labels,
+    cmpHeader: cmpHeader, trendSub: trendSub, trendRows: trendRows,
+    ytdSub: shortSpan(ytd) + ' 2026 compared with ' + shortSpan(ytd) + ' 2025',
+    yIncome: money(yInc), ySpending: money(ySp), ySaved: money(ySv), yNet: signedMoney(yNet),
+    yIncDelta: dInc.text, yIncColor: dInc.color, yIncIcon: dInc.icon,
+    ySpDelta: dSp.text, ySpColor: dSp.color, ySpIcon: dSp.icon,
+    ySvDelta: dSv.text, ySvColor: dSv.color, ySvIcon: dSv.icon,
+    yNetDelta: dNet.text, yNetColor: dNet.color, yNetIcon: dNet.icon,
+    yKept: Math.round(yNet / yInc * 100) + '% of income kept', ySavedPct: Math.round(ySv / yInc * 100) + '% of income',
+    yAvgSpending: money(ySp / ytd.length), yAvgIncome: money(yInc / ytd.length),
+    yHigh: hiM.long + ' · ' + money(hiM.spending), yLow: loM.long + ' · ' + money(loM.spending),
+    strip: strip,
+    recRows: rec, recCount: rec.length + ' found',
+    recMonthly: money(recMonthly), recYearly: money(recMonthly * 12), recShare: Math.round(recMonthly / avgSpending * 100) + '%'
+  };
+}
+
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { range: '1Y' };
+  }
+  renderVals() {
+    const self = this;
+    const st = this.state || {};
+    return buildVals(this.props || {}, st.range || '1Y', function (id) { self.setState({ range: id }); }, { w: 318, h: 176, left: 36, right: 44, top: 12, bottom: 10 }, 116, 24, 106, 44);
+  }
+}
+</script>
+</body>
+</html>

@@ -342,6 +342,21 @@ describe("aggregateCashflow", () => {
     expect(august.spending).toBe("0.00");
   });
 
+  it("counts each month to the same day of the month as today", () => {
+    const rows: CashflowRow[] = [
+      row("2026-07-12", { amount: "40.00" }),
+      row("2026-07-13", { amount: "50.00" }),
+      row("2026-07-14", { amount: "60.00" }),
+      row("2026-07-02", { amount: "-500.00", category: "INCOME", categoryDetailed: "INCOME_WAGES" }),
+    ];
+    const [july] = aggregateCashflow(rows, { months: 2, today: "2026-08-13" });
+    expect(july.spending).toBe("150.00");
+    expect(july.toDate).toMatchObject({ income: "500.00", spending: "90.00", netCashFlow: "410.00" });
+    expect(july.toDate!.spendingByCategory).toEqual([
+      { key: "FOOD_AND_DRINK_RESTAURANTS", primary: "FOOD_AND_DRINK", total: "90.00" },
+    ]);
+  });
+
   it("zero-fills months without transactions and spans year boundaries", () => {
     const rows: CashflowRow[] = [
       row("2026-08-02", { amount: "100.00" }),
