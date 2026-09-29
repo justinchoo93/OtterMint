@@ -251,6 +251,7 @@ describe("InvestmentsView hero", () => {
     stubFetch(() => ok(fixture()));
     render(<InvestmentsView />);
     await within(await findHero()).findByText("$391,405");
+    fireEvent.mouseEnter(screen.getByTestId("investment-chart"));
     act(() => {
       activeHolder.set([{ timestamp: Date.parse("2026-08-14T00:00:00Z"), value: 388000, date: "2026-08-14", segment: 1 }]);
     });
@@ -263,11 +264,14 @@ describe("InvestmentsView hero", () => {
     });
     expect(await within(hero()).findByText("$380,000")).toBeInTheDocument();
     expect(within(hero()).queryByText(/\(\+|\(-/)).toBeNull();
+    // Recharts keeps its active point after the mouse leaves; the hero must not.
+    fireEvent.mouseLeave(screen.getByTestId("investment-chart"));
+    expect(await within(hero()).findByText("$391,405")).toBeInTheDocument();
+    expect(screen.getByText("since Jul 23")).toBeInTheDocument();
     act(() => {
       activeHolder.set(undefined);
     });
-    expect(await within(await findHero()).findByText("$391,405")).toBeInTheDocument();
-    expect(screen.getByText("since Jul 23")).toBeInTheDocument();
+    expect(within(hero()).getByText("$391,405")).toBeInTheDocument();
   });
 
   it("explains the trusted-history rule and lists account-set changes in the window", async () => {
@@ -288,7 +292,9 @@ describe("InvestmentsView hero", () => {
     expect(tiles).toHaveLength(5);
     expect(tiles[0]).toHaveAttribute("aria-pressed", "true");
     expect(within(tiles[0]).getByText("4 accounts · 2 with lifetime history")).toBeInTheDocument();
-    const individual = tiles.find((t) => within(t).queryByText("Charles Schwab Individual"))!;
+    const individual = tiles.find((t) => within(t).queryByText("····5111"))!;
+    expect(within(individual).getByText("Charles Schwab")).toBeInTheDocument();
+    expect(within(individual).getByText("Individual")).toBeInTheDocument();
     expect(within(individual).getByText("+$12,515 lifetime on $35,000 in")).toBeInTheDocument();
     expect(within(individual).getByText("····5111")).toBeInTheDocument();
     // 44,000 → 47,514.67 over the window: +3,514.67 (+8.0%).
@@ -385,7 +391,7 @@ describe("InvestmentsView hero", () => {
     expect(screen.getByText("3M change")).toBeInTheDocument();
     // Footer totals: every position's value, and the unrealized gain over positions with a basis.
     expect(screen.getByText("$391,404.58")).toBeInTheDocument();
-    expect(screen.getByText("+$34,373 unrealized")).toBeInTheDocument();
+    expect(within(screen.getByRole("region", { name: "Holdings" })).getByText("+$34,373")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "1M" }));
     expect(await screen.findByText("1M change")).toBeInTheDocument();
   });
@@ -417,7 +423,7 @@ describe("InvestmentsView hero", () => {
     const items = within(allocation).getAllByRole("listitem");
     expect(items.map((i) => i.textContent)).toEqual([
       "ETFs×3$177,24645.3%",
-      "Single stocks×5$76,22519.5%",
+      "Single stocks×3$76,22519.5%",
       "Options×1$6,2001.6%",
       "Cash$131,73433.7%",
     ]);

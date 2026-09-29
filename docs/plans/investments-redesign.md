@@ -21,7 +21,7 @@ A human can demonstrate the result by opening the app, choosing Investments, see
 - [x] (2026-09-29 20:35Z) Milestone 3: `InvestmentsView` (fetch per range with abort, dimmed refetch, empty and error states, `deriveScope` memo), `InvestmentHero` (value, change, caption, range control, "About this chart") and `InvestmentChart` (Recharts `ComposedChart` with an `ActivePointReporter` child on `useActiveTooltipDataPoints`, date-pill tooltip, end label) wired above the old holdings list; 6 view tests in `src/__tests__/investments-view.test.tsx` drive the crosshair through a subscribable hook mock. Suite 51 files / 485 tests.
 - [x] (2026-09-29 21:00Z) Milestone 4: `AccountTiles` (the filter; lifetime, anchored and All notes) and `InvestmentSummaryTiles` (Market gain with the modified-Dietz return, Net contributions with counts, Dividends & interest with the trailing figure, Unrealized gain vs cost) built from `accountTiles` and `summaryTiles` in the view; scope switching is client-side. 4 more view tests (10 total; hero queries scoped to the hero region because the All tile repeats its figures). Suite 51 files / 489 tests.
 - [x] (2026-09-29 21:35Z) Milestone 5: `HoldingsTable` (grouped rows, type pills, search, phone two-column rows via a `sm:contents` cell group), `AllocationCard` (stacked bar plus legend) and `ActivityCard` (eight rows, "Show all N"); `HoldingsPanel` and `/api/holdings` deleted; `page.tsx` renders `InvestmentsView` alone. 4 more view tests (14 total). Note: the search "aapl" leaves two rows, the stock and its call, not one as Milestone 5's text first said. Suite 51 files / 493 tests.
-- [ ] Milestone 6: phone layout, accessibility, fidelity against the checked-in renders, harness fixture.
+- [x] (2026-09-29 22:20Z) Milestone 6: `docs/design/investments-redesign/harness/mock-fixtures.js` written (the mock's generator mapped onto `InvestmentsResponse`); the real page driven in a Playwright browser at 1440×1000 and 390×844 against `desktop.html`, `account.html` and `phone.html`. Fixed from the pass: account-tile titles (institution eyebrow), the wrapping holdings footer, legend counts by distinct security, and the hero staying frozen after keyboard focus left the chart (the active-point reporter is now gated on hover or focus). Verified: one request per range (`days=90`, then `days=28`), none per scope; hover and arrow keys move the hero and both reset on leave; YTD reads "since Apr 1 · earliest history"; Tab reaches pills, About, five tiles, five type pills, search and "Show all" in visual order with Space and Enter toggling; no horizontal overflow at 390px and no control under 44px; console clean. `npm run build` passes. Suite 51 files / 493 tests.
 - [ ] Milestone 7: merge, deploy and verify in production (needs the owner's go-ahead in the session; record the date here).
 
 ## Surprises & Discoveries
@@ -45,6 +45,15 @@ Pre-seeded from research; add implementation discoveries below.
 
 - Observation: A fresh git worktree has no `node_modules`; `npm ci` is required there before any test runs.
   Evidence: `ls node_modules/.bin/vitest` failed in `.claude/worktrees/investments-redesign` until `npm ci` ran (2026-09-29).
+
+- Observation (fidelity pass, 2026-09-29): With Plaid's real institution names, "Charles Schwab Individual ····5111" overflowed a tile at five tiles across 1152px and clipped the mask; the mock had abbreviated to "Schwab". The tile now carries the institution as a small line above the account name and mask. The holdings footer's "+$34,373 unrealized" also wrapped inside its 120px column, so the word went (the column header says it).
+  Evidence: `.playwright-mcp/investments-desktop-impl.png` (first capture) versus `investments-desktop-impl-2.png` (after the fix); never committed.
+
+- Observation (fidelity pass): The allocation legend counted position rows (Single stocks ×5) while the mock counted distinct securities (×3); the view now counts the grouped holdings per type.
+  Evidence: the first desktop capture's legend versus the mock render `docs/design/investments-redesign/desktop.html`.
+
+- Observation (fidelity pass): A Playwright `page.screenshot` call resets a Recharts hover state, so a capture never shows the crosshair even though the hero followed the point. The crosshair, date pill and active dot were verified in the DOM instead (`.recharts-tooltip-cursor` with the muted-line stroke, `.recharts-tooltip-wrapper` reading "Aug 20", hero reading "$40,532 +$1,506 (+3.9%) Aug 20, 2026"), and keyboard scrubbing was verified by focusing the chart's SVG and pressing ArrowLeft (hero moved to "Jul 1, 2026").
+  Evidence: the run recorded in this plan's Milestone 6 notes; `dom.tip === "Aug 20"`.
 
 - Observation: `src/__tests__/category-rules.test.ts` reaches through `extractInvestmentFlows` to prove that the brokerage-credit correction rule routes a row into investment withdrawals. Retiring that extractor means rewriting those two assertions against the classifier and the corrected detailed category directly.
   Evidence: `grep -n extractInvestmentFlows src/__tests__/category-rules.test.ts` (lines 4, 69, 70, 120).
@@ -95,13 +104,21 @@ Pre-seeded from research; add implementation discoveries below.
   Rationale: Dead code that duplicates the new page's semantics would mislead the next reader; the surviving functions are reused as they are.
   Date/Author: 2026-09-29 / Claude with Justin.
 
+- Decision (fidelity pass): Account tiles show the institution as a small line above the account name and mask, rather than the mock's one-line "Schwab Individual ····5111"; the allocation legend counts distinct securities; the holdings footer's gain omits the word "unrealized".
+  Rationale: Plaid's real institution names ("Charles Schwab") do not fit beside the mask at five tiles across, and truncating either the name or the mask hides the very thing that tells two accounts apart. A legend count of position rows ("×5" for three stocks) misreads. The footer word wrapped inside its column and the column header already says it.
+  Date/Author: 2026-09-29 / Claude with Justin.
+
+- Decision (fidelity pass): The chart reports its active point to the hero only while the chart is hovered or holds keyboard focus.
+  Rationale: Recharts keeps its last active index after the mouse or focus leaves, so a keyboard user tabbing past the chart would otherwise leave the hero frozen on the first date; tested in the browser and in the view test.
+  Date/Author: 2026-09-29 / Claude with Justin.
+
 - Decision: The household view keeps its placeholder ("Household investment holdings are not available yet.").
   Rationale: Out of scope; the household data path has no investment feed.
   Date/Author: 2026-09-29 / Claude with Justin.
 
 ## Outcomes & Retrospective
 
-To be written at completion. Compare against the Purpose: does the page answer value, change, own money versus market, holdings and recent activity, for all accounts and for one, in the chosen range?
+Milestones 0 through 6 (2026-09-29). The Investments destination is the designed page: a hero with the live value, its change over the comparable stretch and a scrubbable one-line chart under six range pills; account tiles that scope the whole page in the browser; four summary tiles; a grouped, filterable, searchable holdings table; an allocation bar; and the brokerage activity feed. Against the Purpose, every question is answered for all accounts and for one, in the chosen range, and the harness walk-through in Milestone 6 matched the three checked-in renders except for the deviations the README lists. What changed from the plan as written: the fourth tile is Unrealized gain (decided up front), account tiles gained an institution line, the search "aapl" leaves the stock and its call, and the chart's active-point report is gated on engagement. The suite grew from 490 to 493 tests while the old panel's 15 tests and the four retired describe blocks went. What remains is Milestone 7, merge and deploy, which waits for the owner's go-ahead; production verification (the figures under Validation and Acceptance) has not been done and must be recorded here when it is. Lessons: a Playwright screenshot resets Recharts hover state, so verify hover through the DOM; keep the dev server and `next build` apart, because the build overwrites `.next` under the running server; and scope test queries to a region as soon as a figure appears twice on the page.
 
 ## Context and Orientation
 
@@ -430,3 +447,5 @@ Components (all `"use client"`, in `src/components/dashboard/`):
 `src/app/page.tsx` renders `<InvestmentsView refreshKey={refreshKey} />` for the personal Investments destination and keeps the household placeholder.
 
 Revision note (2026-09-29): Initial version, written after researching the current panel, route and math, the design system and the analytics redesign's conventions, and the production facts recorded in the two prior investment plans. Milestone 0 (the checked-in mock) was completed as part of writing the plan so the plan is self-contained. No implementation yet.
+
+Revision note (2026-09-29, later): Milestones 1 through 6 implemented and committed on `worktree-investments-redesign`. Progress carries each milestone's evidence; Surprises & Discoveries and the Decision Log gained the fidelity-pass findings (tile title layout, legend counts, footer wording, hover gating, screenshot-versus-hover-state); Milestone 5's text about the "aapl" search was corrected in Progress. Milestone 7 remains open pending the owner's authorization.

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   Area,
   CartesianGrid,
@@ -32,17 +32,19 @@ function dateTimestamp(date: string): number {
 
 /**
  * Lives inside the chart so it sees the point under the mouse and under
- * keyboard navigation alike, and hands it to the hero.
+ * keyboard navigation alike, and hands it to the hero. Recharts keeps its
+ * active point after focus or the mouse has left the chart, so the report is
+ * gated on the chart still being engaged.
  */
-function ActivePointReporter({ onChange }: { onChange: (point: SeriesPoint | null) => void }) {
+function ActivePointReporter({ engaged, onChange }: { engaged: boolean; onChange: (point: SeriesPoint | null) => void }) {
   const active = useActiveTooltipDataPoints() as ReadonlyArray<Datum> | undefined;
   const first = active && active.length > 0 ? active[0] : null;
   const date = first?.date ?? null;
   const value = first?.value ?? null;
   const segment = first?.segment ?? null;
   useEffect(() => {
-    onChange(date !== null && value !== null && segment !== null ? { date, value, segment } : null);
-  }, [date, value, segment, onChange]);
+    onChange(engaged && date !== null && value !== null && segment !== null ? { date, value, segment } : null);
+  }, [engaged, date, value, segment, onChange]);
   return null;
 }
 
@@ -61,13 +63,23 @@ export function InvestmentChart({ points, onActivePoint }: InvestmentChartProps)
   const timestamps = data.map((d) => d.timestamp);
   const axis = timestamps.length > 1 ? investmentAxisTicks(Math.min(...timestamps), Math.max(...timestamps)) : null;
   const last = data.at(-1);
+  const [engaged, setEngaged] = useState(false);
 
   return (
     <div className="flex min-w-0 flex-col">
       {data.length < 2 && (
         <p className="mb-3 text-xs text-ink-muted">Not enough history in this range. Try a longer range.</p>
       )}
-      <div className="h-[176px] sm:h-[232px]">
+      <div
+        className="h-[176px] sm:h-[232px]"
+        data-testid="investment-chart"
+        onMouseEnter={() => setEngaged(true)}
+        onMouseLeave={() => setEngaged(false)}
+        onFocusCapture={() => setEngaged(true)}
+        onBlurCapture={(event) => {
+          if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setEngaged(false);
+        }}
+      >
         <ResponsiveContainer width="100%" height="100%" initialDimension={{ width: 640, height: 232 }}>
           <ComposedChart
             data={data}
@@ -153,7 +165,7 @@ export function InvestmentChart({ points, onActivePoint }: InvestmentChartProps)
                 }}
               />
             )}
-            <ActivePointReporter onChange={onActivePoint} />
+            <ActivePointReporter engaged={engaged} onChange={onActivePoint} />
           </ComposedChart>
         </ResponsiveContainer>
       </div>

@@ -93,8 +93,12 @@ export function deriveScope(data: InvestmentsResponse, scope: Scope, filter: Hol
     isCashEquivalent: p.isCashEquivalent,
   }));
   const unrealized = computeUnrealized(holdingRows);
-  const allocation = allocationRows(computeAllocation(holdingRows));
   const groups = groupPositions(data.positions, scope);
+  // Legend counts are distinct securities (AAPL held twice is one stock), not position rows.
+  const allocation = allocationRows(computeAllocation(holdingRows)).map((row) => ({
+    ...row,
+    count: groups.filter((g) => (g.isCash ? "cash" : (g.securityType ?? "other")) === row.type).length || row.count,
+  }));
   const visibleGroups = filterGroups(groups, filter, query);
   const totalValue = groups.reduce((t, g) => t + g.value, 0);
   const activity = data.activity.filter((e) => inScope(e.accountId));
@@ -142,6 +146,7 @@ export function accountTiles(data: InvestmentsResponse): AccountTileData[] {
   const lifetimeCount = data.accounts.filter((a) => a.netGain.mode === "lifetime").length;
   const all: AccountTileData = {
     id: "all",
+    institution: "",
     title: "All accounts",
     mask: null,
     value: data.accounts.reduce((t, a) => t + toNumber(a.balance), 0),
@@ -160,7 +165,8 @@ export function accountTiles(data: InvestmentsResponse): AccountTileData[] {
     }
     return {
       id: account.accountId,
-      title: `${account.institutionName} ${account.name}`,
+      institution: account.institutionName,
+      title: account.name,
       mask: account.mask,
       value: toNumber(account.balance),
       change: latestStretch(scopedSeries(data, account.accountId)),

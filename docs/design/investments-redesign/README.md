@@ -23,3 +23,5 @@ These differences come from real data or scope decisions recorded in the plan's 
 - On phones the app keeps its existing header (wordmark, title, then its buttons on a second row) and top navigation; the tile row scrolls horizontally.
 - An option position shows its quantity in contracts and a readable label parsed from its OCC symbol (for example "AAPL $260 call · Dec 18, 2026"); the mock hand-wrote that label.
 - Accounts are the user's Plaid investment accounts; manual accounts never appear (they carry no market data).
+- Account tiles put the institution on a small line above the account name and mask ("Charles Schwab" over "Individual ····5111"), because Plaid's real institution names do not fit on one line with the mask at five tiles across; the mock abbreviated "Schwab".
+- The allocation legend counts distinct securities (AAPL held in two accounts is one stock), and the holdings footer shows the unrealized figure without the word "unrealized", which the column header already carries.

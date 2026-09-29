@@ -202,8 +202,10 @@ export function HoldingsTable({
               totals.gain > 0 ? "text-positive" : totals.gain < 0 ? "text-negative" : "text-ink-secondary"
             )}
           >
-            <span>{formatSignedWholeCurrency(totals.gain)} unrealized</span>
-            {totals.gainPct !== null && <span className="text-micro font-normal">{formatSignedPercent(totals.gainPct)} vs cost</span>}
+            <span>{formatSignedWholeCurrency(totals.gain)}</span>
+            {totals.gainPct !== null && (
+              <span className="whitespace-nowrap text-micro font-normal">{formatSignedPercent(totals.gainPct)} vs cost</span>
+            )}
           </span>
         </span>
       </div>

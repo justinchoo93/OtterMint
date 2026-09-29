@@ -6,6 +6,9 @@ import type { Scope, Stretch } from "@/lib/investments-model";
 
 export interface AccountTileData {
   id: Scope;
+  /** "Chase"; empty for the All tile, which keeps the line so values align. */
+  institution: string;
+  /** "Self-Directed", or "All accounts". */
   title: string;
   mask: string | null;
   value: number;
@@ -38,13 +41,14 @@ export function AccountTiles({ tiles, scope, onScope }: AccountTilesProps) {
             aria-pressed={pressed}
             onClick={() => onScope(tile.id)}
             className={cx(
-              "flex w-[196px] shrink-0 flex-col items-start gap-1.5 rounded-tile border bg-surface p-4 text-left transition-colors sm:min-h-[124px] sm:w-auto sm:px-5 sm:py-[18px]",
+              "flex w-[196px] shrink-0 flex-col items-start gap-1 rounded-tile border bg-surface p-4 text-left transition-colors sm:min-h-[124px] sm:w-auto sm:px-5 sm:py-4",
               pressed ? "border-accent" : "border-line hover:border-chart-muted"
             )}
           >
-            <span className="flex items-baseline gap-1.5 whitespace-nowrap text-caption font-medium text-ink-secondary">
-              <span>{tile.title}</span>
-              {tile.mask && <span className="font-mono text-micro text-ink-muted">····{tile.mask}</span>}
+            <span className="flex h-4 items-center text-micro text-ink-muted">{tile.institution}</span>
+            <span className="flex min-w-0 max-w-full items-baseline gap-1.5 text-caption font-medium text-ink-secondary">
+              <span className="truncate">{tile.title}</span>
+              {tile.mask && <span className="shrink-0 font-mono text-micro text-ink-muted">····{tile.mask}</span>}
             </span>
             <span className="text-2xl leading-[1.1] font-semibold tracking-[-0.02em] text-ink">
               {formatWholeCurrency(tile.value)}
