@@ -5,10 +5,10 @@ import { formatWholeCurrency } from "@/lib/format";
 import type { AllocationRow } from "@/lib/investments-model";
 
 /** One stacked bar by security type with a legend; colors are fixed per type. */
-export function AllocationCard({ rows, total }: { rows: AllocationRow[]; total: number }) {
+export function AllocationCard({ rows, total, asOfToday = false }: { rows: AllocationRow[]; total: number; asOfToday?: boolean }) {
   return (
     <Card aria-label="Allocation">
-      <CardHeader title="Allocation" subtitle={`By security type · ${formatWholeCurrency(total)} total`} />
+      <CardHeader title="Allocation" subtitle={`By security type · ${formatWholeCurrency(total)} total${asOfToday ? " · as of today" : ""}`} />
       <div aria-hidden className="mt-5 flex h-3 gap-0.5 overflow-hidden rounded-md">
         {rows.map((row) => (
           <span key={row.type} className="shrink-0" style={{ flexGrow: row.share, flexBasis: 0, background: row.color }} />

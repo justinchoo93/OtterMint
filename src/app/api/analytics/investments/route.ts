@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { and, eq, gte } from "drizzle-orm";
+import { and, eq, gte, isNotNull, min } from "drizzle-orm";
 import { logServerError } from "@/lib/logging";
 import {
   accounts,
@@ -34,6 +34,7 @@ export type { InvestmentsResponse } from "@/lib/investments-model";
 const DEFAULT_DAYS = 90;
 const MAX_DAYS = 3650;
 const ACTIVITY_CAP = 200;
+const DATE = /^\d{4}-\d{2}-\d{2}$/;
 
 function toCents(value: string | null | undefined): number {
   const parsed = Number.parseFloat(value ?? "0");
@@ -99,6 +100,9 @@ type HoldingRow = HoldingRowInput & { quantity: string; price: string };
 function buildResponse(input: {
   since: string;
   today: string;
+  /** The window's last day: today, or an earlier date for a period that has ended. */
+  end: string;
+  firstDate: string | null;
   aggregateRows: AggregateRow[];
   accountRows: AccountRow[];
   feedRows: FeedRow[];
@@ -108,13 +112,15 @@ function buildResponse(input: {
   plaidAccountIds: string[];
   manualAccountIds: number[];
 }): InvestmentsResponse {
-  const { since, today } = input;
+  const { since, today, end } = input;
+  const past = end < today;
+  const aggregateRows = input.aggregateRows.filter((r) => r.date <= end);
 
   // The aggregate line: coverage segments from the fingerprints, then today's
   // live total when nothing about the covered set changed since the last capture.
-  const series = buildPortfolioSeries(input.aggregateRows, [], []);
+  const series = buildPortfolioSeries(aggregateRows, [], []);
   const points = [...series.points];
-  const lastAggregate = [...input.aggregateRows]
+  const lastAggregate = [...aggregateRows]
     .filter((r) => r.investmentTotal !== null)
     .sort(byDate)
     .at(-1);
@@ -122,7 +128,8 @@ function buildResponse(input: {
   const fingerprint = computeUserCoverageFingerprint(input.plaidAccountIds, input.manualAccountIds);
   const lastPoint = points.at(-1);
   let liveAppended = false;
-  if (lastPoint && lastAggregate && lastPoint.date < today && lastAggregate.coverageFingerprint === fingerprint) {
+  // A window that ended before today stops at its last captured point.
+  if (!past && lastPoint && lastAggregate && lastPoint.date < today && lastAggregate.coverageFingerprint === fingerprint) {
     points.push({ date: today, value: fromCents(liveCents), segment: lastPoint.segment, quality: "known" });
     liveAppended = true;
   }
@@ -145,10 +152,10 @@ function buildResponse(input: {
   );
   const accountsOut: InvestmentAccount[] = input.accountRows.map((account) => {
     const accountPoints = input.balanceSnapshotRows
-      .filter((s) => s.accountId === account.accountId && s.date >= since)
+      .filter((s) => s.accountId === account.accountId && s.date >= since && s.date <= end)
       .sort(byDate)
       .map((s) => ({ date: s.date, value: fromCents(toCents(s.balance)) }));
-    if (account.currentBalance !== null) {
+    if (!past && account.currentBalance !== null) {
       const live = { date: today, value: fromCents(toCents(account.currentBalance)) };
       const last = accountPoints.at(-1);
       if (last && last.date === today) accountPoints[accountPoints.length - 1] = live;
@@ -171,7 +178,7 @@ function buildResponse(input: {
 
   // The feed, classified on subtype alone (Plaid's type drifts by institution).
   const classified = input.feedRows.map((row) => ({ row, kind: classifyFeedRow(row) }));
-  const inWindow = classified.filter(({ row }) => row.date >= since);
+  const inWindow = classified.filter(({ row }) => row.date >= since && row.date <= end);
   const flows = inWindow
     .filter(({ kind }) => kind === "deposit" || kind === "withdrawal")
     .map(({ row, kind }) => ({
@@ -191,10 +198,10 @@ function buildResponse(input: {
       amount: fromCents(-toCents(row.amount)),
     }))
     .sort(byDate);
-  const months = trailingTwelveMonths(today);
+  const months = trailingTwelveMonths(end);
   const ttm = new Map<string, number>();
   for (const { row, kind } of classified) {
-    if (!isIncome(kind) || !months.has(row.date.slice(0, 7))) continue;
+    if (!isIncome(kind) || row.date > end || !months.has(row.date.slice(0, 7))) continue;
     ttm.set(row.accountId, (ttm.get(row.accountId) ?? 0) + -toCents(row.amount));
   }
   const incomeTrailingTwelveMonths = input.accountRows.map((a) => ({
@@ -243,6 +250,8 @@ function buildResponse(input: {
   return {
     today,
     since,
+    end,
+    firstDate: input.firstDate,
     portfolio: { points, boundaries: series.boundaries.map((b) => ({ date: b.date })), liveAppended },
     accounts: accountsOut,
     flows,
@@ -263,6 +272,15 @@ export async function GET(request: NextRequest) {
 
     const now = new Date();
     const today = now.toISOString().split("T")[0];
+    // Optional last day of the window, for a period that ended before today.
+    const endParam = searchParams.get("end");
+    if (
+      endParam !== null &&
+      (!DATE.test(endParam) || Number.isNaN(Date.parse(`${endParam}T00:00:00Z`)) || endParam > today)
+    ) {
+      return NextResponse.json({ error: "end must be YYYY-MM-DD and not in the future" }, { status: 400 });
+    }
+    const end = endParam ?? today;
     const sinceDate = new Date(now);
     sinceDate.setUTCDate(sinceDate.getUTCDate() - days);
     const since = sinceDate.toISOString().split("T")[0];
@@ -360,9 +378,22 @@ export async function GET(request: NextRequest) {
         .from(manualAccounts)
         .where(eq(manualAccounts.userId, userId));
 
+      // Earliest investment history, not bounded by the window: the period
+      // picker's lower bound. Kept last so the queries above keep their order.
+      const firstAggregate = await tx
+        .select({ first: min(userNetWorthSnapshots.date) })
+        .from(userNetWorthSnapshots)
+        .where(and(eq(userNetWorthSnapshots.userId, userId), isNotNull(userNetWorthSnapshots.investmentTotal)));
+      const firstDate =
+        [firstAggregate[0]?.first ?? null, ...balanceSnapshotRows.map((r) => r.date)]
+          .filter((d): d is string => d !== null)
+          .sort()[0] ?? null;
+
       return buildResponse({
         since,
         today,
+        end,
+        firstDate,
         aggregateRows,
         accountRows,
         feedRows,

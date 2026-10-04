@@ -1,30 +1,24 @@
 "use client";
 
-import { Card, DeltaIndicator, SegmentedControl } from "@/components/ui";
+import { Card, DeltaIndicator } from "@/components/ui";
 import { InvestmentChart } from "@/components/dashboard/InvestmentChart";
 import { formatSignedPercent, formatSignedWholeCurrency, formatWholeCurrency } from "@/lib/format";
 import {
-  INVESTMENT_RANGES,
   formatLongDate,
   formatShortDate,
-  type InvestmentRange,
   type SeriesPoint,
   type Stretch,
 } from "@/lib/investments-model";
 
-const RANGE_OPTIONS = INVESTMENT_RANGES.map((r) => ({ value: r.id, label: r.label }));
-
 export interface InvestmentHeroProps {
   label: string;
-  /** The live value for the scope. */
+  /** The live value for the scope, or the closing value of a period that has ended. */
   value: number;
   stretch: Stretch | null;
   /** "since Jul 1 · earliest history"; shown when nothing is hovered. */
   caption: string;
   hovered: SeriesPoint | null;
   points: SeriesPoint[];
-  range: InvestmentRange;
-  onRangeChange: (range: InvestmentRange) => void;
   onActivePoint: (point: SeriesPoint | null) => void;
   /** First date with a known set of covered accounts (All scope only). */
   firstTrustedDate: string | null;
@@ -39,7 +33,7 @@ function deltaFor(amount: number, pct: number | null) {
   return { text, direction, tone } as const;
 }
 
-/** The value, its change over the comparable stretch, the chart and the range control. */
+/** The value, its change over the comparable stretch and the chart. */
 export function InvestmentHero({
   label,
   value,
@@ -47,8 +41,6 @@ export function InvestmentHero({
   caption,
   hovered,
   points,
-  range,
-  onRangeChange,
   onActivePoint,
   firstTrustedDate,
   boundaries,
@@ -87,15 +79,7 @@ export function InvestmentHero({
         <InvestmentChart points={points} onActivePoint={onActivePoint} />
       </div>
 
-      <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <SegmentedControl
-          ariaLabel="Time range"
-          options={RANGE_OPTIONS}
-          value={range}
-          onChange={onRangeChange}
-          fullWidth
-          className="sm:inline-flex sm:w-auto"
-        />
+      <div className="mt-4">
         <details className="group text-xs text-ink-muted sm:max-w-[620px]">
           <summary className="cursor-pointer list-none py-3.5 select-none hover:text-ink-secondary sm:py-0 [&::-webkit-details-marker]:hidden">
             <span className="text-accent underline decoration-accent/40 underline-offset-2">About this chart</span>

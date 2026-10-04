@@ -6,7 +6,7 @@ import {
   formatSecurityLabel,
   groupPositions,
   investmentAxisTicks,
-  investmentDaysForRange,
+  investmentWindow,
   latestStretch,
   parseOccSymbol,
   scopedSeries,
@@ -42,17 +42,30 @@ function position(overrides: Partial<InvestmentPosition> = {}): InvestmentPositi
   };
 }
 
-describe("investmentDaysForRange", () => {
-  it("counts whole days from the first day of the range's first month", () => {
-    expect(investmentDaysForRange("1M", TODAY)).toBe(28); // from Sep 1
-    expect(investmentDaysForRange("3M", TODAY)).toBe(90); // from Jul 1
-    expect(investmentDaysForRange("6M", TODAY)).toBe(181); // from Apr 1
-    expect(investmentDaysForRange("1Y", TODAY)).toBe(363); // from Oct 1, 2025
+describe("investmentWindow", () => {
+  const preset = (id: "MTD" | "3M" | "6M" | "YTD" | "1Y" | "ALL") => ({ kind: "preset", id }) as const;
+
+  it("counts whole days from the first day of the period's first month, as the old ranges did", () => {
+    expect(investmentWindow(preset("MTD"), TODAY)).toEqual({ days: 28, end: null }); // from Sep 1, the old 1M
+    expect(investmentWindow(preset("3M"), TODAY)).toEqual({ days: 90, end: null }); // from Jul 1
+    expect(investmentWindow(preset("6M"), TODAY).days).toBe(181); // from Apr 1
+    expect(investmentWindow(preset("1Y"), TODAY).days).toBe(363); // from Oct 1, 2025
   });
 
   it("counts year to date from January 1 and asks for ten years for All", () => {
-    expect(investmentDaysForRange("YTD", TODAY)).toBe(271);
-    expect(investmentDaysForRange("ALL", TODAY)).toBe(3650);
+    expect(investmentWindow(preset("YTD"), TODAY).days).toBe(271);
+    expect(investmentWindow(preset("ALL"), TODAY)).toEqual({ days: 3650, end: null });
+  });
+
+  it("gives a period that ended before today its last day", () => {
+    expect(investmentWindow({ kind: "month", month: "2026-07" }, TODAY)).toEqual({ days: 90, end: "2026-07-31" });
+    expect(investmentWindow({ kind: "year", year: 2025 }, TODAY)).toEqual({ days: 636, end: "2025-12-31" });
+    expect(investmentWindow({ kind: "range", from: "2026-05", to: "2026-06" }, TODAY)).toEqual({
+      days: 151,
+      end: "2026-06-30",
+    });
+    // A range that reaches the current month runs to today.
+    expect(investmentWindow({ kind: "range", from: "2026-08", to: "2026-09" }, TODAY)).toEqual({ days: 59, end: null });
   });
 });
 

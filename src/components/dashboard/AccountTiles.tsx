@@ -12,6 +12,8 @@ export interface AccountTileData {
   title: string;
   mask: string | null;
   value: number;
+  /** Set for a period that ended before today, when the value is still today's balance. */
+  valueNote?: string;
   change: Stretch | null;
   /** Lifetime or anchored net gain sentence, or the account count for All. */
   note: string;
@@ -50,8 +52,11 @@ export function AccountTiles({ tiles, scope, onScope }: AccountTilesProps) {
               <span className="truncate">{tile.title}</span>
               {tile.mask && <span className="shrink-0 font-mono text-micro text-ink-muted">····{tile.mask}</span>}
             </span>
-            <span className="text-2xl leading-[1.1] font-semibold tracking-[-0.02em] text-ink">
-              {formatWholeCurrency(tile.value)}
+            <span className="flex items-baseline gap-1.5">
+              <span className="text-2xl leading-[1.1] font-semibold tracking-[-0.02em] text-ink">
+                {formatWholeCurrency(tile.value)}
+              </span>
+              {tile.valueNote && <span className="text-micro text-ink-muted">{tile.valueNote}</span>}
             </span>
             {change ? (
               <DeltaIndicator

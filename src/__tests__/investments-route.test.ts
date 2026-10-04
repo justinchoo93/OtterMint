@@ -6,7 +6,7 @@ const { mockGetUserId, mockQueue } = vi.hoisted(() => ({
   // Each select() call in the route resolves the next queued result, in the
   // route's query order: aggregate rows, investment accounts, the whole feed,
   // holdings, holding snapshots, balance snapshots, plaid account ids, manual
-  // account ids.
+  // account ids, the earliest aggregate date.
   mockQueue: { results: [] as unknown[][], next: 0 },
 }));
 
@@ -162,7 +162,7 @@ const BALANCE_SNAPSHOTS = [
 
 const PLAID_ACCOUNT_ROWS = PLAID_IDS.map((accountId) => ({ accountId }));
 
-function queue(overrides: Partial<Record<"aggregate" | "accounts" | "feed" | "holdings" | "holdingSnapshots" | "balanceSnapshots" | "plaidIds" | "manualIds", unknown[]>> = {}) {
+function queue(overrides: Partial<Record<"aggregate" | "accounts" | "feed" | "holdings" | "holdingSnapshots" | "balanceSnapshots" | "plaidIds" | "manualIds" | "firstAggregate", unknown[]>> = {}) {
   mockQueue.results = [
     overrides.aggregate ?? AGGREGATE,
     overrides.accounts ?? ACCOUNTS,
@@ -172,6 +172,7 @@ function queue(overrides: Partial<Record<"aggregate" | "accounts" | "feed" | "ho
     overrides.balanceSnapshots ?? BALANCE_SNAPSHOTS,
     overrides.plaidIds ?? PLAID_ACCOUNT_ROWS,
     overrides.manualIds ?? [],
+    overrides.firstAggregate ?? [{ first: "2026-07-05" }],
   ];
   mockQueue.next = 0;
 }
@@ -291,5 +292,83 @@ describe("GET /api/analytics/investments", () => {
     expect([...dates].sort().reverse()).toEqual(dates);
     const dividend = result.activity.find((e: { kind: string; accountId: string }) => e.kind === "dividend" && e.accountId === "acc_6940");
     expect(dividend.amount).toBe("104.80");
+  });
+
+  describe("a window that ended before today (end)", () => {
+    it("rejects an end that is malformed or in the future", async () => {
+      for (const bad of ["?end=2026-9-1", "?end=tomorrow", "?end=2026-13-40", "?end=2026-09-30"]) {
+        queue();
+        const response = await GET(request(bad));
+        expect(response.status).toBe(400);
+        expect((await response.json()).error).toBe("end must be YYYY-MM-DD and not in the future");
+      }
+    });
+
+    it("answers exactly as without it when end is today", async () => {
+      const plain = await body();
+      queue();
+      expect(await body("?end=2026-09-29")).toEqual(plain);
+      expect(plain.end).toBe("2026-09-29");
+    });
+
+    it("stops the lines at the end date and appends no live point", async () => {
+      const result = await body("?days=90&end=2026-08-31");
+      expect(result.end).toBe("2026-08-31");
+      expect(result.today).toBe("2026-09-29");
+      expect(result.portfolio.points.map((p: { date: string }) => p.date)).toEqual([
+        "2026-07-05", "2026-07-22", "2026-07-23", "2026-08-11", "2026-08-13",
+      ]);
+      expect(result.portfolio.liveAppended).toBe(false);
+      for (const account of result.accounts) {
+        expect(account.points.every((p: { date: string }) => p.date <= "2026-08-31")).toBe(true);
+      }
+      // Balances and net gain stay as of today.
+      expect(result.accounts[0].balance).toBe("312480.42");
+    });
+
+    it("keeps only the window's own flows, income and activity", async () => {
+      const result = await body("?days=90&end=2026-08-31");
+      expect(result.flows).toEqual([{ date: "2026-08-03", accountId: "acc_6850", kind: "withdrawal", amount: "2000.00" }]);
+      expect(result.income).toEqual([{ date: "2026-07-02", accountId: "acc_6850", kind: "dividend", amount: "362.50" }]);
+      const dates = result.activity.map((e: { date: string }) => e.date);
+      expect(dates.every((d: string) => d >= "2026-07-01" && d <= "2026-08-31")).toBe(true);
+      expect(result.activityTotal).toBe(result.activity.length);
+      expect(result.activityTotal).toBeLessThan(13);
+      expect(dates[0]).toBe("2026-08-27");
+    });
+
+    it("applies the 200-event cap to the window's events, not to later ones", async () => {
+      const later = Array.from({ length: 250 }, (_, i) =>
+        feed("acc_5111", "2026-09-10", "buy", "buy", "10.00", `Later buy ${i}`, { quantity: "1", price: "10.00", securityId: "sec_x" })
+      );
+      queue({ feed: [...FEED, ...later] });
+      const result = await body("?days=90&end=2026-08-31");
+      expect(result.activity.some((e: { name: string }) => e.name.startsWith("Later buy"))).toBe(false);
+      expect(result.activity.some((e: { name: string }) => e.name === "Sold QQQ")).toBe(true);
+      queue({ feed: [...FEED, ...later] });
+      const today = await body("?days=90");
+      expect(today.activity).toHaveLength(200);
+      expect(today.activityTotal).toBe(263);
+    });
+
+    it("anchors trailing-twelve-month income to the end date", async () => {
+      const result = await body("?days=90&end=2026-08-31");
+      // Only the July dividend falls on or before August 31; September's interest and dividend do not.
+      expect(result.incomeTrailingTwelveMonths).toEqual([
+        { accountId: "acc_6850", amount: "362.50" },
+        { accountId: "acc_6940", amount: "0.00" },
+        { accountId: "acc_5111", amount: "0.00" },
+        { accountId: "acc_6093", amount: "0.00" },
+      ]);
+    });
+  });
+
+  it("reports the earliest investment history date whatever the window", async () => {
+    // Aggregate history starts 2026-07-05; the balance snapshots start 2026-08-15.
+    expect((await body("?days=1")).firstDate).toBe("2026-07-05");
+    queue({ firstAggregate: [{ first: null }] });
+    expect((await body()).firstDate).toBe("2026-08-15");
+    queue({ firstAggregate: [], balanceSnapshots: [] });
+    expect((await body()).firstDate).toBeNull();
   });
 });

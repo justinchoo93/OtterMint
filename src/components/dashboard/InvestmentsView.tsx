@@ -8,22 +8,29 @@ import { AllocationCard } from "@/components/dashboard/AllocationCard";
 import { HoldingsTable } from "@/components/dashboard/HoldingsTable";
 import { InvestmentHero } from "@/components/dashboard/InvestmentHero";
 import { InvestmentSummaryTiles, type SummaryTileData } from "@/components/dashboard/InvestmentSummaryTiles";
-import { sinceLabel, todayUtc } from "@/lib/analytics-model";
+import { PeriodBar } from "@/components/dashboard/PeriodBar";
+import {
+  betweenLabel,
+  describePeriod,
+  monthShortLabel,
+  PERIOD_PRESETS,
+  sinceLabel,
+  todayUtc,
+  type Period,
+} from "@/lib/analytics-model";
 import { computeAllocation, computeUnrealized, type HoldingRowInput } from "@/lib/investment-performance";
 import { formatCurrency, formatSignedPercent, formatSignedWholeCurrency, formatWholeCurrency } from "@/lib/format";
 import {
-  INVESTMENT_RANGES,
   allocationRows,
   filterGroups,
   formatShortDate,
   groupPositions,
-  investmentDaysForRange,
+  investmentWindow,
   latestStretch,
   scopedSeries,
   summarizeStretch,
   type FlowEvent,
   type HoldingsFilter,
-  type InvestmentRange,
   type InvestmentsResponse,
   type Scope,
   type SeriesPoint,
@@ -102,14 +109,20 @@ export function deriveScope(data: InvestmentsResponse, scope: Scope, filter: Hol
   const visibleGroups = filterGroups(groups, filter, query);
   const totalValue = groups.reduce((t, g) => t + g.value, 0);
   const activity = data.activity.filter((e) => inScope(e.accountId));
-  const liveValue = account ? toNumber(account.balance) : data.accounts.reduce((t, a) => t + toNumber(a.balance), 0);
+  // A period that ended before today shows its closing point, not the live balance.
+  const past = data.end < data.today;
+  const liveValue = past
+    ? (series.at(-1)?.value ?? 0)
+    : account
+      ? toNumber(account.balance)
+      : data.accounts.reduce((t, a) => t + toNumber(a.balance), 0);
 
   // The window was clipped when history starts well after the requested start.
   const firstPoint = series[0];
   const clipped = firstPoint !== undefined && Date.parse(firstPoint.date) - Date.parse(data.since) > 7 * DAY;
   let caption = "";
   if (stretch) {
-    caption = sinceLabel(stretch.fromDate, data.today);
+    caption = past ? betweenLabel(stretch.fromDate, stretch.toDate, data.today) : sinceLabel(stretch.fromDate, data.today);
     if (account && account.netGain.mode === "lifetime" && account.netGain.startDate !== null && account.netGain.startDate >= data.since) {
       caption += " · account opened";
     } else if (clipped && stretch.spansWholeRange) {
@@ -121,7 +134,10 @@ export function deriveScope(data: InvestmentsResponse, scope: Scope, filter: Hol
 
   return {
     account,
-    label: account ? `${account.institutionName} ${account.name}${account.mask ? ` ····${account.mask}` : ""}` : "Portfolio value",
+    past,
+    label:
+      (account ? `${account.institutionName} ${account.name}${account.mask ? ` ····${account.mask}` : ""}` : "Portfolio value") +
+      (past ? ` at the end of ${monthShortLabel(data.end)} ${data.end.slice(0, 4)}` : ""),
     liveValue,
     series,
     stretch,
@@ -144,12 +160,15 @@ export function deriveScope(data: InvestmentsResponse, scope: Scope, filter: Hol
 /** One tile per account plus All, each with its value, change over the window and net-gain sentence. */
 export function accountTiles(data: InvestmentsResponse): AccountTileData[] {
   const lifetimeCount = data.accounts.filter((a) => a.netGain.mode === "lifetime").length;
+  // Balances stay live; only the change follows a period that has ended.
+  const valueNote = data.end < data.today ? "today" : undefined;
   const all: AccountTileData = {
     id: "all",
     institution: "",
     title: "All accounts",
     mask: null,
     value: data.accounts.reduce((t, a) => t + toNumber(a.balance), 0),
+    valueNote,
     change: latestStretch(scopedSeries(data, "all")),
     note: `${plural(data.accounts.length, "account")} · ${lifetimeCount} with lifetime history`,
   };
@@ -169,6 +188,7 @@ export function accountTiles(data: InvestmentsResponse): AccountTileData[] {
       title: account.name,
       mask: account.mask,
       value: toNumber(account.balance),
+      valueNote,
       change: latestStretch(scopedSeries(data, account.accountId)),
       note,
     };
@@ -210,7 +230,7 @@ export function summaryTiles(model: ScopeModel): SummaryTileData[] {
         unrealizedCost > 0
           ? signedDelta(unrealizedGain, `${formatSignedPercent((unrealizedGain / unrealizedCost) * 100)} vs cost`)
           : undefined,
-      note:
+      note: [
         excluded > 0
           ? `${formatWholeCurrency(excluded)} without cost basis excluded`
           : unrealizedCost > 0
@@ -218,12 +238,17 @@ export function summaryTiles(model: ScopeModel): SummaryTileData[] {
             : invested
               ? "no cost basis available"
               : "all cash, nothing invested",
+        // Holdings are current positions whatever period the page shows.
+        model.past ? "as of today" : "",
+      ]
+        .filter(Boolean)
+        .join(" · "),
     },
   ];
 }
 
 export function InvestmentsView({ refreshKey }: InvestmentsViewProps) {
-  const [range, setRange] = useState<InvestmentRange>("3M");
+  const [period, setPeriod] = useState<Period>({ kind: "preset", id: "3M" });
   const [scope, setScope] = useState<Scope>("all");
   const [hovered, setHovered] = useState<SeriesPoint | null>(null);
   const [holdingsFilter, setHoldingsFilter] = useState<HoldingsFilter>("all");
@@ -231,14 +256,16 @@ export function InvestmentsView({ refreshKey }: InvestmentsViewProps) {
   const [activityExpanded, setActivityExpanded] = useState(false);
   const [state, setState] = useState<LoadState>({ status: "loading", data: null });
   const today = todayUtc();
-  const days = investmentDaysForRange(range, today);
+  const { days, end } = investmentWindow(period, today);
 
   useEffect(() => {
     const controller = new AbortController();
     const load = async () => {
       setState((current) => ({ status: "loading", data: current.data }));
       try {
-        const response = await fetch(`/api/analytics/investments?days=${days}`, { signal: controller.signal });
+        const response = await fetch(`/api/analytics/investments?days=${days}${end ? `&end=${end}` : ""}`, {
+          signal: controller.signal,
+        });
         if (!response.ok) throw new Error(`Investments request failed: ${response.status}`);
         setState({ status: "ready", data: (await response.json()) as InvestmentsResponse });
       } catch (error) {
@@ -249,10 +276,10 @@ export function InvestmentsView({ refreshKey }: InvestmentsViewProps) {
     };
     load();
     return () => controller.abort();
-  }, [days, refreshKey]);
+  }, [days, end, refreshKey]);
 
-  const changeRange = (next: InvestmentRange) => {
-    setRange(next);
+  const changePeriod = (next: Period) => {
+    setPeriod(next);
     setHovered(null);
     setActivityExpanded(false);
   };
@@ -302,13 +329,17 @@ export function InvestmentsView({ refreshKey }: InvestmentsViewProps) {
 
   const accountLabel = accountLabelOf(data);
   const showAccount = scope === "all";
-  const rangeInfo = INVESTMENT_RANGES.find((r) => r.id === range) ?? INVESTMENT_RANGES[1];
+  const described = describePeriod(period, today);
+  const shown = described.period;
+  const presetLabel = shown.kind === "preset" ? PERIOD_PRESETS.find((r) => r.id === shown.id)?.label : undefined;
+  const past = model.past;
+  const currentMonth = today.slice(0, 7);
   const positionCount = model.groups.filter((g) => !g.isCash).length;
   const holdingsSubtitle = `${plural(positionCount, "position")} and cash${
     showAccount ? ` across ${plural(data.accounts.length, "account")}` : ` in ${accountLabel(scope)}`
-  } · sorted by value`;
+  } · sorted by value${past ? " · as of today" : ""}`;
   const activityTotal = showAccount ? data.activityTotal : model.activity.length;
-  const activitySubtitle = `${rangeInfo.longLabel} · ${plural(activityTotal, "event")}${
+  const activitySubtitle = `${described.buttonLabel} · ${plural(activityTotal, "event")}${
     showAccount ? " across all accounts" : " in this account"
   }`;
   const unrealizedGain = toNumber(model.unrealized.total.gain);
@@ -319,6 +350,12 @@ export function InvestmentsView({ refreshKey }: InvestmentsViewProps) {
       className={`flex flex-col gap-6 animate-fade-in transition-opacity ${state.status === "loading" ? "opacity-60" : ""}`}
       aria-busy={state.status === "loading"}
     >
+      <PeriodBar
+        period={period}
+        onChange={changePeriod}
+        bounds={{ firstMonth: data.firstDate?.slice(0, 7) ?? currentMonth, lastMonth: currentMonth }}
+        today={today}
+      />
       <InvestmentHero
         label={model.label}
         value={model.liveValue}
@@ -326,8 +363,6 @@ export function InvestmentsView({ refreshKey }: InvestmentsViewProps) {
         caption={model.caption}
         hovered={hovered}
         points={model.series}
-        range={range}
-        onRangeChange={changeRange}
         onActivePoint={onActivePoint}
         firstTrustedDate={model.firstTrustedDate}
         boundaries={model.boundaries}
@@ -339,8 +374,9 @@ export function InvestmentsView({ refreshKey }: InvestmentsViewProps) {
         totalValue={model.totalValue}
         subtitle={holdingsSubtitle}
         showAccount={showAccount}
-        changeHeader={range === "ALL" ? "All-time change" : `${rangeInfo.label} change`}
-        rangeLabel={rangeInfo.label}
+        changeHeader={!presetLabel ? "Period change" : presetLabel === "All" ? "All-time change" : `${presetLabel} change`}
+        rangeLabel={presetLabel ?? "period"}
+        showChange={!past}
         filter={holdingsFilter}
         onFilter={setHoldingsFilter}
         query={holdingsQuery}
@@ -349,7 +385,7 @@ export function InvestmentsView({ refreshKey }: InvestmentsViewProps) {
         accountLabel={accountLabel}
       />
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-[440px_minmax(0,1fr)] lg:items-start">
-        <AllocationCard rows={model.allocation} total={model.totalValue} />
+        <AllocationCard rows={model.allocation} total={model.totalValue} asOfToday={past} />
         <ActivityCard
           events={model.activity}
           total={activityTotal}

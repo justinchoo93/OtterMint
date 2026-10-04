@@ -15,6 +15,8 @@ export interface HoldingsTableProps {
   changeHeader: string;
   /** "3M", for the phone rows' change line. */
   rangeLabel: string;
+  /** False for a period that ended before today: the change would run from its start to today. */
+  showChange?: boolean;
   filter: HoldingsFilter;
   onFilter: (filter: HoldingsFilter) => void;
   query: string;
@@ -44,6 +46,7 @@ export function HoldingsTable({
   showAccount,
   changeHeader,
   rangeLabel,
+  showChange = true,
   filter,
   onFilter,
   query,
@@ -51,9 +54,9 @@ export function HoldingsTable({
   totals,
   accountLabel,
 }: HoldingsTableProps) {
-  const cols = showAccount
-    ? "minmax(0, 1fr) 132px 96px 96px 104px 120px 72px 120px"
-    : "minmax(0, 1fr) 96px 96px 104px 120px 72px 120px";
+  const cols = ["minmax(0, 1fr)", showAccount && "132px", "96px", "96px", showChange && "104px", "120px", "72px", "120px"]
+    .filter(Boolean)
+    .join(" ");
   const gridStyle = { "--cols": cols } as CSSProperties;
   const rowClass = "grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 px-4 sm:grid-cols-[var(--cols)] sm:px-6";
 
@@ -98,7 +101,7 @@ export function HoldingsTable({
         {showAccount && <span>Account</span>}
         <span className="text-right">Shares</span>
         <span className="text-right">Price</span>
-        <span className="text-right">{changeHeader}</span>
+        {showChange && <span className="text-right">{changeHeader}</span>}
         <span className="flex items-center justify-end gap-1">
           <span>Value</span>
           <svg aria-hidden width="10" height="10" viewBox="0 0 10 10" className="text-ink-muted" fill="currentColor">
@@ -141,7 +144,7 @@ export function HoldingsTable({
               <span className="truncate text-xs text-ink-secondary">{detail}</span>
               <span className="flex items-center gap-1.5 whitespace-nowrap text-micro text-ink-muted sm:hidden">
                 <span>{group.isCash ? account : shares.replace(/^(\S+)$/, "$1 sh")}</span>
-                {group.changePct !== null && (
+                {showChange && group.changePct !== null && (
                   <>
                     <span>·</span>
                     <DeltaIndicator direction={direction(group.changePct)} tone={tone(group.changePct)}>
@@ -155,6 +158,7 @@ export function HoldingsTable({
             {showAccount && <span className={cx(CELL, "whitespace-nowrap text-xs text-ink-secondary")}>{account}</span>}
             <span className={RIGHT}>{shares}</span>
             <span className={RIGHT}>{group.isCash ? "—" : formatCurrency(group.price)}</span>
+            {showChange && (
             <span className="hidden justify-end sm:flex">
               {group.changePct === null ? (
                 <span className="font-mono text-xs text-ink-muted" title={group.isCash ? undefined : "No price history in this range"}>
@@ -166,6 +170,7 @@ export function HoldingsTable({
                 </DeltaIndicator>
               )}
             </span>
+            )}
             <span className="flex flex-col items-end gap-0.5 sm:contents">
               <span className="text-right font-mono text-sm text-ink tabular-nums">{formatCurrency(group.value)}</span>
               <span className={RIGHT}>{weight}</span>

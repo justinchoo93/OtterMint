@@ -1,15 +1,16 @@
-// Pure model behind the Investments view: ranges, feed classification, the
+// Pure model behind the Investments view: the request window, feed classification, the
 // comparable stretch and its money-weighted summary, holdings grouping and
 // the chart axis. No React or server imports; every function is unit tested
 // in src/__tests__/investments-model.test.ts. Decisions are recorded in
 // docs/plans/investments-redesign.md (Decision Log).
 
 import {
-  ALL_RANGE_DAYS,
+  describePeriod,
   monthAxisLabel,
   monthKeyOf,
   monthShortLabel,
   monthTicks,
+  type Period,
 } from "@/lib/analytics-model";
 import type { AllocationSlice, PortfolioSeriesPoint } from "@/lib/investment-performance";
 
@@ -82,6 +83,10 @@ export interface InvestmentActivity {
 export interface InvestmentsResponse {
   today: string;
   since: string;
+  /** The window's last day: the `end` parameter, or today. */
+  end: string;
+  /** Earliest date with investment history, or null. Not bounded by the requested window. */
+  firstDate: string | null;
   portfolio: {
     points: PortfolioSeriesPoint[];
     boundaries: Array<{ date: string }>;
@@ -97,38 +102,18 @@ export interface InvestmentsResponse {
 }
 
 // ---------------------------------------------------------------------------
-// Ranges
-
-export type InvestmentRange = "1M" | "3M" | "6M" | "YTD" | "1Y" | "ALL";
-
-export const INVESTMENT_RANGES: ReadonlyArray<{
-  id: InvestmentRange;
-  label: string;
-  longLabel: string;
-  months: number | null;
-}> = [
-  { id: "1M", label: "1M", longLabel: "Past month", months: 1 },
-  { id: "3M", label: "3M", longLabel: "Past 3 months", months: 3 },
-  { id: "6M", label: "6M", longLabel: "Past 6 months", months: 6 },
-  { id: "YTD", label: "YTD", longLabel: "Year to date", months: null },
-  { id: "1Y", label: "1Y", longLabel: "Past year", months: 12 },
-  { id: "ALL", label: "All", longLabel: "All history", months: null },
-];
+// The request window
 
 /**
- * Whole days from the range's first day to today: the first of this month for
- * 1M, the first of the month two months back for 3M, and so on (the same rule
- * as the dashboard's netWorthDaysForRange); January 1 for YTD; ten years for All.
+ * What to ask the route for: whole days from the period's first day to today
+ * (the first of this month for month to date, the first of the month two
+ * months back for 3M, January 1 for year to date, ten years for All), and the
+ * end date when the period ended before today.
  */
-export function investmentDaysForRange(range: InvestmentRange, today: string): number {
-  if (range === "ALL") return ALL_RANGE_DAYS;
-  const year = Number(today.slice(0, 4));
-  const monthIndex = Number(today.slice(5, 7)) - 1;
-  const day = Number(today.slice(8, 10));
-  const end = Date.UTC(year, monthIndex, day);
-  const months = INVESTMENT_RANGES.find((r) => r.id === range)?.months ?? 3;
-  const start = range === "YTD" ? Date.UTC(year, 0, 1) : Date.UTC(year, monthIndex - (months - 1), 1);
-  return Math.round((end - start) / DAY);
+export function investmentWindow(period: Period, today: string): { days: number; end: string | null } {
+  const described = describePeriod(period, today);
+  const days = Math.round((Date.parse(`${today}T00:00:00Z`) - Date.parse(`${described.startDate}T00:00:00Z`)) / DAY);
+  return { days, end: described.endsToday ? null : described.endDate };
 }
 
 export type Scope = "all" | string;

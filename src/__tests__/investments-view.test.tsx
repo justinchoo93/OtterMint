@@ -77,6 +77,8 @@ function fixture(overrides: Partial<InvestmentsResponse> = {}): InvestmentsRespo
   return {
     today: "2026-09-29",
     since: "2026-07-01",
+    end: "2026-09-29",
+    firstDate: "2026-04-10",
     portfolio: {
       points: [
         { date: "2026-07-05", value: "380000.00", segment: 0, quality: "legacy" },
@@ -236,9 +238,9 @@ describe("InvestmentsView hero", () => {
     });
     render(<InvestmentsView />);
     await within(await findHero()).findByText("$391,405");
-    fireEvent.click(screen.getByRole("button", { name: "1M" }));
+    fireEvent.click(screen.getByRole("button", { name: "MTD" }));
     await waitFor(() => expect(requestedUrls(stub)).toEqual(["/api/analytics/investments?days=90", "/api/analytics/investments?days=28"]));
-    expect(screen.getByRole("button", { name: "1M" })).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByRole("button", { name: "MTD" })).toHaveAttribute("aria-pressed", "true");
     expect(document.querySelector('[aria-busy="true"]')).not.toBeNull();
     await act(async () => {
       resolveSecond!(ok(fixture({ since: "2026-09-01" })));
@@ -392,8 +394,8 @@ describe("InvestmentsView hero", () => {
     // Footer totals: every position's value, and the unrealized gain over positions with a basis.
     expect(screen.getByText("$391,404.58")).toBeInTheDocument();
     expect(within(screen.getByRole("region", { name: "Holdings" })).getByText("+$34,373")).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: "1M" }));
-    expect(await screen.findByText("1M change")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "MTD" }));
+    expect(await screen.findByText("MTD change")).toBeInTheDocument();
   });
 
   it("filters holdings by type pill and by search, and drops the account column when scoped", async () => {
@@ -441,7 +443,7 @@ describe("InvestmentsView hero", () => {
     expect(within(first).getByText(/20 shares at \$178\.20 · Charles Schwab ····5111/)).toBeInTheDocument();
     expect(within(screen.getAllByTestId("activity-row")[2]).getByText("+$104.80")).toBeInTheDocument();
     expect(screen.getByText("Showing 8 of 16 · newest first")).toBeInTheDocument();
-    expect(screen.getByText("Past 3 months · 16 events across all accounts")).toBeInTheDocument();
+    expect(screen.getByText("Jul–Sep 2026 · 16 events across all accounts")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Show all 16" }));
     expect(screen.getAllByTestId("activity-row")).toHaveLength(16);
     expect(screen.getByText("Showing all 16 · newest first")).toBeInTheDocument();
@@ -453,7 +455,7 @@ describe("InvestmentsView hero", () => {
     expect(within(rothRows[0]).getByText("NVDA dividend")).toBeInTheDocument();
     expect(within(rothRows[0]).queryByText(/Charles Schwab/)).toBeNull();
     expect(screen.getByText("Showing all 3 · newest first")).toBeInTheDocument();
-    expect(screen.getByText("Past 3 months · 3 events in this account")).toBeInTheDocument();
+    expect(screen.getByText("Jul–Sep 2026 · 3 events in this account")).toBeInTheDocument();
   });
 
   it("prompts to connect an account when there are none", async () => {
@@ -466,5 +468,85 @@ describe("InvestmentsView hero", () => {
     stubFetch(() => new Response("nope", { status: 500 }));
     render(<InvestmentsView />);
     expect(await screen.findByText("Investments couldn't load. Try Refresh.")).toBeInTheDocument();
+  });
+});
+
+describe("InvestmentsView period bar", () => {
+  it("puts the shared period bar above the hero, with no range buttons inside it", async () => {
+    stubFetch(() => ok(fixture()));
+    render(<InvestmentsView />);
+    await within(await findHero()).findByText("$391,405");
+    expect(screen.getByRole("button", { name: "3M" })).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByTestId("period-button")).toHaveTextContent("Jul–Sep 2026");
+    expect(within(hero()).queryByRole("button", { name: "3M" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "1M" })).toBeNull();
+    // History starts in April 2026, so nothing earlier can be picked.
+    fireEvent.click(screen.getByTestId("period-button"));
+    expect(screen.getByRole("button", { name: "March 2026" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "April 2026" })).not.toBeDisabled();
+    expect(screen.getByRole("button", { name: "Earlier year" })).toBeDisabled();
+  });
+
+  it("asks for a past month by its first and last day and shows that month's closing figures", async () => {
+    const july = fixture({
+      since: "2026-07-01",
+      end: "2026-07-31",
+      portfolio: {
+        points: [
+          { date: "2026-07-23", value: "386000.00", segment: 1, quality: "known" },
+          { date: "2026-07-30", value: "387500.00", segment: 1, quality: "known" },
+        ],
+        boundaries: [],
+        liveAppended: false,
+      },
+      flows: [],
+      income: [{ date: "2026-07-02", accountId: "acc_6850", kind: "dividend", amount: "362.50" }],
+      activity: ACTIVITY.slice(-2),
+      activityTotal: 2,
+    });
+    const stub = stubFetch((url) => ok(url.includes("end=") ? july : fixture()));
+    render(<InvestmentsView />);
+    await within(await findHero()).findByText("$391,405");
+
+    fireEvent.click(screen.getByTestId("period-button"));
+    fireEvent.click(screen.getByRole("button", { name: "July 2026" }));
+    await waitFor(() =>
+      expect(requestedUrls(stub)).toEqual([
+        "/api/analytics/investments?days=90",
+        "/api/analytics/investments?days=90&end=2026-07-31",
+      ])
+    );
+    expect(await screen.findByText("Portfolio value at the end of Jul 2026")).toBeInTheDocument();
+    // The closing point, not the live balance; the change is measured inside July.
+    expect(within(hero()).getByText("$387,500")).toBeInTheDocument();
+    expect(within(hero()).getByText("+$1,500 (+0.4%)")).toBeInTheDocument();
+    expect(within(hero()).getByText(/^Jul 23–30/)).toBeInTheDocument();
+    expect(screen.getByTestId("period-button")).toHaveTextContent("July 2026");
+
+    // Holdings, allocation and unrealized gain are current positions and say so.
+    expect(screen.queryByText("Period change")).not.toBeInTheDocument();
+    expect(screen.queryByText("3M change")).not.toBeInTheDocument();
+    expect(screen.getByText(/sorted by value · as of today/)).toBeInTheDocument();
+    expect(screen.getByText(/By security type · .* · as of today/)).toBeInTheDocument();
+    const unrealized = screen.getByText("Unrealized gain", { selector: "span.text-caption" }).parentElement!;
+    expect(within(unrealized).getByText(/as of today/)).toBeInTheDocument();
+    expect(screen.getAllByText("today").length).toBe(5); // one per account tile, including All
+    expect(screen.getByText("July 2026 · 2 events across all accounts")).toBeInTheDocument();
+
+    // The arrows step month by month, and the current month needs no end date.
+    fireEvent.click(screen.getByRole("button", { name: "Next month" }));
+    fireEvent.click(screen.getByRole("button", { name: "Next month" }));
+    await waitFor(() => expect(requestedUrls(stub).at(-1)).toBe("/api/analytics/investments?days=28"));
+    expect(screen.getByRole("button", { name: "MTD" })).toHaveAttribute("aria-pressed", "true");
+  });
+
+  it("names the change column for a custom range that reaches today", async () => {
+    stubFetch(() => ok(fixture()));
+    render(<InvestmentsView />);
+    await within(await findHero()).findByText("$391,405");
+    fireEvent.click(screen.getByTestId("period-button"));
+    fireEvent.pointerDown(screen.getByRole("button", { name: "September 2026" }), { shiftKey: true });
+    expect(screen.getByTestId("period-button")).toHaveTextContent("Jul–Sep 2026");
+    expect(await screen.findByText("Period change")).toBeInTheDocument();
   });
 });
