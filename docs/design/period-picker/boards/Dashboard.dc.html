@@ -1,0 +1,382 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Dashboard with period bar</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=Instrument+Serif&display=swap">
+<style>
+body{margin:0;background:#0a0d0c}
+a{color:#34d399}a:hover{color:#edf1ef}
+button{font:inherit;cursor:pointer}
+button:disabled{cursor:default}
+button:focus-visible{outline:2px solid #34d399;outline-offset:2px}
+.ctl{height:44px}.sq{width:44px}.cell{height:44px}
+@media(min-width:640px){.ctl{height:34px}.sq{width:34px}.cell{height:38px}}
+.seg:hover,.navi:hover{color:#edf1ef !important}
+.hov:hover:not(:disabled){background:#1c2320 !important}
+.col:hover > span:first-child{background:#171d1a}
+</style>
+</helmet>
+<div style="min-height:100vh;display:flex;flex-wrap:wrap;background:#0a0d0c;color:#edf1ef;font-family:'DM Sans',system-ui,sans-serif">
+
+<aside style="flex:1 1 216px;box-sizing:border-box;padding:16px 12px;background:#111614;border-right:1px solid #242c28">
+<div style="height:40px;display:flex;align-items:center;padding:0 12px;font-family:'Instrument Serif',Georgia,serif;font-size:24px;line-height:1">ottermint</div>
+<nav aria-label="Sections" style="margin-top:24px;display:flex;flex-wrap:wrap;gap:4px">
+<a href="Dashboard.dc.html" aria-current="page" style="flex:1 1 140px;height:40px;display:flex;align-items:center;gap:12px;padding:0 12px;border-radius:8px;background:#1c2320;color:#edf1ef;font-size:14px;font-weight:500;text-decoration:none"><svg viewBox="0 0 24 24" aria-hidden="true" style="width:16px;height:16px;fill:none;stroke:#34d399;stroke-width:2;stroke-linecap:round;stroke-linejoin:round"><rect x="3" y="3" width="7" height="9" rx="1"></rect><rect x="14" y="3" width="7" height="5" rx="1"></rect><rect x="14" y="12" width="7" height="9" rx="1"></rect><rect x="3" y="16" width="7" height="5" rx="1"></rect></svg>Dashboard</a>
+<span style="flex:1 1 140px;height:40px;display:flex;align-items:center;gap:12px;padding:0 12px;border-radius:8px;color:#a3ada8;font-size:14px;font-weight:500"><svg viewBox="0 0 24 24" aria-hidden="true" style="width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round"><rect x="2" y="5" width="20" height="14" rx="2"></rect><path d="M2 10h20"></path></svg>Accounts</span>
+<span style="flex:1 1 140px;height:40px;display:flex;align-items:center;gap:12px;padding:0 12px;border-radius:8px;color:#a3ada8;font-size:14px;font-weight:500"><svg viewBox="0 0 24 24" aria-hidden="true" style="width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"></path></svg>Transactions</span>
+<span style="flex:1 1 140px;height:40px;display:flex;align-items:center;gap:12px;padding:0 12px;border-radius:8px;color:#a3ada8;font-size:14px;font-weight:500"><svg viewBox="0 0 24 24" aria-hidden="true" style="width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round"><rect x="2" y="7" width="20" height="14" rx="2"></rect><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"></path></svg>Investments</span>
+<a class="navi" href="Analytics.dc.html" style="flex:1 1 140px;height:40px;display:flex;align-items:center;gap:12px;padding:0 12px;border-radius:8px;color:#a3ada8;font-size:14px;font-weight:500;text-decoration:none"><svg viewBox="0 0 24 24" aria-hidden="true" style="width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round"><path d="M3 3v18h18M18 17V9M13 17V5M8 17v-3"></path></svg>Analytics</a>
+</nav>
+</aside>
+
+<div style="flex:999 1 560px;min-width:0">
+<header style="display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px;padding:16px 24px;background:#111614;border-bottom:1px solid #242c28">
+<h1 style="margin:0;font-family:'Instrument Serif',Georgia,serif;font-size:26px;line-height:1.1;font-weight:400">Dashboard</h1>
+<div style="display:flex;align-items:center;gap:12px">
+<button type="button" class="ctl hov" style="padding:0 14px;border:1px solid #242c28;border-radius:10px;background:#171d1a;color:#edf1ef;font-size:13px;font-weight:500">Refresh</button>
+<span aria-hidden="true" style="width:34px;height:34px;border-radius:50%;background:#242c28;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:600">J</span>
+</div>
+</header>
+
+<main style="max-width:1152px;margin:0 auto;box-sizing:border-box;padding:32px 24px;display:flex;flex-direction:column;gap:24px">
+
+<div style="display:flex;flex-wrap:wrap;align-items:center;gap:12px">
+<div role="group" aria-label="Quick ranges" style="display:flex;flex:0 1 336px;min-width:260px;gap:2px;box-sizing:border-box;padding:3px;border:1px solid #242c28;border-radius:10px;background:#171d1a">
+<sc-for list="{{segs}}" as="s" hint-placeholder-count="6">
+<button type="button" class="ctl seg" aria-pressed="{{s.on}}" onClick="{{s.pick}}" style="flex:1;border:0;border-radius:7px;padding:0 6px;font-size:13px;font-weight:500;white-space:nowrap;{{s.style}}">{{s.label}}</button>
+</sc-for>
+</div>
+
+<div style="position:relative;display:flex;align-items:center;gap:4px">
+<button type="button" class="ctl sq hov" aria-label="{{prevLabel}}" disabled="{{prevOff}}" onClick="{{prev}}" style="display:flex;align-items:center;justify-content:center;border:1px solid #242c28;border-radius:10px;background:#171d1a;color:#edf1ef;padding:0;{{prevStyle}}"><svg viewBox="0 0 24 24" aria-hidden="true" style="width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round"><path d="m15 18-6-6 6-6"></path></svg></button>
+<button type="button" class="ctl hov" aria-haspopup="dialog" aria-expanded="{{open}}" onClick="{{toggle}}" style="display:flex;align-items:center;gap:8px;min-width:204px;padding:0 12px;border-radius:10px;background:#171d1a;color:#edf1ef;font-size:13px;font-weight:500;{{labelStyle}}"><svg viewBox="0 0 24 24" aria-hidden="true" style="width:15px;height:15px;flex:none;fill:none;stroke:#a3ada8;stroke-width:2;stroke-linecap:round;stroke-linejoin:round"><rect x="3" y="4" width="18" height="18" rx="2"></rect><path d="M16 2v4M8 2v4M3 10h18"></path></svg><span style="flex:1;text-align:left;white-space:nowrap">{{label}}</span><svg viewBox="0 0 24 24" aria-hidden="true" style="width:14px;height:14px;flex:none;fill:none;stroke:#a3ada8;stroke-width:2;stroke-linecap:round;stroke-linejoin:round"><path d="m6 9 6 6 6-6"></path></svg></button>
+<button type="button" class="ctl sq hov" aria-label="{{nextLabel}}" disabled="{{nextOff}}" onClick="{{next}}" style="display:flex;align-items:center;justify-content:center;border:1px solid #242c28;border-radius:10px;background:#171d1a;color:#edf1ef;padding:0;{{nextStyle}}"><svg viewBox="0 0 24 24" aria-hidden="true" style="width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round"><path d="m9 18 6-6-6-6"></path></svg></button>
+
+<sc-if value="{{open}}" hint-placeholder-val="{{false}}">
+<button type="button" aria-label="Close period picker" onClick="{{toggle}}" style="position:fixed;inset:0;z-index:10;border:0;background:transparent;cursor:default"></button>
+<div role="dialog" aria-label="Choose a period" onPointerUp="{{dragEnd}}" onPointerLeave="{{dragCancel}}" style="position:absolute;top:calc(100% + 8px);left:0;z-index:20;width:328px;max-width:calc(100vw - 48px);box-sizing:border-box;padding:14px;display:flex;flex-direction:column;gap:14px;border:1px solid #242c28;border-radius:14px;background:#171d1a;box-shadow:0 8px 24px rgba(0,0,0,0.35)">
+<div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px">
+<sc-for list="{{shortcuts}}" as="c" hint-placeholder-count="4">
+<button type="button" class="cell hov" aria-pressed="{{c.on}}" onClick="{{c.pick}}" style="border-radius:8px;font-size:13px;font-weight:500;{{c.style}}">{{c.label}}</button>
+</sc-for>
+</div>
+<div style="height:1px;background:#242c28"></div>
+<div style="display:flex;align-items:center;gap:6px">
+<button type="button" class="cell sq hov" aria-label="Earlier year" disabled="{{yearPrevOff}}" onClick="{{yearPrev}}" style="display:flex;align-items:center;justify-content:center;border:0;border-radius:8px;background:transparent;color:#edf1ef;padding:0;{{yearPrevStyle}}"><svg viewBox="0 0 24 24" aria-hidden="true" style="width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round"><path d="m15 18-6-6 6-6"></path></svg></button>
+<span style="min-width:44px;text-align:center;font-size:15px;font-weight:600">{{vy}}</span>
+<button type="button" class="cell sq hov" aria-label="Later year" disabled="{{yearNextOff}}" onClick="{{yearNext}}" style="display:flex;align-items:center;justify-content:center;border:0;border-radius:8px;background:transparent;color:#edf1ef;padding:0;{{yearNextStyle}}"><svg viewBox="0 0 24 24" aria-hidden="true" style="width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round"><path d="m9 18 6-6-6-6"></path></svg></button>
+<span style="flex:1"></span>
+<button type="button" class="cell hov" aria-pressed="{{wholeOn}}" onClick="{{pickWhole}}" style="padding:0 12px;border-radius:8px;font-size:13px;font-weight:500;{{wholeStyle}}">{{wholeLabel}}</button>
+</div>
+<div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;touch-action:none;user-select:none">
+<sc-for list="{{cells}}" as="c" hint-placeholder-count="12">
+<button type="button" class="cell hov" aria-label="{{c.aria}}" aria-pressed="{{c.on}}" disabled="{{c.off}}" onClick="{{c.pick}}" onPointerDown="{{c.down}}" onPointerEnter="{{c.enter}}" style="border-radius:8px;font-size:13px;font-weight:500;{{c.style}}">{{c.label}}</button>
+</sc-for>
+</div>
+<div style="font-size:12px;line-height:1.4;color:#85908a">{{hint}}</div>
+</div>
+</sc-if>
+</div>
+
+<span style="font-size:13px;color:#85908a">{{cmp}}</span>
+</div>
+
+<section aria-label="Net worth" style="box-sizing:border-box;padding:28px 32px;border:1px solid #242c28;border-radius:16px;background:#111614;display:flex;flex-wrap:wrap;gap:24px 32px">
+<div style="flex:1 1 250px;display:flex;flex-direction:column;gap:10px">
+<span style="font-size:13px;font-weight:500;color:#a3ada8">{{nwLabel}}</span>
+<span style="font-size:48px;line-height:1.05;font-weight:600;letter-spacing:-0.025em">{{nwValue}}</span>
+<div style="display:flex;flex-wrap:wrap;gap:4px 8px;font-size:14px">
+<span style="font-weight:600;{{nwChangeStyle}}">{{nwChange}}</span>
+<span style="color:#a3ada8">{{nwChangeNote}}</span>
+</div>
+</div>
+<div style="flex:3 1 420px;min-width:0;display:flex;flex-direction:column;gap:8px">
+<div style="border-bottom:1px solid #2e3833">
+<svg viewBox="0 0 1000 200" preserveAspectRatio="none" aria-hidden="true" style="display:block;width:100%;height:200px">
+<path d="{{nwArea}}" style="fill:rgba(52,211,153,0.12);stroke:none"></path>
+<path d="{{nwLine}}" style="fill:none;stroke:#34d399;stroke-width:2;stroke-linejoin:round;vector-effect:non-scaling-stroke"></path>
+</svg>
+</div>
+<div style="display:flex;justify-content:space-between;font-size:11px;color:#85908a">
+<span>{{nwFrom}}</span>
+<span>{{nwTo}}</span>
+</div>
+</div>
+</section>
+
+<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(200px,100%),1fr));gap:16px">
+<sc-for list="{{tiles}}" as="t" hint-placeholder-count="4">
+<div style="box-sizing:border-box;min-height:124px;padding:18px 20px;border:1px solid #242c28;border-radius:14px;background:#111614;display:flex;flex-direction:column;gap:8px">
+<span style="font-size:13px;font-weight:500;color:#a3ada8">{{t.label}}</span>
+<span style="font-size:28px;line-height:1.1;font-weight:600;letter-spacing:-0.02em">{{t.value}}</span>
+<span style="display:flex;flex-wrap:wrap;gap:2px 6px;font-size:12px;color:#85908a"><span style="font-weight:600;{{t.deltaStyle}}">{{t.delta}}</span><span>{{t.note}}</span></span>
+</div>
+</sc-for>
+</div>
+
+<section aria-label="Cash flow" style="box-sizing:border-box;padding:24px;border:1px solid #242c28;border-radius:16px;background:#111614;display:flex;flex-direction:column;gap:20px">
+<div style="display:flex;flex-wrap:wrap;align-items:flex-start;justify-content:space-between;gap:12px">
+<div style="display:flex;flex-direction:column;gap:4px">
+<h2 style="margin:0;font-family:'Instrument Serif',Georgia,serif;font-size:24px;line-height:1.15;font-weight:400">Cash flow</h2>
+<span style="font-size:13px;color:#a3ada8">{{chartSub}}</span>
+</div>
+<div style="display:flex;gap:16px;font-size:12px;color:#a3ada8">
+<span style="display:flex;align-items:center;gap:6px"><span style="width:8px;height:8px;border-radius:2px;background:#199e70"></span>Income</span>
+<span style="display:flex;align-items:center;gap:6px"><span style="width:8px;height:8px;border-radius:2px;background:#d95926"></span>Spending</span>
+</div>
+</div>
+<div style="display:flex;gap:4px">
+<sc-for list="{{bars}}" as="b" hint-placeholder-count="6">
+<button type="button" class="col" aria-label="{{b.aria}}" aria-pressed="{{b.on}}" onClick="{{b.pick}}" style="flex:1 1 0;min-width:0;display:flex;flex-direction:column;align-items:stretch;gap:8px;border:0;background:transparent;padding:0;color:#85908a">
+<span style="display:flex;align-items:flex-end;justify-content:center;gap:3px;height:200px;border-bottom:1px solid #2e3833;border-radius:6px 6px 0 0;{{b.plotStyle}}"><span style="display:block;width:36%;max-width:18px;border-radius:3px 3px 0 0;background:#199e70;{{b.incStyle}}"></span><span style="display:block;width:36%;max-width:18px;border-radius:3px 3px 0 0;background:#d95926;{{b.spStyle}}"></span></span>
+<span style="height:14px;font-size:11px;white-space:nowrap;text-align:center">{{b.lab}}</span>
+</button>
+</sc-for>
+</div>
+<span style="font-size:12px;color:#85908a">Select a column to jump to that month. October 2026 is a partial month.</span>
+</section>
+
+</main>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1360,"height":1060}}'>
+const INITIAL = { p: { k: 'preset', id: '6M' }, open: false, vy: 2026 };
+
+const SM = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const LM = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+const N = 25, LAST = 24, Y0 = 2024, M0 = 9, Y1 = 2026, TODAY_D = 3;
+const ym = (i) => ({ y: Y0 + Math.floor((M0 + i) / 12), m: (M0 + i) % 12 });
+const idx = (y, m) => (y - Y0) * 12 + m - M0;
+const money = (n) => (n < 0 ? '−$' : '$') + Math.abs(Math.round(n)).toLocaleString('en-US');
+const span = (a, b) => {
+  const A = ym(a), B = ym(b);
+  if (a === b) return LM[A.m] + ' ' + A.y;
+  return A.y === B.y ? SM[A.m] + '–' + SM[B.m] + ' ' + B.y : SM[A.m] + ' ' + A.y + '–' + SM[B.m] + ' ' + B.y;
+};
+const CATS = [['Housing', 0.36], ['Food & dining', 0.17], ['Shopping', 0.13], ['Transport', 0.11], ['Travel', 0.09], ['Health', 0.06], ['Everything else', 0.08]];
+
+// Sample data: 25 months ending on a partial October 2026.
+const DATA = (() => {
+  let s = 11;
+  const r = () => { s = (s * 16807) % 2147483647; return s / 2147483647; };
+  const months = [], days = [];
+  let nw = 182400;
+  for (let i = 0; i < N; i++) {
+    const { y, m } = ym(i);
+    const part = i === LAST;
+    const inc = part ? 1825 : Math.round(7200 + r() * 900 + (m === 11 ? 2400 : 0));
+    const sp = part ? 1210 : Math.round(4300 + r() * 1900 + (m === 11 ? 900 : 0) + (m === 6 ? 700 : 0));
+    const n = part ? TODAY_D : new Date(y, m + 1, 0).getDate();
+    const end = nw + (inc - sp) + (r() - 0.42) * 5200 * (part ? 0.1 : 1);
+    const d0 = days.length;
+    for (let d = 0; d < n; d++) days.push(nw + (end - nw) * ((d + 1) / n) + Math.sin((d0 + d) / 5) * 600);
+    nw = end;
+    const w = CATS.map((c, k) => c[1] * (1 + 0.22 * Math.sin(i * 1.3 + k * 2)));
+    const ws = w.reduce((a, b) => a + b, 0);
+    months.push({ y, m, inc, sp, sv: Math.round(inc * 0.12), n, d0, d1: days.length - 1, cats: w.map((x) => sp * x / ws) });
+  }
+  return { months, days };
+})();
+
+function sum(a, b, scale) {
+  const t = { inc: 0, sp: 0, sv: 0, net: 0, cats: CATS.map(() => 0) };
+  for (let i = a; i <= b; i++) {
+    const M = DATA.months[i];
+    t.inc += M.inc; t.sp += M.sp; t.sv += M.sv;
+    M.cats.forEach((c, k) => { t.cats[k] += c; });
+  }
+  const f = scale || 1;
+  t.inc *= f; t.sp *= f; t.sv *= f; t.cats = t.cats.map((c) => c * f);
+  t.net = t.inc - t.sp;
+  return t;
+}
+
+function resolve(p) {
+  if (p.k === 'month') {
+    const i = p.i, P = ym(i - 1), has = i > 0;
+    return { a: i, b: i, label: span(i, i), pa: has ? i - 1 : null, pb: has ? i - 1 : null, step: 'month',
+      cmp: has ? 'vs ' + LM[P.m] + ' ' + P.y : 'History starts Oct 2024', short: has ? 'vs ' + SM[P.m] : null };
+  }
+  if (p.k === 'year') {
+    const a = Math.max(0, idx(p.y, 0)), b = Math.min(LAST, idx(p.y, 11));
+    const full = idx(p.y - 1, 0) >= 0;
+    return { a, b, label: String(p.y), pa: full ? idx(p.y - 1, 0) : null, pb: full ? idx(p.y - 1, 11) : null, step: 'year',
+      cmp: full ? 'vs ' + (p.y - 1) : (p.y === Y0 ? 'Oct–Dec only · history starts Oct 2024' : 'No full prior year to compare'),
+      short: full ? 'vs ' + (p.y - 1) : null };
+  }
+  if (p.k === 'range') {
+    const n = p.b - p.a + 1, ok = p.a - n >= 0;
+    return { a: p.a, b: p.b, label: span(p.a, p.b), pa: ok ? p.a - n : null, pb: ok ? p.a - 1 : null,
+      cmp: ok ? 'vs prior ' + n + ' months' : 'History starts Oct 2024', short: ok ? 'vs prior ' + n + ' mo' : null };
+  }
+  if (p.id === 'MTD') return { a: LAST, b: LAST, label: 'Oct 1–3, 2026', pa: LAST - 1, pb: LAST - 1, scale: TODAY_D / 30, step: 'month', cmp: 'vs Sep 1–3', short: 'vs Sep 1–3' };
+  if (p.id === 'YTD') return { a: idx(Y1, 0), b: LAST, label: 'Jan 1–Oct 3, 2026', pa: idx(Y1 - 1, 0), pb: idx(Y1 - 1, 9), step: 'year', cmp: 'vs Jan–Oct 2025', short: 'vs 2025 YTD' };
+  if (p.id === 'ALL') return { a: 0, b: LAST, label: span(0, LAST), pa: null, pb: null, cmp: 'History starts Oct 2024', short: null };
+  const n = { '3M': 3, '6M': 6, '1Y': 12 }[p.id];
+  const a = LAST - n + 1, ok = a - n >= 0;
+  return { a, b: LAST, label: span(a, LAST), pa: ok ? a - n : null, pb: ok ? a - 1 : null,
+    cmp: ok ? 'vs prior ' + n + ' months' : 'History starts Oct 2024', short: ok ? 'vs prior ' + n + ' mo' : null };
+}
+
+const UP = '#34d399', DOWN = '#f0836f';
+function delta(cur, prev, upIsGood) {
+  if (prev === null || prev === 0) return null;
+  const pct = (cur - prev) / Math.abs(prev) * 100;
+  const good = upIsGood ? pct >= 0 : pct <= 0;
+  return { text: (pct >= 0 ? '↑ +' : '↓ −') + Math.abs(pct).toFixed(0) + '%', style: 'color:' + (good ? UP : DOWN) };
+}
+
+class Component extends DCLogic {
+  state = INITIAL;
+
+  renderVals() {
+    const st = this.state, p = st.p, R = resolve(p), M = DATA.months;
+    const go = (np, extra) => this.setState({ p: np, vy: ym(resolve(np).b).y, open: false, drag: null, ...extra });
+    // A click picks one month; press and drag across months picks a range; Shift extends from the current start.
+    const dg = st.drag;
+    const sa = dg ? Math.min(dg.from, dg.to) : R.a, sb = dg ? Math.max(dg.from, dg.to) : R.b;
+    const pickSpan = (a, b) => (a === b ? (a === LAST ? go({ k: 'preset', id: 'MTD' }) : go({ k: 'month', i: a })) : go({ k: 'range', a, b }));
+    const extend = (i) => pickSpan(Math.min(R.a, i), Math.max(R.a, i));
+    const down = (i, e) => {
+      if (e.shiftKey) return extend(i);
+      try { e.currentTarget.releasePointerCapture(e.pointerId); } catch (err) {}
+      this.setState({ drag: { from: i, to: i } });
+    };
+    const enter = (i) => { if (dg && dg.to !== i) this.setState({ drag: { from: dg.from, to: i } }); };
+    const keyPick = (i, e) => { if (e.detail === 0) (e.shiftKey ? extend(i) : pickSpan(i, i)); };
+    const preset = (id) => go({ k: 'preset', id });
+    const setMonth = (i) => (i === LAST ? preset('MTD') : go({ k: 'month', i }));
+    const setYear = (y) => (y === Y1 ? preset('YTD') : go({ k: 'year', y }));
+    const isPreset = (id) => p.k === 'preset' && p.id === id;
+    const noop = () => {};
+    const dim = (off) => (off ? 'opacity:0.35' : '');
+    const cy = ym(R.b).y;
+
+    const prevFn = R.step === 'month' && R.a > 0 ? () => setMonth(R.a - 1) : R.step === 'year' && cy > Y0 ? () => setYear(cy - 1) : null;
+    const nextFn = R.step === 'month' && R.b < LAST ? () => setMonth(R.b + 1) : R.step === 'year' && cy < Y1 ? () => setYear(cy + 1) : null;
+    const unit = R.step === 'year' ? 'year' : 'month';
+
+    const segs = [['MTD', 'MTD'], ['3M', '3M'], ['6M', '6M'], ['YTD', 'YTD'], ['1Y', '1Y'], ['ALL', 'All']].map(([id, label]) => {
+      const on = isPreset(id);
+      return { label, on, pick: () => preset(id), style: on ? 'background:#242c28;color:#edf1ef' : 'background:transparent;color:#a3ada8' };
+    });
+
+    const chip = (on) => (on ? 'border:1px solid #34d399;background:rgba(52,211,153,0.12);color:#edf1ef' : 'border:1px solid #242c28;background:transparent;color:#a3ada8');
+    const lastMonthOn = p.k === 'month' && p.i === LAST - 1;
+    const lastYearOn = p.k === 'year' && p.y === Y1 - 1;
+    const shortcuts = [
+      { label: 'This month', on: isPreset('MTD'), pick: () => preset('MTD') },
+      { label: 'Last month', on: lastMonthOn, pick: () => setMonth(LAST - 1) },
+      { label: 'This year', on: isPreset('YTD'), pick: () => preset('YTD') },
+      { label: 'Last year', on: lastYearOn, pick: () => setYear(Y1 - 1) },
+    ].map((c) => ({ ...c, style: chip(c.on) }));
+
+    const vy = st.vy;
+    const single = R.a === R.b;
+    const cells = SM.map((label, m) => {
+      const i = idx(vy, m);
+      const ok = i >= 0 && i <= LAST;
+      const on = ok && i >= sa && i <= sb;
+      let style = 'border:1px solid ' + (i === LAST ? '#85908a' : 'transparent') + ';';
+      if (!ok) style += 'background:transparent;color:#85908a;opacity:0.4';
+      else if (on && (sa === sb || ((dg || p.k === 'range') && (i === sa || i === sb)))) style += 'background:#34d399;color:#0a0d0c;border-color:#34d399';
+      else if (on) style += 'background:rgba(52,211,153,0.12);color:#edf1ef';
+      else style += 'background:transparent;color:#edf1ef';
+      return { label, on, off: !ok, style, aria: LM[m] + ' ' + vy, pick: ok ? (e) => keyPick(i, e) : noop, down: ok ? (e) => down(i, e) : noop, enter: ok ? () => enter(i) : noop };
+    });
+    const wholeOn = (p.k === 'year' && p.y === vy) || (isPreset('YTD') && vy === Y1);
+
+    // Totals and comparison
+    const T = sum(R.a, R.b);
+    const P = R.pa !== null ? sum(R.pa, R.pb, R.scale) : null;
+    const tiles = [['Income', 'inc', true], ['Spending', 'sp', false], ['Saved', 'sv', true], ['Net cash flow', 'net', true]].map(([label, key, upIsGood]) => {
+      const d = P ? delta(T[key], P[key], upIsGood) : null;
+      const kept = key === 'net' && T.inc > 0 ? Math.round(T.net / T.inc * 100) + '% kept' : '';
+      const note = d ? R.short + (kept ? ' · ' + kept : '') : (kept || 'No prior period to compare');
+      return { label, value: money(T[key]), delta: d ? d.text : '', deltaStyle: d ? d.style : '', note };
+    });
+
+    // Net worth over the period
+    let series = DATA.days.slice(M[R.a].d0, M[R.b].d1 + 1);
+    const stepN = Math.ceil(series.length / 160);
+    series = series.filter((v, i) => i % stepN === 0 || i === series.length - 1);
+    const lo = Math.min(...series), hi = Math.max(...series), rng = hi - lo || 1;
+    const nwLine = series.map((v, i) => (i ? 'L' : 'M') + (i / (series.length - 1) * 1000).toFixed(1) + ' ' + (190 - (v - lo) / rng * 175).toFixed(1)).join(' ');
+    const first = series[0], lastV = series[series.length - 1], chg = lastV - first;
+    const E = ym(R.b), S = ym(R.a);
+    const endsToday = R.b === LAST;
+
+    // Chart window: the period, or six months of context around a short one
+    const len = R.b - R.a + 1;
+    const wa = len >= 3 ? R.a : Math.max(0, R.b - 5);
+    const count = R.b - wa + 1;
+    const win = M.slice(wa, R.b + 1);
+    const top = Math.max(...win.map((x) => Math.max(x.inc, x.sp)));
+    const rates = win.map((x) => Math.max(0, (x.inc - x.sp) / x.inc * 100));
+    const topRate = Math.max(...rates, 1);
+    const context = len < 3;
+    const bars = win.map((x, k) => {
+      const i = wa + k, inP = i >= R.a;
+      const showLab = count <= 13 || k % 3 === 0;
+      const lab = !showLab ? '' : (x.m === 0 || k === 0) ? SM[x.m] + ' ’' + String(x.y).slice(2) : SM[x.m];
+      return {
+        lab, on: single && inP, pick: () => setMonth(i),
+        aria: LM[x.m] + ' ' + x.y + ': income ' + money(x.inc) + ', spending ' + money(x.sp),
+        plotStyle: context ? (inP ? 'background:#1c2320' : 'opacity:0.5') : '',
+        incStyle: 'height:' + (x.inc / top * 100).toFixed(1) + '%',
+        spStyle: 'height:' + (x.sp / top * 100).toFixed(1) + '%',
+        rate: count <= 13 ? Math.round(rates[k]) + '%' : '',
+        rateStyle: 'height:' + (rates[k] / topRate * 100).toFixed(1) + '%;background:' + (i === LAST ? '#3a453f' : '#3987e5'),
+      };
+    });
+
+    // Analytics: savings rate and category trends
+    const rate = T.inc > 0 ? T.net / T.inc * 100 : 0;
+    const pRate = P && P.inc > 0 ? P.net / P.inc * 100 : null;
+    const pts = pRate === null ? null : rate - pRate;
+    const topCat = Math.max(...T.cats);
+    const cats = CATS.map((c, k) => {
+      const d = P ? delta(T.cats[k], P.cats[k], false) : null;
+      return { name: c[0], value: money(T.cats[k]), delta: d ? d.text : '', deltaStyle: d ? d.style : '', barStyle: 'width:' + (T.cats[k] / topCat * 100).toFixed(1) + '%' };
+    }).sort((x, y) => parseFloat(y.barStyle.slice(6)) - parseFloat(x.barStyle.slice(6)));
+
+    return {
+      segs, shortcuts, cells, bars, tiles, cats, vy,
+      open: st.open, toggle: () => this.setState({ open: !st.open, vy: cy, drag: null }),
+      dragEnd: () => { if (dg) pickSpan(sa, sb); },
+      dragCancel: () => { if (dg) this.setState({ drag: null }); },
+      hint: dg && sa !== sb ? 'Release to select ' + span(sa, sb) + '.' : 'Select a month, or drag across months for a range. Shift-click reaches across years.',
+      label: R.label, cmp: R.cmp,
+      labelStyle: p.k === 'preset' ? 'border:1px solid #242c28' : 'border:1px solid #34d399',
+      prev: prevFn || noop, prevOff: !prevFn, prevStyle: dim(!prevFn), prevLabel: 'Previous ' + unit,
+      next: nextFn || noop, nextOff: !nextFn, nextStyle: dim(!nextFn), nextLabel: 'Next ' + unit,
+      yearPrev: () => this.setState({ vy: vy - 1 }), yearPrevOff: vy <= Y0, yearPrevStyle: dim(vy <= Y0),
+      yearNext: () => this.setState({ vy: vy + 1 }), yearNextOff: vy >= Y1, yearNextStyle: dim(vy >= Y1),
+      wholeOn, wholeStyle: chip(wholeOn), wholeLabel: 'All of ' + vy, pickWhole: () => setYear(vy),
+      nwLabel: endsToday ? 'Net worth' : 'Net worth at the end of ' + SM[E.m] + ' ' + E.y,
+      nwValue: money(lastV),
+      nwChange: (chg >= 0 ? '↑ +' : '↓ −') + money(Math.abs(chg)) + ' (' + (chg >= 0 ? '+' : '−') + Math.abs(chg / first * 100).toFixed(1) + '%)',
+      nwChangeStyle: 'color:' + (chg >= 0 ? UP : DOWN),
+      nwChangeNote: 'over ' + R.label,
+      nwLine, nwArea: nwLine + ' L1000 200 L0 200 Z',
+      nwFrom: SM[S.m] + ' 1, ' + S.y,
+      nwTo: SM[E.m] + ' ' + M[R.b].n + ', ' + E.y,
+      chartSub: context ? span(wa, R.b) + ' · ' + R.label + ' highlighted' : span(wa, R.b),
+      rateValue: rate.toFixed(0) + '%',
+      rateDelta: pts === null ? '' : (pts >= 0 ? '↑ +' : '↓ −') + Math.abs(pts).toFixed(0) + ' pts',
+      rateDeltaStyle: 'color:' + (pts !== null && pts < 0 ? DOWN : UP),
+      rateNote: pts === null ? 'No prior period to compare' : R.short,
+      periodLabel: R.label,
+    };
+  }
+}
+</script>
+</body>
+</html>

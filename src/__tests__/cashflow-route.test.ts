@@ -161,7 +161,7 @@ describe("GET /api/analytics/cashflow", () => {
     expect(defaulted.months).toHaveLength(6);
 
     const clamped = await (await GET(request("?months=99"))).json();
-    expect(clamped.months).toHaveLength(24);
+    expect(clamped.months).toHaveLength(60);
 
     const invalid = await (await GET(request("?months=abc"))).json();
     expect(invalid.months).toHaveLength(6);

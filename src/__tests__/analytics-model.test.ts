@@ -9,8 +9,15 @@ import {
   categoryRowFor,
   layoutCashflowColumns,
   likeForLikePrior,
+  describePeriod,
+  monthGridCells,
   monthRate,
-  netWorthDaysForRange,
+  netWorthWindow,
+  normalizePeriod,
+  periodFromSpan,
+  stepPeriod,
+  trimHistory,
+  type Period,
   netWorthDomain,
   netWorthScale,
   normalizationContradictions,
@@ -73,20 +80,95 @@ describe("firstDataMonthIndex", () => {
   });
 });
 
+const TODAY = "2026-09-26";
+const preset = (id: "MTD" | "3M" | "6M" | "YTD" | "1Y" | "ALL"): Period => ({ kind: "preset", id });
+// 24 months of data, Oct 2024 to Sep 2026.
+const FULL: CashflowMonth[] = monthKeys("2024-10", 24).map((k) =>
+  month(k, { income: 100, spending: 50, partial: k === "2026-09" })
+);
+
+describe("normalizePeriod", () => {
+  it("gives each period one representation", () => {
+    expect(normalizePeriod({ kind: "month", month: "2026-09" }, TODAY)).toEqual(preset("MTD"));
+    expect(normalizePeriod({ kind: "month", month: "2026-08" }, TODAY)).toEqual({ kind: "month", month: "2026-08" });
+    expect(normalizePeriod({ kind: "year", year: 2026 }, TODAY)).toEqual(preset("YTD"));
+    expect(normalizePeriod({ kind: "year", year: 2025 }, TODAY)).toEqual({ kind: "year", year: 2025 });
+    expect(normalizePeriod({ kind: "range", from: "2026-03", to: "2026-03" }, TODAY)).toEqual({
+      kind: "month",
+      month: "2026-03",
+    });
+    expect(normalizePeriod({ kind: "range", from: "2026-09", to: "2026-09" }, TODAY)).toEqual(preset("MTD"));
+    expect(normalizePeriod({ kind: "range", from: "2026-06", to: "2026-03" }, TODAY)).toEqual({
+      kind: "range",
+      from: "2026-03",
+      to: "2026-06",
+    });
+    expect(normalizePeriod(preset("6M"), TODAY)).toEqual(preset("6M"));
+  });
+});
+
+describe("describePeriod", () => {
+  it("labels and dates each kind of period without a month list", () => {
+    expect(describePeriod(preset("MTD"), TODAY)).toMatchObject({
+      buttonLabel: "Sep 1–26, 2026",
+      startDate: "2026-09-01",
+      endDate: TODAY,
+      endsToday: true,
+      stepUnit: "month",
+    });
+    expect(describePeriod(preset("MTD"), "2026-10-01").buttonLabel).toBe("Oct 1, 2026");
+    expect(describePeriod(preset("YTD"), TODAY)).toMatchObject({
+      buttonLabel: "Jan 1–Sep 26, 2026",
+      startDate: "2026-01-01",
+      stepUnit: "year",
+    });
+    expect(describePeriod(preset("6M"), TODAY)).toMatchObject({
+      buttonLabel: "Apr–Sep 2026",
+      startDate: "2026-04-01",
+      stepUnit: null,
+      firstMonth: "2026-04",
+      lastMonth: "2026-09",
+    });
+    expect(describePeriod(preset("1Y"), TODAY).buttonLabel).toBe("Oct 2025–Sep 2026");
+    expect(describePeriod(preset("ALL"), TODAY)).toMatchObject({ buttonLabel: "All time", endsToday: true });
+    expect(describePeriod({ kind: "month", month: "2026-02" }, TODAY)).toMatchObject({
+      buttonLabel: "February 2026",
+      startDate: "2026-02-01",
+      endDate: "2026-02-28",
+      endsToday: false,
+      stepUnit: "month",
+    });
+    expect(describePeriod({ kind: "year", year: 2025 }, TODAY)).toMatchObject({
+      buttonLabel: "2025",
+      startDate: "2025-01-01",
+      endDate: "2025-12-31",
+      endsToday: false,
+      stepUnit: "year",
+    });
+    expect(describePeriod({ kind: "range", from: "2025-11", to: "2026-02" }, TODAY)).toMatchObject({
+      buttonLabel: "Nov 2025–Feb 2026",
+      endDate: "2026-02-28",
+      stepUnit: null,
+    });
+  });
+});
+
 describe("resolvePeriod", () => {
   it("6M: window Apr–Sep, no comparison because history starts in January", () => {
-    const r = resolvePeriod(PROD_LIKE, { range: "6M", month: null });
+    const r = resolvePeriod(PROD_LIKE, preset("6M"), TODAY);
     expect(r.windowMonths.map((m) => m.month)).toEqual(monthKeys("2026-04", 6));
     expect(r.periodMonths).toEqual(r.windowMonths);
+    expect(r.highlightPeriod).toBe(false);
     expect(r.priorMonths).toBeNull();
     expect(r.periodLabel).toBe("Apr–Sep 2026");
+    expect(r.buttonLabel).toBe("Apr–Sep 2026");
     expect(r.comparisonLabel).toBeNull();
     expect(r.comparisonShortLabel).toBeNull();
     expect(r.historyStartsLabel).toBe("History starts Jan 2026");
   });
 
   it("3M: compares with the three months before", () => {
-    const r = resolvePeriod(PROD_LIKE, { range: "3M", month: null });
+    const r = resolvePeriod(PROD_LIKE, preset("3M"), TODAY);
     expect(r.windowMonths.map((m) => m.month)).toEqual(["2026-07", "2026-08", "2026-09"]);
     expect(r.priorMonths!.map((m) => m.month)).toEqual(["2026-04", "2026-05", "2026-06"]);
     expect(r.comparisonLabel).toBe("Compared with the previous 3 months");
@@ -96,57 +178,194 @@ describe("resolvePeriod", () => {
 
   it("1Y and All are clipped to the first month with data", () => {
     for (const range of ["1Y", "ALL"] as const) {
-      const r = resolvePeriod(PROD_LIKE, { range, month: null });
+      const r = resolvePeriod(PROD_LIKE, preset(range), TODAY);
       expect(r.windowMonths[0].month).toBe("2026-01");
       expect(r.windowMonths).toHaveLength(9);
       expect(r.priorMonths).toBeNull();
       expect(r.periodLabel).toBe("Jan–Sep 2026");
+      expect(r.buttonLabel).toBe("Jan–Sep 2026");
       expect(r.historyStartsLabel).toBe("History starts Jan 2026");
     }
   });
 
-  it("a selected month compares with the month before", () => {
-    const r = resolvePeriod(PROD_LIKE, { range: "6M", month: "2026-08" });
+  it("one month compares with the month before and keeps six months of chart context", () => {
+    const r = resolvePeriod(PROD_LIKE, { kind: "month", month: "2026-08" }, TODAY);
     expect(r.periodMonths.map((m) => m.month)).toEqual(["2026-08"]);
     expect(r.priorMonths!.map((m) => m.month)).toEqual(["2026-07"]);
     expect(r.periodLabel).toBe("August 2026");
+    expect(r.buttonLabel).toBe("August 2026");
     expect(r.comparisonLabel).toBe("Compared with July 2026");
     expect(r.comparisonShortLabel).toBe("vs Jul");
-    expect(r.windowMonths).toHaveLength(6);
+    expect(r.windowMonths.map((m) => m.month)).toEqual(monthKeys("2026-03", 6));
+    expect(r.highlightPeriod).toBe(true);
+    expect(r).toMatchObject({ startDate: "2026-08-01", endDate: "2026-08-31", endsToday: false, stepUnit: "month" });
   });
 
-  it("never compares the partial current month on its own", () => {
-    const r = resolvePeriod(PROD_LIKE, { range: "6M", month: "2026-09" });
+  it("month to date compares with the same days of the month before", () => {
+    const r = resolvePeriod(PROD_LIKE, preset("MTD"), TODAY);
+    expect(r.periodMonths.map((m) => m.month)).toEqual(["2026-09"]);
     expect(r.periodLabel).toBe("September 2026 · month to date");
-    expect(r.priorMonths).toBeNull();
-    expect(r.historyStartsLabel).toBeNull();
+    expect(r.buttonLabel).toBe("Sep 1–26, 2026");
+    expect(r.priorMonths!.map((m) => m.month)).toEqual(["2026-08"]);
+    expect(r.comparisonLabel).toBe("Compared with August 1–26");
+    expect(r.comparisonShortLabel).toBe("vs Aug 1–26");
+    expect(r.windowMonths.map((m) => m.month)).toEqual(monthKeys("2026-04", 6));
+    expect(r.highlightPeriod).toBe(true);
+    expect(resolvePeriod(PROD_LIKE, { kind: "month", month: "2026-09" }, TODAY)).toEqual(r);
   });
 
   it("the first data month has nothing to compare with", () => {
-    const r = resolvePeriod(PROD_LIKE, { range: "1Y", month: "2026-01" });
+    const r = resolvePeriod(PROD_LIKE, { kind: "month", month: "2026-01" }, TODAY);
     expect(r.priorMonths).toBeNull();
     expect(r.historyStartsLabel).toBe("History starts Jan 2026");
+    expect(r.windowMonths.map((m) => m.month)).toEqual(["2026-01"]);
   });
 
-  it("ignores a selected month outside the window", () => {
-    const r = resolvePeriod(PROD_LIKE, { range: "3M", month: "2026-02" });
-    expect(r.periodMonths).toHaveLength(3);
+  it("falls back to 6M for a month, year or range outside the data", () => {
+    for (const stale of [
+      { kind: "month", month: "2020-01" },
+      { kind: "year", year: 2024 },
+      { kind: "range", from: "2025-02", to: "2025-06" },
+    ] as Period[]) {
+      const r = resolvePeriod(PROD_LIKE, stale, TODAY);
+      expect(r.periodMonths.map((m) => m.month)).toEqual(monthKeys("2026-04", 6));
+      expect(r.buttonLabel).toBe("Apr–Sep 2026");
+    }
+  });
+
+  it("year to date compares with the same months of last year", () => {
+    const r = resolvePeriod(FULL, preset("YTD"), TODAY);
+    expect(r.periodMonths.map((m) => m.month)).toEqual(monthKeys("2026-01", 9));
+    expect(r.priorMonths!.map((m) => m.month)).toEqual(monthKeys("2025-01", 9));
+    expect(r.buttonLabel).toBe("Jan 1–Sep 26, 2026");
+    expect(r.comparisonLabel).toBe("Compared with Jan–Sep 2025");
+    expect(r.comparisonShortLabel).toBe("vs 2025 to date");
+    expect(r.stepUnit).toBe("year");
+    expect(resolvePeriod(PROD_LIKE, preset("YTD"), TODAY).priorMonths).toBeNull();
+  });
+
+  it("a year compares with the year before only when data covers all of it", () => {
+    const r = resolvePeriod(FULL, { kind: "year", year: 2025 }, TODAY);
+    expect(r.periodMonths.map((m) => m.month)).toEqual(monthKeys("2025-01", 12));
+    expect(r.priorMonths).toBeNull();
+    expect(r.comparisonLabel).toBeNull();
+    expect(r.buttonLabel).toBe("2025");
+    expect(r.periodLabel).toBe("Jan–Dec 2025");
+    expect(r).toMatchObject({ endDate: "2025-12-31", endsToday: false, stepUnit: "year", highlightPeriod: false });
+
+    const long = monthKeys("2023-10", 36).map((k) => month(k, { income: 100, spending: 50 }));
+    const covered = resolvePeriod(long, { kind: "year", year: 2025 }, TODAY);
+    expect(covered.priorMonths!.map((m) => m.month)).toEqual(monthKeys("2024-01", 12));
+    expect(covered.comparisonLabel).toBe("Compared with 2024");
+    expect(covered.comparisonShortLabel).toBe("vs 2024");
+
+    // A year the data only partly covers is clipped and has no comparison.
+    const partYear = resolvePeriod(FULL, { kind: "year", year: 2024 }, TODAY);
+    expect(partYear.periodMonths.map((m) => m.month)).toEqual(["2024-10", "2024-11", "2024-12"]);
+    expect(partYear.priorMonths).toBeNull();
+  });
+
+  it("a custom range compares with the equal span before it", () => {
+    const r = resolvePeriod(FULL, { kind: "range", from: "2026-03", to: "2026-06" }, TODAY);
+    expect(r.periodMonths.map((m) => m.month)).toEqual(monthKeys("2026-03", 4));
+    expect(r.priorMonths!.map((m) => m.month)).toEqual(monthKeys("2025-11", 4));
+    expect(r.buttonLabel).toBe("Mar–Jun 2026");
+    expect(r.comparisonShortLabel).toBe("vs prior 4 mo");
+    expect(r.stepUnit).toBeNull();
+    expect(r.endDate).toBe("2026-06-30");
+    const two = resolvePeriod(FULL, { kind: "range", from: "2026-05", to: "2026-06" }, TODAY);
+    expect(two.windowMonths.map((m) => m.month)).toEqual(monthKeys("2026-01", 6));
+    expect(two.highlightPeriod).toBe(true);
   });
 
   it("labels spans across years and omits history labels when data fills the fetch", () => {
-    const full = monthKeys("2024-10", 24).map((k) => month(k, { income: 100, spending: 50 }));
-    const r = resolvePeriod(full, { range: "1Y", month: null });
+    const r = resolvePeriod(FULL, preset("1Y"), TODAY);
     expect(r.periodLabel).toBe("Oct 2025–Sep 2026");
     expect(r.priorMonths).toHaveLength(12);
-    expect(resolvePeriod(full, { range: "ALL", month: null }).historyStartsLabel).toBeNull();
+    expect(resolvePeriod(FULL, preset("ALL"), TODAY).historyStartsLabel).toBeNull();
+    expect(resolvePeriod(FULL, preset("ALL"), TODAY).priorMonths).toBeNull();
   });
 
   it("with no data at all, shows the unclipped window and no comparisons", () => {
     const empty = monthKeys("2024-10", 24).map((k) => month(k));
-    const r = resolvePeriod(empty, { range: "6M", month: null });
+    const r = resolvePeriod(empty, preset("6M"), TODAY);
     expect(r.windowMonths).toHaveLength(6);
     expect(r.priorMonths).toBeNull();
     expect(r.historyStartsLabel).toBeNull();
+  });
+
+  it("with no month list yet, returns empty months and the described labels", () => {
+    const r = resolvePeriod([], preset("6M"), TODAY);
+    expect(r.periodMonths).toEqual([]);
+    expect(r.windowMonths).toEqual([]);
+    expect(r.buttonLabel).toBe("Apr–Sep 2026");
+    expect(r.startDate).toBe("2026-04-01");
+  });
+});
+
+describe("stepPeriod", () => {
+  const bounds = { firstMonth: "2025-01", lastMonth: "2026-09" };
+  it("steps by month for a month and for month to date", () => {
+    expect(stepPeriod(preset("MTD"), -1, bounds, TODAY)).toEqual({ kind: "month", month: "2026-08" });
+    expect(stepPeriod({ kind: "month", month: "2026-08" }, 1, bounds, TODAY)).toEqual(preset("MTD"));
+    expect(stepPeriod({ kind: "month", month: "2026-01" }, -1, bounds, TODAY)).toEqual({
+      kind: "month",
+      month: "2025-12",
+    });
+    expect(stepPeriod(preset("MTD"), 1, bounds, TODAY)).toBeNull();
+    expect(stepPeriod({ kind: "month", month: "2025-01" }, -1, bounds, TODAY)).toBeNull();
+  });
+  it("steps by year for a year and for year to date", () => {
+    expect(stepPeriod(preset("YTD"), -1, bounds, TODAY)).toEqual({ kind: "year", year: 2025 });
+    expect(stepPeriod({ kind: "year", year: 2025 }, 1, bounds, TODAY)).toEqual(preset("YTD"));
+    expect(stepPeriod({ kind: "year", year: 2025 }, -1, bounds, TODAY)).toBeNull();
+    expect(stepPeriod(preset("YTD"), 1, bounds, TODAY)).toBeNull();
+  });
+  it("has no step for rolling ranges, All and custom ranges", () => {
+    for (const p of [preset("3M"), preset("6M"), preset("1Y"), preset("ALL")]) {
+      expect(stepPeriod(p, -1, bounds, TODAY)).toBeNull();
+    }
+    expect(stepPeriod({ kind: "range", from: "2026-03", to: "2026-06" }, -1, bounds, TODAY)).toBeNull();
+  });
+});
+
+describe("periodFromSpan", () => {
+  it("orders the two months and normalizes the result", () => {
+    expect(periodFromSpan("2026-06", "2026-03", TODAY)).toEqual({ kind: "range", from: "2026-03", to: "2026-06" });
+    expect(periodFromSpan("2026-03", "2026-03", TODAY)).toEqual({ kind: "month", month: "2026-03" });
+    expect(periodFromSpan("2026-09", "2026-09", TODAY)).toEqual(preset("MTD"));
+  });
+});
+
+describe("monthGridCells", () => {
+  const bounds = { firstMonth: "2025-03", lastMonth: "2026-09" };
+  it("marks a year fully in range, with only the current month flagged", () => {
+    const cells = monthGridCells(2026, { from: "2026-01", to: "2026-09", solidEnds: false }, bounds, TODAY);
+    expect(cells).toHaveLength(12);
+    expect(cells[0]).toMatchObject({ month: "2026-01", label: "Jan", inRange: true, solid: false, disabled: false });
+    expect(cells.filter((c) => c.inRange).map((c) => c.label)).toEqual(
+      ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep"]
+    );
+    expect(cells.filter((c) => c.disabled).map((c) => c.label)).toEqual(["Oct", "Nov", "Dec"]);
+    expect(cells.filter((c) => c.current).map((c) => c.label)).toEqual(["Sep"]);
+  });
+  it("disables months before the first data month", () => {
+    const cells = monthGridCells(2025, { from: "2026-04", to: "2026-09", solidEnds: false }, bounds, TODAY);
+    expect(cells.filter((c) => c.disabled).map((c) => c.label)).toEqual(["Jan", "Feb"]);
+    expect(cells.some((c) => c.inRange)).toBe(false);
+  });
+  it("draws a single month solid", () => {
+    const cells = monthGridCells(2026, { from: "2026-08", to: "2026-08", solidEnds: false }, bounds, TODAY);
+    expect(cells.filter((c) => c.solid).map((c) => c.label)).toEqual(["Aug"]);
+  });
+  it("draws the ends of a range solid, in whichever year they fall", () => {
+    const selection = { from: "2025-11", to: "2026-02", solidEnds: true };
+    const y2025 = monthGridCells(2025, selection, bounds, TODAY);
+    const y2026 = monthGridCells(2026, selection, bounds, TODAY);
+    expect(y2025.filter((c) => c.inRange).map((c) => c.label)).toEqual(["Nov", "Dec"]);
+    expect(y2025.filter((c) => c.solid).map((c) => c.label)).toEqual(["Nov"]);
+    expect(y2026.filter((c) => c.inRange).map((c) => c.label)).toEqual(["Jan", "Feb"]);
+    expect(y2026.filter((c) => c.solid).map((c) => c.label)).toEqual(["Feb"]);
   });
 });
 
@@ -271,12 +490,33 @@ describe("layoutCashflowColumns", () => {
   });
 });
 
-describe("netWorthDaysForRange", () => {
-  it("starts each range on the first day of its first month", () => {
-    expect(netWorthDaysForRange("3M", "2026-09-26")).toBe(87);
-    expect(netWorthDaysForRange("6M", "2026-09-26")).toBe(178);
-    expect(netWorthDaysForRange("1Y", "2026-09-26")).toBe(360);
-    expect(netWorthDaysForRange("ALL", "2026-09-26")).toBe(3650);
+describe("netWorthWindow and trimHistory", () => {
+  it("fetches from a week before the period's first day", () => {
+    const days = (id: "3M" | "6M" | "1Y" | "ALL" | "MTD") =>
+      netWorthWindow(describePeriod({ kind: "preset", id }, "2026-09-26"), "2026-09-26");
+    expect(days("3M")).toEqual({ days: 87 + 7, startDate: "2026-07-01", endDate: null });
+    expect(days("6M").days).toBe(178 + 7);
+    expect(days("1Y").days).toBe(360 + 7);
+    expect(days("ALL").days).toBe(3650);
+    expect(days("MTD").days).toBe(25 + 7);
+  });
+
+  it("gives a past period an end date to trim to", () => {
+    const march = describePeriod({ kind: "month", month: "2026-03" }, "2026-09-26");
+    expect(netWorthWindow(march, "2026-09-26")).toEqual({ days: 209 + 7, startDate: "2026-03-01", endDate: "2026-03-31" });
+  });
+
+  it("keeps the previous close as the baseline and drops points after the end", () => {
+    const points = ["2026-01-31", "2026-02-28", "2026-03-31", "2026-04-30"].map((date) => ({ date }));
+    expect(trimHistory(points, "2026-03-01", "2026-03-31").map((p) => p.date)).toEqual(["2026-02-28", "2026-03-31"]);
+    expect(trimHistory(points, "2026-03-01", null).map((p) => p.date)).toEqual([
+      "2026-02-28",
+      "2026-03-31",
+      "2026-04-30",
+    ]);
+    expect(trimHistory(points, "2026-01-01", "2026-01-31").map((p) => p.date)).toEqual(["2026-01-31"]);
+    expect(trimHistory(points, "2025-06-01", "2025-06-30")).toEqual([]);
+    expect(trimHistory(points, "2026-05-01", "2026-05-31")).toEqual([]);
   });
 });
 
@@ -502,10 +742,12 @@ describe("asToDate and likeForLikePrior", () => {
 
   it("adjusts only the prior window's last month, and only when the period ends in a partial month", () => {
     const months = monthKeys("2026-01", 6).map((k, i) => monthToDate(k, i === 5));
-    const period = resolvePeriod(months, { range: "3M", month: null });
+    const period = resolvePeriod(months, { kind: "preset", id: "3M" }, "2026-06-15");
     expect(likeForLikePrior(period)!.map((m) => m.income)).toEqual(["1000.00", "1000.00", "600.00"]);
-    const may = resolvePeriod(months, { range: "3M", month: "2026-05" });
+    const may = resolvePeriod(months, { kind: "month", month: "2026-05" }, "2026-06-15");
     expect(likeForLikePrior(may)!.map((m) => m.income)).toEqual(["1000.00"]);
+    const toDate = resolvePeriod(months, { kind: "preset", id: "MTD" }, "2026-06-15");
+    expect(likeForLikePrior(toDate)!.map((m) => m.income)).toEqual(["600.00"]);
     expect(likeForLikePrior({ ...period, priorMonths: null })).toBeNull();
   });
 });

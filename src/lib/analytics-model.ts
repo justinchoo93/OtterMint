@@ -7,21 +7,35 @@
 import { labelForCategoryKey, type CashflowMonth } from "@/lib/cashflow";
 import type { NetWorthSnapshotRow } from "@/lib/net-worth-history";
 
-export type AnalyticsRange = "3M" | "6M" | "1Y" | "ALL";
+export type PeriodPresetId = "MTD" | "3M" | "6M" | "YTD" | "1Y" | "ALL";
 
-export const ANALYTICS_RANGES: ReadonlyArray<{
-  id: AnalyticsRange;
+/**
+ * What a page is showing: a quick range, one calendar month, one calendar
+ * year, or a custom span of months. Month keys are "YYYY-MM"; a range is
+ * inclusive at both ends. See docs/plans/period-picker.md.
+ */
+export type Period =
+  | { kind: "preset"; id: PeriodPresetId }
+  | { kind: "month"; month: string }
+  | { kind: "year"; year: number }
+  | { kind: "range"; from: string; to: string };
+
+/** The quick ranges, in display order. `months` is set for the rolling ones. */
+export const PERIOD_PRESETS: ReadonlyArray<{
+  id: PeriodPresetId;
   label: string;
-  months: number;
+  months: number | null;
 }> = [
+  { id: "MTD", label: "MTD", months: null },
   { id: "3M", label: "3M", months: 3 },
   { id: "6M", label: "6M", months: 6 },
+  { id: "YTD", label: "YTD", months: null },
   { id: "1Y", label: "1Y", months: 12 },
-  { id: "ALL", label: "All", months: 24 },
+  { id: "ALL", label: "All", months: null },
 ];
 
-/** Months of cash flow fetched once; ranges and comparisons slice from it. */
-export const CASHFLOW_FETCH_MONTHS = 24;
+/** Months of cash flow fetched once; periods and comparisons slice from it. */
+export const CASHFLOW_FETCH_MONTHS = 60;
 /** Net-worth history requested for the All range (the routes' cap). */
 export const ALL_RANGE_DAYS = 3650;
 
@@ -70,84 +84,253 @@ export function firstDataMonthIndex(months: CashflowMonth[]): number | null {
   return index === -1 ? null : index;
 }
 
-export interface PeriodSelection {
-  range: AnalyticsRange;
-  /** "YYYY-MM" of a selected month inside the range, or null. */
-  month: string | null;
+const DAY_MS = 86_400_000;
+
+function keyOf(year: number, index: number): string {
+  return `${year}-${String(index + 1).padStart(2, "0")}`;
 }
 
-export interface ResolvedPeriod {
-  /** Months drawn in the cash-flow chart (the range, clipped to data start). */
-  windowMonths: CashflowMonth[];
-  /** Months the tiles and categories summarize: the window or one selected month. */
-  periodMonths: CashflowMonth[];
-  /** Equal-length months immediately before the period, when real data covers them. */
-  priorMonths: CashflowMonth[] | null;
-  periodLabel: string;
-  comparisonLabel: string | null;
-  comparisonShortLabel: string | null;
-  historyStartsLabel: string | null;
+/** The month `delta` months after (or before) a "YYYY-MM" key. */
+export function addMonths(key: string, delta: number): string {
+  const { year, index } = parseMonthKey(key);
+  const total = year * 12 + index + delta;
+  return keyOf(Math.floor(total / 12), ((total % 12) + 12) % 12);
 }
 
-/** "Apr–Sep 2026", "Oct 2025–Sep 2026", or "August 2026" for one month. */
-export function spanLabel(months: CashflowMonth[]): string {
-  if (months.length === 0) return "";
-  const first = parseMonthKey(months[0].month);
-  const last = parseMonthKey(months[months.length - 1].month);
-  if (months.length === 1) return monthLongLabel(months[0].month);
+function monthDiff(from: string, to: string): number {
+  const a = parseMonthKey(from);
+  const b = parseMonthKey(to);
+  return (b.year - a.year) * 12 + (b.index - a.index);
+}
+
+function lastDayOfMonth(key: string): string {
+  const { year, index } = parseMonthKey(key);
+  return `${key}-${String(new Date(Date.UTC(year, index + 1, 0)).getUTCDate()).padStart(2, "0")}`;
+}
+
+/** "Apr–Sep 2026", "Oct 2025–Sep 2026", or "August 2026" when both keys are the same month. */
+export function spanKeysLabel(firstKey: string, lastKey: string): string {
+  const first = parseMonthKey(firstKey);
+  const last = parseMonthKey(lastKey);
+  if (firstKey === lastKey) return monthLongLabel(firstKey);
   return first.year === last.year
     ? `${SHORT_MONTHS[first.index]}–${SHORT_MONTHS[last.index]} ${last.year}`
     : `${SHORT_MONTHS[first.index]} ${first.year}–${SHORT_MONTHS[last.index]} ${last.year}`;
 }
 
-export function resolvePeriod(months: CashflowMonth[], selection: PeriodSelection): ResolvedPeriod {
-  const rangeMonths = ANALYTICS_RANGES.find((r) => r.id === selection.range)?.months ?? 6;
-  const first = firstDataMonthIndex(months);
-  const count = months.length;
+/** "Apr–Sep 2026", "Oct 2025–Sep 2026", or "August 2026" for one month. */
+export function spanLabel(months: CashflowMonth[]): string {
+  if (months.length === 0) return "";
+  return spanKeysLabel(months[0].month, months[months.length - 1].month);
+}
 
-  let windowStart = Math.max(0, count - rangeMonths);
-  const clipped = first !== null && first > windowStart;
-  if (clipped) windowStart = first;
-  const windowMonths = months.slice(windowStart);
-
-  let periodStart = windowStart;
-  let periodEnd = count;
-  if (selection.month) {
-    const selected = months.findIndex((m, i) => i >= windowStart && m.month === selection.month);
-    if (selected !== -1) {
-      periodStart = selected;
-      periodEnd = selected + 1;
-    }
+/**
+ * One representation per period: the current month is MTD, the current year
+ * is YTD, a one-month range is that month, and a backwards range is swapped.
+ */
+export function normalizePeriod(period: Period, today: string): Period {
+  const current = today.slice(0, 7);
+  if (period.kind === "range") {
+    const from = period.from <= period.to ? period.from : period.to;
+    const to = period.from <= period.to ? period.to : period.from;
+    if (from === to) return normalizePeriod({ kind: "month", month: from }, today);
+    return from === period.from ? period : { kind: "range", from, to };
   }
-  const periodMonths = months.slice(periodStart, periodEnd);
-  const length = periodMonths.length;
-  const single = periodEnd - periodStart === 1 && selection.month !== null && periodMonths[0]?.month === selection.month;
-  const partialOnly = length === 1 && periodMonths[0].partial;
+  if (period.kind === "month") return period.month === current ? { kind: "preset", id: "MTD" } : period;
+  if (period.kind === "year") return String(period.year) === today.slice(0, 4) ? { kind: "preset", id: "YTD" } : period;
+  return period;
+}
 
-  const priorStart = periodStart - length;
+export interface PeriodDescription {
+  /** The normalized period. */
+  period: Period;
+  /** Text of the period button: "May–Oct 2026", "Oct 1–3, 2026", "September 2026", "2025". */
+  buttonLabel: string;
+  /** "YYYY-MM-DD" */
+  startDate: string;
+  /** Today when the period reaches the current month, else the last day of its last month. */
+  endDate: string;
+  endsToday: boolean;
+  /** What the arrows step by; null for rolling ranges, All and custom ranges. */
+  stepUnit: "month" | "year" | null;
+  /** "YYYY-MM" */
+  firstMonth: string;
+  lastMonth: string;
+}
+
+/** Labels, dates and step unit from the period and today alone (no month list needed). */
+export function describePeriod(period: Period, today: string): PeriodDescription {
+  const p = normalizePeriod(period, today);
+  const current = today.slice(0, 7);
+  const year = today.slice(0, 4);
+  const day = Number(today.slice(8, 10));
+  const short = SHORT_MONTHS[Number(today.slice(5, 7)) - 1];
+
+  let firstMonth: string;
+  let lastMonth = current;
+  let buttonLabel: string;
+  let stepUnit: PeriodDescription["stepUnit"] = null;
+  let startDate: string | null = null;
+
+  if (p.kind === "month") {
+    firstMonth = lastMonth = p.month;
+    buttonLabel = monthLongLabel(p.month);
+    stepUnit = "month";
+  } else if (p.kind === "year") {
+    firstMonth = `${p.year}-01`;
+    lastMonth = `${p.year}-12`;
+    buttonLabel = String(p.year);
+    stepUnit = "year";
+  } else if (p.kind === "range") {
+    firstMonth = p.from;
+    lastMonth = p.to;
+    buttonLabel = spanKeysLabel(p.from, p.to);
+  } else if (p.id === "MTD") {
+    firstMonth = current;
+    buttonLabel = day === 1 ? `${short} 1, ${year}` : `${short} 1–${day}, ${year}`;
+    stepUnit = "month";
+  } else if (p.id === "YTD") {
+    firstMonth = `${year}-01`;
+    buttonLabel = today.slice(5) === "01-01" ? `Jan 1, ${year}` : `Jan 1–${short} ${day}, ${year}`;
+    stepUnit = "year";
+  } else if (p.id === "ALL") {
+    startDate = new Date(Date.parse(`${today}T00:00:00Z`) - ALL_RANGE_DAYS * DAY_MS).toISOString().slice(0, 10);
+    firstMonth = startDate.slice(0, 7);
+    buttonLabel = "All time";
+  } else {
+    const months = PERIOD_PRESETS.find((r) => r.id === p.id)?.months ?? 6;
+    firstMonth = addMonths(current, -(months - 1));
+    buttonLabel = spanKeysLabel(firstMonth, current);
+  }
+
+  const endsToday = lastMonth === current;
+  return {
+    period: p,
+    buttonLabel,
+    startDate: startDate ?? `${firstMonth}-01`,
+    endDate: endsToday ? today : lastDayOfMonth(lastMonth),
+    endsToday,
+    stepUnit,
+    firstMonth,
+    lastMonth,
+  };
+}
+
+export interface ResolvedPeriod {
+  /** Months drawn in the cash-flow chart: the period, or six months of context around a short one. */
+  windowMonths: CashflowMonth[];
+  /** Months the tiles and categories summarize. */
+  periodMonths: CashflowMonth[];
+  /** The months the period is compared with, when real data covers them. */
+  priorMonths: CashflowMonth[] | null;
+  /** True when windowMonths is wider than periodMonths and the chart should highlight the period. */
+  highlightPeriod: boolean;
+  periodLabel: string;
+  /** Text of the period button; for rolling ranges it reflects clipping to the first data month. */
+  buttonLabel: string;
+  comparisonLabel: string | null;
+  comparisonShortLabel: string | null;
+  historyStartsLabel: string | null;
+  startDate: string;
+  endDate: string;
+  endsToday: boolean;
+  stepUnit: "month" | "year" | null;
+}
+
+const FALLBACK_PERIOD: Period = { kind: "preset", id: "6M" };
+
+export function resolvePeriod(months: CashflowMonth[], period: Period, today: string): ResolvedPeriod {
+  const described = describePeriod(period, today);
+  const p = described.period;
+  const dates = {
+    startDate: described.startDate,
+    endDate: described.endDate,
+    endsToday: described.endsToday,
+    stepUnit: described.stepUnit,
+  };
+  const count = months.length;
+  if (count === 0) {
+    return {
+      windowMonths: [],
+      periodMonths: [],
+      priorMonths: null,
+      highlightPeriod: false,
+      periodLabel: described.buttonLabel,
+      buttonLabel: described.buttonLabel,
+      comparisonLabel: null,
+      comparisonShortLabel: null,
+      historyStartsLabel: null,
+      ...dates,
+    };
+  }
+
+  const first = firstDataMonthIndex(months);
+  const isAll = p.kind === "preset" && p.id === "ALL";
+  const wanted = isAll ? 0 : monthDiff(months[0].month, described.firstMonth);
+  const end = Math.min(count - 1, monthDiff(months[0].month, described.lastMonth));
+  // A stale month, year or range that no longer overlaps the data falls back to 6M.
+  if (p.kind !== "preset" && (end < 0 || wanted > count - 1 || (first !== null && end < first))) {
+    return resolvePeriod(months, FALLBACK_PERIOD, today);
+  }
+
+  let start = Math.max(0, wanted);
+  const clipped = first !== null && first > start;
+  if (clipped) start = Math.min(first, end);
+  const periodMonths = months.slice(start, end + 1);
+  const length = periodMonths.length;
+
+  const contextStart = Math.max(first ?? 0, end - 5, 0);
+  const windowMonths = length >= 3 ? periodMonths : months.slice(Math.min(contextStart, start), end + 1);
+  const highlightPeriod = windowMonths.length > length;
+
+  const isPreset = (id: PeriodPresetId) => p.kind === "preset" && p.id === id;
+  const calendarYear = p.kind === "year" || isPreset("YTD");
+  let priorStart: number;
+  let priorEnd: number;
+  if (calendarYear) {
+    priorStart = start - 12;
+    priorEnd = end - 12;
+  } else {
+    priorStart = start - length;
+    priorEnd = start - 1;
+  }
+  const wholeYear = p.kind !== "year" || length === 12;
   const priorMonths =
-    !partialOnly && first !== null && length > 0 && priorStart >= 0 && priorStart >= first
-      ? months.slice(priorStart, periodStart)
+    !isAll && wholeYear && first !== null && length > 0 && priorStart >= 0 && priorStart >= first
+      ? months.slice(priorStart, priorEnd + 1)
       : null;
 
   const knownStart = first !== null && first > 0;
-  const priorMissingForData = !partialOnly && priorMonths === null && first !== null && priorStart < first;
+  const priorMissingForData = !isAll && priorMonths === null && first !== null && priorStart < first;
   const historyStartsLabel =
     knownStart && (clipped || priorMissingForData)
       ? `History starts ${monthShortLabel(months[first].month)} ${months[first].month.slice(0, 4)}`
       : null;
 
-  let periodLabel: string;
-  if (single) {
-    periodLabel = `${monthLongLabel(periodMonths[0].month)}${periodMonths[0].partial ? " · month to date" : ""}`;
-  } else {
-    periodLabel = spanLabel(periodMonths);
-  }
+  const periodLabel =
+    length === 1
+      ? `${monthLongLabel(periodMonths[0].month)}${periodMonths[0].partial ? " · month to date" : ""}`
+      : spanLabel(periodMonths);
+
+  const rolling = p.kind === "preset" && p.id !== "MTD" && p.id !== "YTD";
+  const buttonLabel = rolling && length > 0 ? spanLabel(periodMonths) : described.buttonLabel;
 
   let comparisonLabel: string | null = null;
   let comparisonShortLabel: string | null = null;
   if (priorMonths) {
-    if (length === 1) {
+    const day = Number(today.slice(8, 10));
+    if (isPreset("MTD")) {
+      const days = day === 1 ? "1" : `1–${day}`;
+      const key = priorMonths[0].month;
+      comparisonLabel = `Compared with ${LONG_MONTHS[parseMonthKey(key).index]} ${days}`;
+      comparisonShortLabel = `vs ${monthShortLabel(key)} ${days}`;
+    } else if (isPreset("YTD")) {
+      comparisonLabel = `Compared with ${spanLabel(priorMonths)}`;
+      comparisonShortLabel = `vs ${priorMonths[0].month.slice(0, 4)} to date`;
+    } else if (p.kind === "year") {
+      comparisonLabel = `Compared with ${p.year - 1}`;
+      comparisonShortLabel = `vs ${p.year - 1}`;
+    } else if (length === 1) {
       comparisonLabel = `Compared with ${monthLongLabel(priorMonths[0].month)}`;
       comparisonShortLabel = `vs ${monthShortLabel(priorMonths[0].month)}`;
     } else {
@@ -160,11 +343,82 @@ export function resolvePeriod(months: CashflowMonth[], selection: PeriodSelectio
     windowMonths,
     periodMonths,
     priorMonths,
+    highlightPeriod,
     periodLabel,
+    buttonLabel,
     comparisonLabel,
     comparisonShortLabel,
     historyStartsLabel,
+    ...dates,
   };
+}
+
+/** The first and last months the picker may select, "YYYY-MM". */
+export interface PeriodBounds {
+  firstMonth: string;
+  lastMonth: string;
+}
+
+/**
+ * The neighbouring month or year for the arrows; null when the period has no
+ * step unit or the neighbour lies outside the bounds.
+ */
+export function stepPeriod(period: Period, direction: -1 | 1, bounds: PeriodBounds, today: string): Period | null {
+  const described = describePeriod(period, today);
+  if (described.stepUnit === "month") {
+    const month = addMonths(described.firstMonth, direction);
+    if (month < bounds.firstMonth || month > bounds.lastMonth) return null;
+    return normalizePeriod({ kind: "month", month }, today);
+  }
+  if (described.stepUnit === "year") {
+    const year = Number(described.firstMonth.slice(0, 4)) + direction;
+    if (`${year}-12` < bounds.firstMonth || `${year}-01` > bounds.lastMonth) return null;
+    return normalizePeriod({ kind: "year", year }, today);
+  }
+  return null;
+}
+
+/** The period for a drag or Shift-click between two month keys, in either order. */
+export function periodFromSpan(a: string, b: string, today: string): Period {
+  return normalizePeriod({ kind: "range", from: a, to: b }, today);
+}
+
+export interface MonthCell {
+  /** "YYYY-MM" */
+  month: string;
+  /** "Jan" */
+  label: string;
+  /** Outside the bounds. */
+  disabled: boolean;
+  inRange: boolean;
+  /** Drawn solid: the one selected month, or an end of a range. */
+  solid: boolean;
+  /** Today's month. */
+  current: boolean;
+}
+
+/** The picker's twelve cells for a year, January first. */
+export function monthGridCells(
+  year: number,
+  selection: { from: string; to: string; solidEnds: boolean },
+  bounds: PeriodBounds,
+  today: string
+): MonthCell[] {
+  const single = selection.from === selection.to;
+  return SHORT_MONTHS.map((label, index) => {
+    const month = keyOf(year, index);
+    const disabled = month < bounds.firstMonth || month > bounds.lastMonth;
+    const inRange = !disabled && month >= selection.from && month <= selection.to;
+    const isEnd = month === selection.from || month === selection.to;
+    return {
+      month,
+      label,
+      disabled,
+      inRange,
+      solid: inRange && (single || (selection.solidEnds && isEnd)),
+      current: month === today.slice(0, 7),
+    };
+  });
 }
 
 export interface PeriodTotals {
@@ -376,18 +630,35 @@ export function layoutCashflowColumns(months: CashflowMonth[]): CashflowColumnLa
   };
 }
 
+/** Days fetched before the period's first day so the previous close can be the baseline. */
+const BASELINE_DAYS = 7;
+
 /**
- * Days of net-worth history for a range, measured from the first day of the
- * range's first month so the line and the cash-flow window start together.
+ * The net-worth request for a period: days of history counted back from today
+ * (a week more than the period, so the previous close is included) and the
+ * date to trim to, null when the period reaches today.
  */
-export function netWorthDaysForRange(range: AnalyticsRange, today: string): number {
-  if (range === "ALL") return ALL_RANGE_DAYS;
-  const months = ANALYTICS_RANGES.find((r) => r.id === range)?.months ?? 6;
-  const year = Number(today.slice(0, 4));
-  const monthIndex = Number(today.slice(5, 7)) - 1;
-  const start = Date.UTC(year, monthIndex - (months - 1), 1);
-  const end = Date.UTC(year, monthIndex, Number(today.slice(8, 10)));
-  return Math.round((end - start) / 86_400_000);
+export function netWorthWindow(
+  dates: Pick<PeriodDescription, "startDate" | "endDate" | "endsToday">,
+  today: string
+): { days: number; startDate: string; endDate: string | null } {
+  const span = Math.round((Date.parse(`${today}T00:00:00Z`) - Date.parse(`${dates.startDate}T00:00:00Z`)) / DAY_MS);
+  return {
+    days: Math.min(Math.max(span + BASELINE_DAYS, 1), ALL_RANGE_DAYS),
+    startDate: dates.startDate,
+    endDate: dates.endsToday ? null : dates.endDate,
+  };
+}
+
+/**
+ * The points a period shows: everything up to the end date, with only the last
+ * point before the start date kept, as the baseline.
+ */
+export function trimHistory<T extends { date: string }>(snapshots: T[], startDate: string, endDate: string | null): T[] {
+  const upToEnd = endDate === null ? snapshots : snapshots.filter((s) => s.date <= endDate);
+  const firstInside = upToEnd.findIndex((s) => s.date >= startDate);
+  if (firstInside === -1) return [];
+  return upToEnd.slice(Math.max(0, firstInside - 1));
 }
 
 export interface ComparableChange {

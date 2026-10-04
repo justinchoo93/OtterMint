@@ -12,7 +12,7 @@ export async function GET(request: NextRequest) {
     const userId = await getUserId();
     const { searchParams } = new URL(request.url);
     const parsed = parseInt(searchParams.get("months") ?? "6", 10);
-    const months = Number.isNaN(parsed) || parsed < 1 ? 6 : Math.min(parsed, 24);
+    const months = Number.isNaN(parsed) || parsed < 1 ? 6 : Math.min(parsed, 60);
 
     // First day of the window's earliest month, as a YYYY-MM-DD string.
     const now = new Date();
