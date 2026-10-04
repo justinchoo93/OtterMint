@@ -832,6 +832,19 @@ export function sinceLabel(fromDate: string, today: string): string {
   return year === today.slice(0, 4) ? `since ${month} ${day}` : `since ${month} ${day}, ${year}`;
 }
 
+/** "Sep 1–30" or "Aug 31–Sep 30", with the year appended when it differs from today's. */
+export function betweenLabel(fromDate: string, toDate: string, today: string): string {
+  const fromMonth = SHORT_MONTHS[Number(fromDate.slice(5, 7)) - 1];
+  const toMonth = SHORT_MONTHS[Number(toDate.slice(5, 7)) - 1];
+  const fromDay = Number(fromDate.slice(8, 10));
+  const toDay = Number(toDate.slice(8, 10));
+  const year = toDate.slice(0, 4);
+  const sameMonth = fromDate.slice(0, 7) === toDate.slice(0, 7);
+  const fromYear = fromDate.slice(0, 4) === year ? "" : `, ${fromDate.slice(0, 4)}`;
+  const span = sameMonth ? `${fromMonth} ${fromDay}–${toDay}` : `${fromMonth} ${fromDay}${fromYear}–${toMonth} ${toDay}`;
+  return year === today.slice(0, 4) && !fromYear ? span : `${span}, ${year}`;
+}
+
 // ---------------------------------------------------------------------------
 // The Analytics tab (docs/plans/analytics-tab.md): like-for-like comparisons,
 // the savings rate, category trends and the year-to-date comparison.

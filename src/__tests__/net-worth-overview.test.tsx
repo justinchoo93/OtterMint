@@ -111,6 +111,70 @@ describe("NetWorthOverview", () => {
     expect(await screen.findByText("since Apr 30, includes estimates")).toBeInTheDocument();
   });
 
+  describe("a period that ended before today", () => {
+    const MONTH_ENDS = [
+      point("2026-01-31", 300000),
+      point("2026-02-28", 310000),
+      point("2026-03-31", 320000),
+      point("2026-04-30", 999000),
+    ];
+
+    it("shows the closing figures and the change from the previous close", async () => {
+      stubHistory(MONTH_ENDS);
+      render(
+        <NetWorthOverview accounts={ACCOUNTS} manualAccounts={[]} days={216} startDate="2026-03-01" endDate="2026-03-31" endLabel="Mar 2026" />
+      );
+      expect(await screen.findByText("+$10,000 (+3.2%)")).toBeInTheDocument();
+      expect(screen.getByText("Net worth at the end of Mar 2026")).toBeInTheDocument();
+      expect(screen.getAllByText("$320,000").length).toBeGreaterThan(0);
+      expect(screen.getByText("Feb 28–Mar 31")).toBeInTheDocument();
+      expect(screen.queryByText("$396,510")).not.toBeInTheDocument();
+      expect(screen.queryByText("$999,000")).not.toBeInTheDocument();
+    });
+
+    it("shows a lone point's value with no change", async () => {
+      stubHistory(MONTH_ENDS);
+      render(
+        <NetWorthOverview accounts={ACCOUNTS} manualAccounts={[]} days={275} startDate="2026-01-01" endDate="2026-01-31" endLabel="Jan 2026" />
+      );
+      expect(await screen.findByText("Not enough history in this range. Try a longer range.")).toBeInTheDocument();
+      expect(screen.getAllByText("$300,000").length).toBeGreaterThan(0);
+      expect(screen.queryByText(/\(\+/)).not.toBeInTheDocument();
+    });
+
+    it("says so when the period has no history, instead of showing today's figures", async () => {
+      stubHistory(MONTH_ENDS);
+      render(
+        <NetWorthOverview accounts={ACCOUNTS} manualAccounts={[]} days={640} startDate="2025-01-01" endDate="2025-12-31" endLabel="Dec 2025" />
+      );
+      expect(await screen.findByText("No net worth history for this period.")).toBeInTheDocument();
+      expect(screen.getByText("Net worth at the end of Dec 2025")).toBeInTheDocument();
+      expect(screen.queryByText("$396,510")).not.toBeInTheDocument();
+    });
+
+    it("drops account changes recorded after the period", async () => {
+      vi.stubGlobal(
+        "fetch",
+        vi.fn().mockResolvedValue({
+          ok: true,
+          json: async () => ({
+            snapshots: MONTH_ENDS,
+            coverageEvents: [
+              { date: "2026-03-10", kind: "captured_addition", assetAdjustment: "5.00", liabilityAdjustment: null, netWorthAdjustment: "5.00", sourceCount: 1, label: "March account" },
+              { date: "2026-04-10", kind: "captured_addition", assetAdjustment: "5.00", liabilityAdjustment: null, netWorthAdjustment: "5.00", sourceCount: 1, label: "April account" },
+            ],
+            periodChange: null,
+          }),
+        })
+      );
+      render(
+        <NetWorthOverview accounts={ACCOUNTS} manualAccounts={[]} days={216} startDate="2026-03-01" endDate="2026-03-31" endLabel="Mar 2026" />
+      );
+      expect(await screen.findByText(/March account/)).toBeInTheDocument();
+      expect(screen.queryByText(/April account/)).not.toBeInTheDocument();
+    });
+  });
+
   it("refetches when the range changes and uses the household route for groups", async () => {
     stubHistory([point("2026-07-01", 1), point("2026-07-02", 2)]);
     const { rerender } = render(<NetWorthOverview accounts={ACCOUNTS} manualAccounts={[]} days={178} />);

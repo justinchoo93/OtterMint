@@ -3,6 +3,7 @@ import type { CashflowMonth } from "@/lib/cashflow";
 import type { NetWorthSnapshotRow } from "@/lib/net-worth-history";
 import {
   asToDate,
+  betweenLabel,
   categoryTrends,
   comparableChange,
   firstDataMonthIndex,
@@ -698,6 +699,15 @@ describe("netWorthDomain", () => {
     expect(lo).toBeLessThan(1000);
     expect(hi).toBeGreaterThan(1000);
     expect(netWorthDomain([])).toEqual([0, 1]);
+  });
+});
+
+describe("betweenLabel", () => {
+  it("names both ends and adds the year only when it is not today's", () => {
+    expect(betweenLabel("2026-08-31", "2026-09-30", "2026-10-03")).toBe("Aug 31–Sep 30");
+    expect(betweenLabel("2026-09-01", "2026-09-30", "2026-10-03")).toBe("Sep 1–30");
+    expect(betweenLabel("2025-03-01", "2025-03-31", "2026-10-03")).toBe("Mar 1–31, 2025");
+    expect(betweenLabel("2025-12-31", "2026-01-31", "2026-10-03")).toBe("Dec 31, 2025–Jan 31, 2026");
   });
 });
 

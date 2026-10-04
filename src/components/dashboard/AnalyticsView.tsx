@@ -1,17 +1,21 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Card, Chip, EmptyState, SegmentedControl, Skeleton } from "@/components/ui";
+import { Card, EmptyState, Skeleton } from "@/components/ui";
 import { AnalyticsDetails } from "@/components/dashboard/AnalyticsDetails";
 import { CashflowChart } from "@/components/dashboard/CashflowChart";
 import { CategoryList } from "@/components/dashboard/CategoryList";
 import { NetWorthOverview } from "@/components/dashboard/NetWorthOverview";
+import { PeriodBar } from "@/components/dashboard/PeriodBar";
 import { StatTile } from "@/components/dashboard/StatTile";
 import {
-  ANALYTICS_RANGES,
+  addMonths,
   CASHFLOW_FETCH_MONTHS,
   firstDataMonthIndex,
-  netWorthDaysForRange,
+  likeForLikePrior,
+  monthShortLabel,
+  netWorthWindow,
+  normalizePeriod,
   periodDelta,
   rankCategories,
   resolvePeriod,
@@ -19,7 +23,7 @@ import {
   spanLabel,
   sumPeriod,
   todayUtc,
-  type AnalyticsRange,
+  type Period,
   type PeriodTotals,
 } from "@/lib/analytics-model";
 import type { CashflowMonth } from "@/lib/cashflow";
@@ -45,8 +49,6 @@ type CashflowState =
   | { status: "ready"; months: CashflowMonth[] }
   | { status: "error"; months: CashflowMonth[] };
 
-const RANGE_OPTIONS = ANALYTICS_RANGES.map((r) => ({ value: r.id, label: r.label }));
-
 const TILES: Array<{
   kind: "income" | "spending" | "saved" | "net";
   label: string;
@@ -60,8 +62,7 @@ const TILES: Array<{
 ];
 
 export function AnalyticsView({ accounts, manualAccounts, groupId, refreshKey }: AnalyticsViewProps) {
-  const [range, setRange] = useState<AnalyticsRange>("6M");
-  const [selectedMonth, setSelectedMonth] = useState<string | null>(null);
+  const [selection, setSelection] = useState<Period>({ kind: "preset", id: "6M" });
   const [detail, setDetail] = useState<AnalyticsDetail>(null);
   const [cashflow, setCashflow] = useState<CashflowState>({ status: "loading", months: [] });
   const isHousehold = Boolean(groupId);
@@ -89,27 +90,21 @@ export function AnalyticsView({ accounts, manualAccounts, groupId, refreshKey }:
   }, [isHousehold, refreshKey]);
 
   const months = cashflow.months;
-  const period = useMemo(
-    () => resolvePeriod(months, { range, month: selectedMonth }),
-    [months, range, selectedMonth]
-  );
+  const today = todayUtc();
+  const period = useMemo(() => resolvePeriod(months, selection, today), [months, selection, today]);
   const firstData = firstDataMonthIndex(months);
-  // A selected month that has left the window (say, after a refresh at month
-  // end) is ignored rather than shown as a chip over the whole range.
-  const activeMonth =
-    selectedMonth && period.periodMonths.length === 1 && period.periodMonths[0].month === selectedMonth
-      ? selectedMonth
-      : null;
+  const currentMonth = today.slice(0, 7);
+  // The household view has no cash flow list to bound the picker with.
+  const firstMonth =
+    firstData !== null
+      ? months[firstData].month
+      : isHousehold
+        ? addMonths(currentMonth, -(CASHFLOW_FETCH_MONTHS - 1))
+        : currentMonth;
+  const netWorth = netWorthWindow(period, today);
 
-  const clearMonth = () => {
-    // Return focus to the column that was selected before its chip disappears.
-    if (activeMonth) focusFirst(`[data-month="${activeMonth}"]`);
-    setSelectedMonth(null);
-  };
-
-  const changeRange = (next: AnalyticsRange) => {
-    setRange(next);
-    setSelectedMonth(null);
+  const changePeriod = (next: Period) => {
+    setSelection(next);
     setDetail(null);
   };
 
@@ -117,30 +112,23 @@ export function AnalyticsView({ accounts, manualAccounts, groupId, refreshKey }:
 
   return (
     <div className="flex flex-col gap-6 animate-fade-in">
-      <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
-        <SegmentedControl
-          ariaLabel="Time range"
-          options={RANGE_OPTIONS}
-          value={range}
-          onChange={changeRange}
-          fullWidth
-          className="sm:inline-flex sm:w-auto"
-        />
-        {(activeMonth || caption) && (
-          <div className="flex flex-wrap items-center gap-3">
-            {activeMonth && !isHousehold && (
-              <Chip label={period.periodLabel} dismissLabel="Clear month" onDismiss={clearMonth} />
-            )}
-            {caption && <span className="text-caption text-ink-muted">{caption}</span>}
-          </div>
-        )}
-      </div>
+      <PeriodBar
+        period={selection}
+        onChange={changePeriod}
+        bounds={{ firstMonth, lastMonth: currentMonth }}
+        today={today}
+        label={period.buttonLabel}
+        caption={caption && <span>{caption}</span>}
+      />
 
       <NetWorthOverview
         key={groupId ?? "personal"}
         accounts={accounts}
         manualAccounts={manualAccounts}
-        days={netWorthDaysForRange(range, todayUtc())}
+        days={netWorth.days}
+        startDate={netWorth.startDate}
+        endDate={netWorth.endDate}
+        endLabel={`${monthShortLabel(period.endDate)} ${period.endDate.slice(0, 4)}`}
         groupId={groupId}
         refreshKey={refreshKey}
       />
@@ -169,8 +157,8 @@ export function AnalyticsView({ accounts, manualAccounts, groupId, refreshKey }:
           months={months}
           period={period}
           firstData={firstData}
-          selectedMonth={activeMonth}
-          onSelectMonth={setSelectedMonth}
+          // A column click keeps an open details panel, as selecting a month always has.
+          onSelectMonth={(month) => setSelection(normalizePeriod({ kind: "month", month }, today))}
           detail={detail}
           onDetailChange={setDetail}
           refreshKey={refreshKey}
@@ -184,8 +172,7 @@ interface CashflowSectionsProps {
   months: CashflowMonth[];
   period: ReturnType<typeof resolvePeriod>;
   firstData: number;
-  selectedMonth: string | null;
-  onSelectMonth: (month: string | null) => void;
+  onSelectMonth: (month: string) => void;
   detail: AnalyticsDetail;
   onDetailChange: (detail: AnalyticsDetail) => void;
   refreshKey?: number;
@@ -199,15 +186,16 @@ function CashflowSections({
   months,
   period,
   firstData,
-  selectedMonth,
   onSelectMonth,
   detail,
   onDetailChange,
   refreshKey,
 }: CashflowSectionsProps) {
   const totals = sumPeriod(period.periodMonths);
-  const prior = period.priorMonths ? sumPeriod(period.priorMonths) : null;
-  const rows = rankCategories(period.periodMonths, period.priorMonths);
+  // Like for like: a period ending in the current month compares with the same days of the prior one.
+  const priorMonths = likeForLikePrior(period);
+  const prior = priorMonths ? sumPeriod(priorMonths) : null;
+  const rows = rankCategories(period.periodMonths, priorMonths);
   const kept = totals.income > 0 ? `${Math.round((totals.netCashFlow / totals.income) * 100)}% kept` : undefined;
 
   return (
@@ -233,7 +221,7 @@ function CashflowSections({
         <CashflowChart
           months={period.windowMonths}
           windowLabel={spanLabel(period.windowMonths)}
-          selectedMonth={selectedMonth}
+          highlighted={period.highlightPeriod ? period.periodMonths.map((m) => m.month) : []}
           onSelectMonth={onSelectMonth}
         />
         <CategoryList
@@ -247,7 +235,7 @@ function CashflowSections({
       <AnalyticsDetails
         detail={detail}
         periodMonths={period.periodMonths}
-        priorMonths={period.priorMonths}
+        priorMonths={priorMonths}
         periodLabel={period.periodLabel}
         comparisonLabel={period.comparisonLabel}
         rows={rows}

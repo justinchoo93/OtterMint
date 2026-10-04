@@ -145,7 +145,7 @@ describe("TrendsView", () => {
     await screen.findByText("72%");
 
     const urls = fetchMock.mock.calls.map((call) => call[0]);
-    expect(urls.filter((u) => u.startsWith("/api/analytics/cashflow"))).toEqual(["/api/analytics/cashflow?months=24"]);
+    expect(urls.filter((u) => u.startsWith("/api/analytics/cashflow"))).toEqual(["/api/analytics/cashflow?months=60"]);
     expect(urls.filter((u) => u === "/api/analytics/recurring")).toHaveLength(1);
 
     expect(screen.getByText("Compared with the previous 12 months")).toBeInTheDocument();
@@ -166,6 +166,37 @@ describe("TrendsView", () => {
     expect(screen.getByText("Compared with the previous 6 months")).toBeInTheDocument();
     expect(fetchMock.mock.calls.length).toBe(before);
     expect(screen.getAllByTestId("mini-columns")[0].children).toHaveLength(6);
+  });
+
+  it("scopes the cards to a whole year picked from the period picker", async () => {
+    const fetchMock = stubFetch();
+    render(<TrendsView />);
+    await screen.findByText("72%");
+    const before = fetchMock.mock.calls.length;
+
+    fireEvent.click(screen.getByTestId("period-button"));
+    fireEvent.click(screen.getByRole("button", { name: "Last year" }));
+    expect(screen.getByTestId("period-button")).toHaveTextContent("2025");
+    // 2025: income 120,000; spending 9 × 2,400 + 3 × 2,800 = 30,000.
+    expect(screen.getByText("75%")).toBeInTheDocument();
+    expect(screen.getByText("of income kept · Jan–Dec 2025")).toBeInTheDocument();
+    // 2024 has data only from October, so there is no whole prior year.
+    expect(screen.getByText("no earlier months to compare")).toBeInTheDocument();
+    expect(screen.getAllByTestId("mini-columns")[0].children).toHaveLength(12);
+    expect(fetchMock.mock.calls.length).toBe(before);
+  });
+
+  it("summarizes one month against the month before and keeps six months on the line", async () => {
+    stubFetch();
+    render(<TrendsView />);
+    await screen.findByText("72%");
+    fireEvent.click(screen.getByTestId("period-button"));
+    fireEvent.click(screen.getByRole("button", { name: "August 2026" }));
+    expect(screen.getByText("of income kept · August 2026")).toBeInTheDocument();
+    expect(screen.getByText("Compared with July 2026")).toBeInTheDocument();
+    expect(screen.getAllByText("vs Jul").length).toBeGreaterThan(0);
+    expect(screen.queryByText(/^Best /)).not.toBeInTheDocument();
+    expect(screen.getAllByTestId("mini-columns")[0].children).toHaveLength(1);
   });
 
   it("sorts category trends fastest-growing first with one bar per window month", async () => {

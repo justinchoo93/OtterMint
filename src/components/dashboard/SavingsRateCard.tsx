@@ -7,18 +7,24 @@ import type { CashflowMonth } from "@/lib/cashflow";
 import { formatSignedPoints, formatWholeCurrency } from "@/lib/format";
 
 interface SavingsRateCardProps {
-  /** The range's months, oldest first. */
+  /** The months the line draws, oldest first: the period, or six months of context around a short one. */
   window: CashflowMonth[];
-  /** The equal window before it, its last month counted like for like; null when data does not cover it. */
+  /** The months the figures summarize. */
+  period: CashflowMonth[];
+  /** The months the period is compared with, its last month counted like for like; null when data does not cover it. */
   prior: CashflowMonth[] | null;
+  /** "vs Aug 1–26" or "vs 2024" for calendar periods; the default names the previous months. */
+  comparison?: string | null;
 }
 
 /** The share of income kept: a hero figure, its change against the prior window, and one line by month. */
-export function SavingsRateCard({ window, prior }: SavingsRateCardProps) {
-  const summary = savingsRateSummary(window, prior);
-  const totals = sumPeriod(window);
+export function SavingsRateCard({ window, period, prior, comparison }: SavingsRateCardProps) {
+  const summary = savingsRateSummary(period, prior);
+  const totals = sumPeriod(period);
+  // Best and lowest need at least two months to mean anything.
+  const extremes = period.length >= 2;
   const savedShare = totals.income > 0 ? Math.round((totals.savings / totals.income) * 100) : null;
-  const partial = window.some((m) => m.partial);
+  const partial = period.some((m) => m.partial);
   const points = summary.deltaPoints;
   const direction =
     points === null ? "flat" : Math.round(points * 10) === 0 ? "flat" : points > 0 ? "up" : "down";
@@ -31,7 +37,7 @@ export function SavingsRateCard({ window, prior }: SavingsRateCardProps) {
           <span className="mt-2 text-[2.5rem] leading-[1.05] font-semibold tracking-[-0.025em] text-ink sm:text-hero">
             {summary.rate === null ? "—" : `${Math.round(summary.rate)}%`}
           </span>
-          <span className="mt-2 text-caption text-ink-secondary">of income kept · {spanLabel(window)}</span>
+          <span className="mt-2 text-caption text-ink-secondary">of income kept · {spanLabel(period)}</span>
           <div className="mt-3 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm">
             {points !== null && prior ? (
               <>
@@ -42,7 +48,7 @@ export function SavingsRateCard({ window, prior }: SavingsRateCardProps) {
                 >
                   {formatSignedPoints(points)}
                 </DeltaIndicator>
-                <span className="text-ink-secondary">vs the previous {prior.length} months</span>
+                <span className="text-ink-secondary">{comparison ?? `vs the previous ${prior.length} months`}</span>
               </>
             ) : (
               <span className="text-ink-secondary">no earlier months to compare</span>
@@ -53,7 +59,7 @@ export function SavingsRateCard({ window, prior }: SavingsRateCardProps) {
         <div className="mt-6 min-w-0 lg:col-start-2 lg:row-span-2 lg:row-start-1 lg:mt-0">
           <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 text-xs text-ink-secondary">
             <span>Share of income kept each month</span>
-            {(summary.best || summary.lowest) && (
+            {extremes && (summary.best || summary.lowest) && (
               <span className="flex flex-wrap gap-x-4 gap-y-1">
                 {summary.best && (
                   <span>

@@ -1,22 +1,21 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Card, EmptyState, SegmentedControl, Skeleton } from "@/components/ui";
+import { Card, EmptyState, Skeleton } from "@/components/ui";
 import { CategoryTrendsCard } from "@/components/dashboard/CategoryTrendsCard";
+import { PeriodBar } from "@/components/dashboard/PeriodBar";
 import { RecurringChargesCard, type RecurringState } from "@/components/dashboard/RecurringChargesCard";
 import { SavingsRateCard } from "@/components/dashboard/SavingsRateCard";
 import { YearToDateCard } from "@/components/dashboard/YearToDateCard";
 import {
-  ANALYTICS_RANGES,
   CASHFLOW_FETCH_MONTHS,
   categoryTrends,
   firstDataMonthIndex,
   likeForLikePrior,
   resolvePeriod,
-  spanLabel,
   todayUtc,
   yearToDate,
-  type AnalyticsRange,
+  type Period,
 } from "@/lib/analytics-model";
 import type { CashflowMonth } from "@/lib/cashflow";
 import type { RecurringSummary } from "@/lib/recurring";
@@ -32,15 +31,13 @@ type CashflowState = {
   months: CashflowMonth[];
 };
 
-const RANGE_OPTIONS = ANALYTICS_RANGES.map((r) => ({ value: r.id, label: r.label }));
-
 /**
  * The Analytics destination: what is changing (savings rate and category
- * trends, scoped by one range control), this year against last, and what
+ * trends, scoped by the period bar), this year against last, and what
  * repeats (recurring charges, not scoped).
  */
 export function TrendsView({ groupId, refreshKey }: TrendsViewProps) {
-  const [range, setRange] = useState<AnalyticsRange>("1Y");
+  const [selection, setSelection] = useState<Period>({ kind: "preset", id: "1Y" });
   const [cashflow, setCashflow] = useState<CashflowState>({ status: "loading", months: [] });
   const [recurring, setRecurring] = useState<RecurringState>({ status: "loading", summary: null });
   const isHousehold = Boolean(groupId);
@@ -89,12 +86,13 @@ export function TrendsView({ groupId, refreshKey }: TrendsViewProps) {
 
   const months = cashflow.months;
   const today = todayUtc();
-  const period = useMemo(() => resolvePeriod(months, { range, month: null }), [months, range]);
+  const period = useMemo(() => resolvePeriod(months, selection, today), [months, selection, today]);
   const prior = useMemo(() => likeForLikePrior(period), [period]);
-  const rows = useMemo(() => categoryTrends(period.windowMonths, prior), [period, prior]);
+  const rows = useMemo(() => categoryTrends(period.periodMonths, prior), [period, prior]);
   const ytd = useMemo(() => yearToDate(months, today), [months, today]);
   const firstData = firstDataMonthIndex(months);
-  const partialLast = period.windowMonths[period.windowMonths.length - 1]?.partial ?? false;
+  const partialLast = period.periodMonths[period.periodMonths.length - 1]?.partial ?? false;
+  const currentMonth = today.slice(0, 7);
 
   if (isHousehold) {
     return <EmptyState>Household analytics are not available yet.</EmptyState>;
@@ -104,20 +102,19 @@ export function TrendsView({ groupId, refreshKey }: TrendsViewProps) {
 
   return (
     <div className="flex flex-col gap-6 animate-fade-in">
-      <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
-        <SegmentedControl
-          ariaLabel="Time range"
-          options={RANGE_OPTIONS}
-          value={range}
-          onChange={setRange}
-          fullWidth
-          className="sm:inline-flex sm:w-auto"
-        />
-        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-caption text-ink-muted">
-          {caption && <span>{caption}</span>}
-          <span>Sets the window for savings rate and category trends</span>
-        </div>
-      </div>
+      <PeriodBar
+        period={selection}
+        onChange={setSelection}
+        bounds={{ firstMonth: firstData !== null ? months[firstData].month : currentMonth, lastMonth: currentMonth }}
+        today={today}
+        label={period.buttonLabel}
+        caption={
+          <>
+            {caption && <span>{caption}</span>}
+            <span>Sets the window for savings rate and category trends</span>
+          </>
+        }
+      />
 
       {cashflow.status === "loading" && months.length === 0 ? (
         <div className="flex flex-col gap-6" data-testid="trends-skeleton">
@@ -137,11 +134,16 @@ export function TrendsView({ groupId, refreshKey }: TrendsViewProps) {
         </Card>
       ) : (
         <>
-          <SavingsRateCard window={period.windowMonths} prior={prior} />
+          <SavingsRateCard
+            window={period.windowMonths}
+            period={period.periodMonths}
+            prior={prior}
+            comparison={period.stepUnit ? period.comparisonShortLabel : null}
+          />
           <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,7fr)_minmax(0,5fr)]">
             <CategoryTrendsCard
               rows={rows}
-              windowLabel={spanLabel(period.windowMonths)}
+              windowLabel={period.buttonLabel}
               comparisonShortLabel={period.comparisonShortLabel}
               partialLast={partialLast}
             />

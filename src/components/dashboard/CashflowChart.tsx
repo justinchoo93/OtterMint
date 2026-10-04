@@ -17,8 +17,9 @@ interface CashflowChartProps {
   months: CashflowMonth[];
   /** Label for the subtitle, e.g. "Apr–Sep 2026". */
   windowLabel: string;
-  selectedMonth: string | null;
-  onSelectMonth: (month: string | null) => void;
+  /** Months drawn as selected ("YYYY-MM"): the period, when the chart shows more than the period. */
+  highlighted: string[];
+  onSelectMonth: (month: string) => void;
 }
 
 const SERIES = [
@@ -36,15 +37,16 @@ function barWidth(count: number): number {
 /**
  * Diverging monthly cash flow: income rises above the zero line, spending and
  * saving hang below it (a net withdrawal from savings stacks above income).
- * Each month is a toggle button that scopes the tiles and categories.
+ * Each month is a button that makes that month the period.
  */
-export function CashflowChart({ months, windowLabel, selectedMonth, onSelectMonth }: CashflowChartProps) {
+export function CashflowChart({ months, windowLabel, highlighted, onSelectMonth }: CashflowChartProps) {
   const [hovered, setHovered] = useState<string | null>(null);
   const layout = layoutCashflowColumns(months);
   const width = barWidth(months.length);
   const dense = months.length > 12;
-  // Dense charts label only a selected month; the readout and details carry the rest.
-  const labelled = selectedMonth ?? (dense ? null : months[months.length - 1]?.month ?? null);
+  // Dense charts label only a single highlighted month; the readout and details carry the rest.
+  const single = highlighted.length === 1 ? highlighted[0] : null;
+  const labelled = single ?? (dense ? null : months[months.length - 1]?.month ?? null);
 
   return (
     <Card aria-label="Cash flow">
@@ -81,7 +83,7 @@ export function CashflowChart({ months, windowLabel, selectedMonth, onSelectMont
           {months.map((month, index) => {
             const column = layout.columns[index];
             const totals = sumPeriod([month]);
-            const selected = selectedMonth === month.month;
+            const selected = highlighted.includes(month.month);
             const upPct = column.incomePct + (column.savedAbove ? column.savedPct : 0);
             const downPct = column.spendingPct + (column.savedAbove ? 0 : column.savedPct);
             const bar: CSSProperties = { width, marginLeft: -width / 2 };
@@ -97,7 +99,7 @@ export function CashflowChart({ months, windowLabel, selectedMonth, onSelectMont
                 aria-pressed={selected}
                 data-month={month.month}
                 aria-label={`${monthLongLabel(month.month)}${month.partial ? " (month to date)" : ""}: income ${formatWholeCurrency(totals.income)}, spending ${formatWholeCurrency(totals.spending)}, saved ${formatWholeCurrency(totals.savings)}`}
-                onClick={() => onSelectMonth(selected ? null : month.month)}
+                onClick={() => onSelectMonth(month.month)}
                 onPointerEnter={() => setHovered(month.month)}
                 onPointerLeave={() => setHovered((h) => (h === month.month ? null : h))}
                 onFocus={() => setHovered(month.month)}
@@ -203,7 +205,7 @@ export function CashflowChart({ months, windowLabel, selectedMonth, onSelectMont
             key={month.month}
             className={cx(
               "min-w-0 flex-1 text-center font-mono text-micro whitespace-nowrap",
-              selectedMonth === month.month ? "font-semibold text-ink" : "text-ink-muted"
+              highlighted.includes(month.month) ? "font-semibold text-ink" : "text-ink-muted"
             )}
           >
             {dense ? (index % 3 === 0 ? monthAxisLabel(month.month) : "") : monthShortLabel(month.month)}

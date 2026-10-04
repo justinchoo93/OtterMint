@@ -90,7 +90,10 @@ const calls = (fn: ReturnType<typeof stubFetch>, prefix: string) =>
   fn.mock.calls.map((c) => c[0] as string).filter((u) => u.startsWith(prefix));
 
 function monthColumns() {
-  return screen.getAllByRole("button", { name: /^(January|February|March|April|May|June|July|August|September|October|November|December) \d{4}/ });
+  // The chart's columns only: the period button and the picker's cells also carry month names.
+  return screen
+    .getAllByRole("button", { name: /^(January|February|March|April|May|June|July|August|September|October|November|December) \d{4}/ })
+    .filter((b) => b.hasAttribute("data-month") && !b.closest('[role="dialog"]'));
 }
 
 function tile(name: string) {
@@ -126,8 +129,10 @@ describe("AnalyticsView", () => {
       "August 2026",
       "September 2026 (month to date)",
     ]);
-    expect(calls(fetchMock, "/api/analytics/cashflow")).toEqual(["/api/analytics/cashflow?months=24"]);
-    expect(calls(fetchMock, "/api/net-worth")).toEqual(["/api/net-worth?days=178"]);
+    expect(calls(fetchMock, "/api/analytics/cashflow")).toEqual(["/api/analytics/cashflow?months=60"]);
+    // 178 days back to April 1, plus a week so the previous close is the baseline.
+    expect(calls(fetchMock, "/api/net-worth")).toEqual(["/api/net-worth?days=185"]);
+    expect(screen.getByTestId("period-button")).toHaveTextContent("Apr–Sep 2026");
     expect(screen.getByText("History starts Jan 2026")).toBeInTheDocument();
     expect(screen.queryByText(/vs prior/)).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "6M" })).toHaveAttribute("aria-pressed", "true");
@@ -141,24 +146,110 @@ describe("AnalyticsView", () => {
     expect(monthColumns()).toHaveLength(3);
     expect(screen.getByText("Compared with the previous 3 months")).toBeInTheDocument();
     expect(screen.getAllByText("vs prior 3 mo")).toHaveLength(4);
-    await waitFor(() => expect(calls(fetchMock, "/api/net-worth")).toContain("/api/net-worth?days=87"));
+    await waitFor(() => expect(calls(fetchMock, "/api/net-worth")).toContain("/api/net-worth?days=94"));
     expect(calls(fetchMock, "/api/analytics/cashflow")).toHaveLength(1);
   });
 
-  it("scopes the tiles to a clicked month and clears it from the chip", async () => {
+  it("makes a clicked month the period, steps with the arrows, and returns to a range", async () => {
     stubFetch();
     await renderView();
-    const august = monthColumns().find((b) => b.getAttribute("aria-label")!.startsWith("August 2026"))!;
-    fireEvent.click(august);
+    fireEvent.click(monthColumns().find((b) => b.getAttribute("aria-label")!.startsWith("August 2026"))!);
 
-    expect(august).toHaveAttribute("aria-pressed", "true");
+    // Six months of context ending at the month, with the month highlighted.
+    const columns = monthColumns();
+    expect(columns.map((b) => b.getAttribute("aria-label")!.split(":")[0])).toEqual([
+      "March 2026", "April 2026", "May 2026", "June 2026", "July 2026", "August 2026",
+    ]);
+    expect(columns.map((b) => b.getAttribute("aria-pressed"))).toEqual(["false", "false", "false", "false", "false", "true"]);
+    expect(screen.getByTestId("period-button")).toHaveTextContent("August 2026");
+    expect(screen.getByRole("button", { name: "6M" })).toHaveAttribute("aria-pressed", "false");
     expect(within(tile("Income")).getByText("$9,800")).toBeInTheDocument();
     expect(screen.getByText("Compared with July 2026")).toBeInTheDocument();
     expect(screen.getAllByText("vs Jul")).toHaveLength(4);
-
-    fireEvent.click(screen.getByRole("button", { name: "Clear month: August 2026" }));
     expect(screen.queryByRole("button", { name: /Clear month/ })).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Previous month" }));
+    expect(screen.getByTestId("period-button")).toHaveTextContent("July 2026");
+    expect(within(tile("Income")).getByText("$9,700")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Next month" }));
+    fireEvent.click(screen.getByRole("button", { name: "Next month" }));
+    expect(screen.getByTestId("period-button")).toHaveTextContent("Sep 1–26, 2026");
+    expect(screen.getByRole("button", { name: "MTD" })).toHaveAttribute("aria-pressed", "true");
+
+    fireEvent.click(screen.getByRole("button", { name: "6M" }));
     expect(screen.getByText("History starts Jan 2026")).toBeInTheDocument();
+    expect(monthColumns().every((b) => b.getAttribute("aria-pressed") === "false")).toBe(true);
+  });
+
+  it("compares month to date with the same days of the month before", async () => {
+    const months = buildMonths().map((m) =>
+      m.month === "2026-08"
+        ? { ...m, toDate: { income: "4900.00", spending: "3000.00", savings: "700.00", netCashFlow: "1900.00", spendingByCategory: [] } }
+        : m
+    );
+    stubFetch({ months });
+    await renderView();
+    fireEvent.click(screen.getByRole("button", { name: "MTD" }));
+    expect(screen.getByText("Compared with August 1–26")).toBeInTheDocument();
+    expect(screen.getAllByText("vs Aug 1–26")).toHaveLength(4);
+    // September income 9,900 against 4,900 through August 26, not August's whole 9,800.
+    expect(within(tile("Income")).getByText(/\+102\.0%/)).toBeInTheDocument();
+    expect(monthColumns()).toHaveLength(6);
+  });
+
+  it("selects a month, a drag range and a whole year from the picker without refetching cash flow", async () => {
+    const fetchMock = stubFetch();
+    await renderView();
+    fireEvent.click(screen.getByTestId("period-button"));
+    fireEvent.click(screen.getByRole("button", { name: "February 2026" }));
+    expect(screen.getByTestId("period-button")).toHaveTextContent("February 2026");
+    expect(within(tile("Income")).getByText("$9,200")).toBeInTheDocument();
+    // History starts in January, so months before it cannot be picked.
+    fireEvent.click(screen.getByTestId("period-button"));
+    expect(screen.getByRole("button", { name: "Earlier year" })).toBeDisabled();
+
+    const june = screen.getByRole("button", { name: "June 2026" });
+    const original = document.elementFromPoint;
+    document.elementFromPoint = vi.fn(() => june);
+    fireEvent.pointerDown(screen.getByRole("button", { name: "March 2026" }));
+    fireEvent.pointerMove(screen.getByTestId("month-grid"));
+    fireEvent.pointerUp(screen.getByRole("dialog"));
+    document.elementFromPoint = original;
+    expect(screen.getByTestId("period-button")).toHaveTextContent("Mar–Jun 2026");
+    expect(monthColumns()).toHaveLength(4);
+    expect(screen.getByText("History starts Jan 2026")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByTestId("period-button"));
+    fireEvent.click(screen.getByRole("button", { name: "All of 2026" }));
+    expect(screen.getByRole("button", { name: "YTD" })).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByTestId("period-button")).toHaveTextContent("Jan 1–Sep 26, 2026");
+    expect(calls(fetchMock, "/api/analytics/cashflow")).toHaveLength(1);
+  });
+
+  it("asks for net worth through a past month's end and shows that day's figures", async () => {
+    const row = (date: string, value: number) => ({ date, totalAssets: (value + 50).toFixed(2), totalLiabilities: "50.00", netWorth: value.toFixed(2), depositoryTotal: null, creditTotal: null, investmentTotal: null, loanTotal: null, manualAssetsTotal: null, manualLiabilitiesTotal: null, adjustedTotalAssets: (value + 50).toFixed(2), adjustedTotalLiabilities: "50.00", adjustedNetWorth: value.toFixed(2), quality: "observed", coverageSegment: 0, comparisonSegment: 0 });
+    const history = { snapshots: [row("2026-07-31", 1000), row("2026-08-15", 1200), row("2026-08-31", 1777), row("2026-09-20", 9000)], coverageEvents: [], periodChange: null };
+    const fn = vi.fn(async (url: string) => {
+      if (url.startsWith("/api/analytics/cashflow")) return { ok: true, json: async () => ({ months: buildMonths() }) };
+      return { ok: true, json: async () => history };
+    });
+    vi.stubGlobal("fetch", fn);
+    await renderView();
+    expect(screen.getByText("Net worth")).toBeInTheDocument();
+
+    fireEvent.click(monthColumns().find((b) => b.getAttribute("aria-label")!.startsWith("August 2026"))!);
+    // August 1 is 56 days before September 26, plus the baseline week.
+    await waitFor(() => expect(calls(fn as never, "/api/net-worth")).toContain("/api/net-worth?days=63"));
+    expect(await screen.findByText("Net worth at the end of Aug 2026")).toBeInTheDocument();
+    expect(screen.getByText("$1,777")).toBeInTheDocument();
+    expect(screen.getByText("+$777 (+77.7%)")).toBeInTheDocument();
+    expect(screen.getByText("Jul 31–Aug 31")).toBeInTheDocument();
+    expect(screen.queryByText("$9,000")).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Previous month" }));
+    fireEvent.click(screen.getByRole("button", { name: "Previous month" }));
+    expect(await screen.findByText("Net worth at the end of Jun 2026")).toBeInTheDocument();
+    expect(await screen.findByText("No net worth history for this period.")).toBeInTheDocument();
   });
 
   it("renders a month with a net withdrawal from savings", async () => {
@@ -264,15 +355,6 @@ describe("AnalyticsView", () => {
     expect(document.activeElement).toBe(tile("Income"));
   });
 
-  it("returns focus to the month column when its chip is cleared", async () => {
-    stubFetch();
-    await renderView();
-    const august = monthColumns().find((b) => b.getAttribute("aria-label")!.startsWith("August 2026"))!;
-    fireEvent.click(august);
-    fireEvent.click(screen.getByRole("button", { name: "Clear month: August 2026" }));
-    expect(document.activeElement).toBe(august);
-  });
-
   it("labels total inflows above the bar, including a withdrawal from savings", async () => {
     stubFetch();
     await renderView();
@@ -311,7 +393,7 @@ describe("AnalyticsView", () => {
     await waitFor(() => expect(calls(fetchMock, "/api/analytics/cashflow/items")).toHaveLength(2));
   });
 
-  it("drops a selected month that a refresh moves out of the window", async () => {
+  it("falls back to six months when a refresh moves the selected month out of the data", async () => {
     let months = buildMonths();
     const fn = vi.fn(async (url: string) => {
       if (url.startsWith("/api/analytics/cashflow")) return { ok: true, json: async () => ({ months }) };
@@ -320,16 +402,15 @@ describe("AnalyticsView", () => {
     vi.stubGlobal("fetch", fn);
     const { rerender } = render(<AnalyticsView accounts={[]} manualAccounts={[]} refreshKey={0} />);
     await screen.findByText("Where it went");
-    fireEvent.click(screen.getByRole("button", { name: "3M" }));
     fireEvent.click(monthColumns().find((b) => b.getAttribute("aria-label")!.startsWith("July 2026"))!);
-    expect(screen.getByRole("button", { name: "Clear month: July 2026" })).toBeInTheDocument();
+    expect(screen.getByTestId("period-button")).toHaveTextContent("July 2026");
 
-    // A month later the window is Aug–Oct; July has left it.
-    months = [...buildMonths().slice(1).map((m) => ({ ...m, partial: false })), { ...buildMonths()[23], month: "2026-10", partial: true }];
+    // After a refresh the data starts in August, so July no longer has anything to show.
+    months = buildMonths().map((m) => (m.month < "2026-08" ? { ...m, income: "0.00", spending: "0.00", savings: "0.00", netCashFlow: "0.00", spendingByCategory: [], incomeItems: [], savingsItems: [] } : m));
     rerender(<AnalyticsView accounts={[]} manualAccounts={[]} refreshKey={1} />);
-    await waitFor(() => expect(monthColumns().map((b) => b.getAttribute("aria-label")!.slice(0, 12))).toContain("October 2026"));
-    expect(screen.queryByRole("button", { name: /Clear month/ })).not.toBeInTheDocument();
-    expect(monthColumns().every((b) => b.getAttribute("aria-pressed") === "false")).toBe(true);
+    await waitFor(() => expect(screen.getByTestId("period-button")).toHaveTextContent("Aug–Sep 2026"));
+    expect(screen.getByRole("button", { name: "6M" })).toHaveAttribute("aria-pressed", "false");
+    expect(monthColumns()).toHaveLength(2);
   });
 
   it("never shows one scope's net-worth change under the other's heading", async () => {

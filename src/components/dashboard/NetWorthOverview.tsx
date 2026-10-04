@@ -1,9 +1,16 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Card, DeltaIndicator, Skeleton } from "@/components/ui";
 import { NetWorthChart, type NetWorthHistory } from "@/components/dashboard/NetWorthChart";
-import { comparableChange, normalizationContradictions, sinceLabel, todayUtc } from "@/lib/analytics-model";
+import {
+  betweenLabel,
+  comparableChange,
+  normalizationContradictions,
+  sinceLabel,
+  todayUtc,
+  trimHistory,
+} from "@/lib/analytics-model";
 import { formatSignedPercent, formatSignedWholeCurrency, formatWholeCurrency } from "@/lib/format";
 import { computeNetWorthTotals } from "@/lib/net-worth-totals";
 import type { AccountWithInstitution } from "@/app/api/accounts/route";
@@ -12,8 +19,14 @@ import type { ManualAccountRow } from "@/app/api/manual-accounts/route";
 interface NetWorthOverviewProps {
   accounts: AccountWithInstitution[];
   manualAccounts: ManualAccountRow[];
-  /** Days of history to request (see netWorthDaysForRange). */
+  /** Days of history to request (see netWorthWindow). */
   days: number;
+  /** The period's first day; the last point before it is kept as the baseline. */
+  startDate?: string;
+  /** Set when the period ended before today: later points are dropped and the card shows that day's figures. */
+  endDate?: string | null;
+  /** "Sep 2026", for the heading of a past period. */
+  endLabel?: string;
   /** Set for the household view. */
   groupId?: string;
   refreshKey?: number;
@@ -28,6 +41,9 @@ export function NetWorthOverview({
   accounts,
   manualAccounts,
   days,
+  startDate,
+  endDate,
+  endLabel,
   groupId,
   refreshKey,
 }: NetWorthOverviewProps) {
@@ -62,10 +78,31 @@ export function NetWorthOverview({
     return () => controller.abort();
   }, [url, refreshKey]);
 
-  const totals = computeNetWorthTotals(accounts, manualAccounts);
-  const history = state.history;
+  const past = Boolean(endDate);
+  const history = useMemo(() => {
+    const raw = state.history;
+    if (!raw) return null;
+    return {
+      ...raw,
+      snapshots: startDate ? trimHistory(raw.snapshots, startDate, endDate ?? null) : raw.snapshots,
+      // Account changes after a past period's end say nothing about that period.
+      coverageEvents: endDate ? raw.coverageEvents.filter((event) => event.date <= endDate) : raw.coverageEvents,
+    };
+  }, [state.history, startDate, endDate]);
+  const closing = past ? (history?.snapshots.at(-1) ?? null) : null;
+  // A past period shows its closing snapshot; otherwise the live balances.
+  const totals = closing
+    ? {
+        netWorth: Number.parseFloat(closing.netWorth),
+        assets: Number.parseFloat(closing.totalAssets),
+        liabilities: Math.abs(Number.parseFloat(closing.totalLiabilities)),
+      }
+    : computeNetWorthTotals(accounts, manualAccounts);
+  const noHistory = past && history !== null && closing === null;
+  // Adjusted values include account changes after a past period ended, so past periods use reported values.
   const normalizedAvailable =
     !groupId &&
+    !past &&
     (history?.snapshots.some(
       (point) => point.quality === "flat_normalized" && point.adjustedNetWorth !== null
     ) ??
@@ -74,6 +111,8 @@ export function NetWorthOverview({
   // The headline measures within the normalized stretch when the balances support it.
   const changeMode = normalizedAvailable && contradictions.length === 0 ? "normalized" : "reported";
   const change = history ? comparableChange(history.snapshots, changeMode) : null;
+  const base = groupId ? "Household net worth" : "Net worth";
+  const heading = past && endLabel ? `${base} at the end of ${endLabel}` : base;
   const liabilityShare = totals.assets > 0 ? Math.round((totals.liabilities / totals.assets) * 100) : null;
   const assetShare =
     totals.assets + totals.liabilities > 0
@@ -81,15 +120,17 @@ export function NetWorthOverview({
       : 100;
 
   return (
-    <Card padding="lg" aria-label={groupId ? "Household net worth" : "Net worth"}>
+    <Card padding="lg" aria-label={heading}>
       <div className="grid grid-cols-1 gap-x-8 lg:grid-cols-[300px_minmax(0,1fr)] lg:grid-rows-[auto_1fr]">
         <div className="flex flex-col lg:col-start-1 lg:row-start-1">
-          <span className="text-caption font-medium text-ink-secondary">
-            {groupId ? "Household net worth" : "Net worth"}
-          </span>
-          <span className="mt-2 text-[2.5rem] leading-[1.05] font-semibold tracking-[-0.025em] text-ink sm:text-hero">
-            {formatWholeCurrency(totals.netWorth)}
-          </span>
+          <span className="text-caption font-medium text-ink-secondary">{heading}</span>
+          {noHistory ? (
+            <p className="mt-3 text-sm text-ink-secondary">No net worth history for this period.</p>
+          ) : (
+            <span className="mt-2 text-[2.5rem] leading-[1.05] font-semibold tracking-[-0.025em] text-ink sm:text-hero">
+              {formatWholeCurrency(totals.netWorth)}
+            </span>
+          )}
           {change && (
             <div className="mt-3 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm">
               <DeltaIndicator
@@ -101,7 +142,7 @@ export function NetWorthOverview({
                 {change.pct !== null ? ` (${formatSignedPercent(change.pct)})` : ""}
               </DeltaIndicator>
               <span className="text-ink-secondary">
-                {sinceLabel(change.fromDate, todayUtc())}
+                {closing ? betweenLabel(change.fromDate, closing.date, todayUtc()) : sinceLabel(change.fromDate, todayUtc())}
                 {change.estimated ? ", includes estimates" : ""}
               </span>
             </div>
@@ -114,7 +155,7 @@ export function NetWorthOverview({
           }`}
           aria-busy={state.status === "loading"}
         >
-          {history ? (
+          {noHistory ? null : history ? (
             <NetWorthChart history={history} isHousehold={Boolean(groupId)} />
           ) : state.status === "error" ? (
             <p className="text-caption text-ink-muted">Net worth history couldn&apos;t load. Try Refresh.</p>
@@ -129,7 +170,11 @@ export function NetWorthOverview({
           )}
         </div>
 
-        <div className="mt-6 flex flex-col gap-2.5 border-t border-line-subtle pt-5 lg:col-start-1 lg:row-start-2 lg:mt-7">
+        <div
+          className={`mt-6 flex-col gap-2.5 border-t border-line-subtle pt-5 lg:col-start-1 lg:row-start-2 lg:mt-7 ${
+            noHistory ? "hidden" : "flex"
+          }`}
+        >
           <div className="flex items-center justify-between text-sm">
             <span className="flex items-center gap-2 text-ink-secondary">
               <span aria-hidden className="h-2 w-2 rounded-[2px] bg-series-income" />
