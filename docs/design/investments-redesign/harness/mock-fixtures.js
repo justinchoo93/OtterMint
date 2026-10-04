@@ -13,6 +13,8 @@ async (page) => {
     });
     return { p: m ? m[1] : u, q };
   };
+  // The data below ends on 2026-09-29, so pin the page's clock there: the period picker reads today's date.
+  await page.clock.setFixedTime(new Date('2026-09-29T12:00:00Z'));
   const fixed2 = (n) => n.toFixed(2);
   const fixed4 = (n) => n.toFixed(4);
   const DAY = 86400000;
@@ -138,15 +140,17 @@ async (page) => {
   });
 
   // ---- Map it onto the API shape for the requested window ----
-  const investments = (days) => {
+  // `end` (YYYY-MM-DD) stops the window before today, as the route does for a period that has ended.
+  const investments = (days, end) => {
     const sinceIdx = Math.max(0, N - 1 - days);
+    const endIdx = end ? Math.min(N - 1, Math.round((Date.parse(end + 'T00:00:00Z') - START) / DAY)) : N - 1;
     const since = new Date(TODAY - days * DAY).toISOString().slice(0, 10);
     const today = iso(N - 1);
     const points = [];
-    for (let i = sinceIdx; i < N; i++) points.push({ date: iso(i), value: fixed2(agg[i]), segment: 0, quality: 'known' });
+    for (let i = sinceIdx; i <= endIdx; i++) points.push({ date: iso(i), value: fixed2(agg[i]), segment: 0, quality: 'known' });
     const accountsOut = accounts.map((a) => {
       const pts = [];
-      for (let i = Math.max(sinceIdx, a.start); i < N; i++) pts.push({ date: iso(i), value: fixed2(a.values[i]) });
+      for (let i = Math.max(sinceIdx, a.start); i <= endIdx; i++) pts.push({ date: iso(i), value: fixed2(a.values[i]) });
       let netGain;
       if (a.moneyIn) {
         netGain = { mode: 'lifetime', startDate: a.opened, netContributions: fixed2(a.moneyIn), gain: fixed2(a.endValue - a.moneyIn), gainPct: ((a.endValue - a.moneyIn) / a.moneyIn * 100).toFixed(1) };
@@ -160,12 +164,12 @@ async (page) => {
       return { accountId: a.id, name: a.name, mask: a.mask, institutionName: a.inst, subtype: a.subtype, balance: fixed2(a.endValue), points: pts, netGain };
     });
     const idx = (e) => di(e.d[0], e.d[1], e.d[2]);
-    const inWindow = ACTIVITY.filter((e) => idx(e) >= sinceIdx);
+    const inWindow = ACTIVITY.filter((e) => idx(e) >= sinceIdx && idx(e) <= endIdx);
     const flows = inWindow.filter((e) => e.kind === 'deposit' || e.kind === 'withdrawal')
       .map((e) => ({ date: iso(idx(e)), accountId: e.acct, kind: e.kind, amount: fixed2(Math.abs(e.amount)) })).reverse();
     const income = inWindow.filter((e) => e.kind === 'dividend' || e.kind === 'interest')
       .map((e) => ({ date: iso(idx(e)), accountId: e.acct, kind: e.kind, amount: fixed2(e.amount) })).reverse();
-    const ttm = accounts.map((a) => ({ accountId: a.id, amount: fixed2(ACTIVITY.filter((e) => e.acct === a.id && (e.kind === 'dividend' || e.kind === 'interest')).reduce((t, e) => t + e.amount, 0)) }));
+    const ttm = accounts.map((a) => ({ accountId: a.id, amount: fixed2(ACTIVITY.filter((e) => e.acct === a.id && idx(e) <= endIdx && (e.kind === 'dividend' || e.kind === 'interest')).reduce((t, e) => t + e.amount, 0)) }));
     const positions = POSITIONS.map((p) => {
       const account = ACCOUNTS.find((a) => a.id === p.acct);
       if (p.t === 'CASH') {
@@ -180,7 +184,7 @@ async (page) => {
     });
     const activity = inWindow.map((e, i) => ({ id: 1000 - i, date: iso(idx(e)), accountId: e.acct, kind: e.kind, name: e.text, amount: fixed2(e.amount),
       quantity: e.qty === undefined ? null : e.qty.toFixed(8), price: e.price === undefined ? null : fixed4(e.price), securityId: e.sec ?? null }));
-    return { today, since, portfolio: { points, boundaries: [], liveAppended: false }, accounts: accountsOut, flows, income,
+    return { today, since, end: iso(endIdx), firstDate: iso(0), portfolio: { points, boundaries: [], liveAppended: false }, accounts: accountsOut, flows, income,
       incomeTrailingTwelveMonths: ttm, positions, activity: activity.slice(0, 200), activityTotal: activity.length };
   };
 
@@ -201,7 +205,7 @@ async (page) => {
         currentBalance: '18456.00', availableBalance: null, limitAmount: null, isoCurrencyCode: 'USD',
         lastRefreshedAt: new Date(Date.now() - 7200000).toISOString(), institutionName: 'Chase', errorCode: null }] });
     if (p === '/api/manual-accounts') return json({ manualAccounts: [] });
-    if (p === '/api/analytics/investments') return json(investments(Math.min(3650, Math.max(1, Number(q.days ?? 90)))));
+    if (p === '/api/analytics/investments') return json(investments(Math.min(3650, Math.max(1, Number(q.days ?? 90))), q.end));
     if (p === '/api/net-worth' || /^\/api\/groups\/[^/]+\/net-worth$/.test(p)) return json({ snapshots: [], coverageEvents: [], periodChange: null });
     if (p === '/api/analytics/cashflow') return json({ months: [] });
     if (p === '/api/transactions') return json({ transactions: [] });

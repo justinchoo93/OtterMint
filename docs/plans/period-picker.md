@@ -17,15 +17,15 @@ The design is the private canvas at https://claude.ai/artifact/EyaPtP3r23ijd6mpP
 - [x] (2026-10-03) Design reviewed by the owner on the canvas; boards copied to `docs/design/period-picker/boards/` with a README.
 - [x] (2026-10-03) Plan written in the worktree `.claude/worktrees/period-picker` on branch `worktree-period-picker`. Nothing is committed yet.
 - [x] (2026-10-04) Load-bearing assumptions validated by code inspection, a scratch vitest run and a Chromium touch test; findings are in `Surprises & Discoveries` and the plan was revised (see the revision note at the bottom).
-- [ ] Milestone 0: `npm ci` in the worktree.
-- [ ] Milestone 1: static renders of the three boards and the deviations list in `docs/design/period-picker/`.
-- [ ] Milestone 2: the period model in `src/lib/analytics-model.ts` with unit tests; cash flow history raised from 24 to 60 months.
-- [ ] Milestone 3: the `PeriodBar` component with its picker, drag selection and tests.
-- [ ] Milestone 4: Dashboard wired to the period (net worth card, tiles, cash flow chart, categories, details).
-- [ ] Milestone 5: Analytics wired to the period (savings rate, category trends).
-- [ ] Milestone 6: Investments wired to the period; the investments route takes an optional `end` date and returns `firstDate`.
-- [ ] Milestone 7: visual, keyboard and touch check in the browser harness at 1440 and 390 px, with the harness clock pinned.
-- [ ] Milestone 8: production data check, then merge and deploy, each only with the owner's go-ahead; one manual drag check on the owner's phone after deploy.
+- [x] (2026-10-04) Milestone 0: `npm ci` in the worktree; the suite ran green before any change.
+- [x] (2026-10-04) Milestone 1: `render.mjs` and the static renders `desktop.html`, `analytics.html`, `phone.html` (zero leftover holes; the Analytics render shows the picker open); README lists the intended deviations.
+- [x] (2026-10-04) Milestone 2: the period model (`normalizePeriod`, `describePeriod`, `resolvePeriod`, `stepPeriod`, `periodFromSpan`, `monthGridCells`, `netWorthWindow`, `trimHistory`, `betweenLabel`) with unit tests; cash flow history raised to 60 months.
+- [x] (2026-10-04) Milestone 3: `PeriodBar` with popover, phone sheet, drag, Shift extension and keyboard paths; 20 tests in `period-bar.test.tsx`.
+- [x] (2026-10-04) Milestone 4: Dashboard wired; `CashflowChart` highlights the period; `NetWorthOverview` shows a past period's closing figures.
+- [x] (2026-10-04) Milestone 5: Analytics wired; `SavingsRateCard` summarizes the period and draws the window.
+- [x] (2026-10-04) Milestone 6: Investments wired; the route takes `end` and returns `firstDate` and `end`.
+- [x] (2026-10-04) Milestone 7: browser check at 1440 × 1000 and 390 × 844 on all three pages, with a mouse drag, a touch drag (Chromium), keyboard selection and the sparse net worth cases; findings and screenshots are under `docs/design/period-picker/evidence/` and in `Artifacts and Notes`. One bug found and fixed (the phone sheet; see `Surprises & Discoveries`).
+- [ ] Milestone 8: production data check, then merge and deploy, each only with the owner's go-ahead; one manual drag check on the owner's phone after deploy. Not started: every step needs the owner.
 
 ## Surprises & Discoveries
 
@@ -61,6 +61,12 @@ The design is the private canvas at https://claude.ai/artifact/EyaPtP3r23ijd6mpP
 
 - Observation: the worktree has no `node_modules`, so no test can run until dependencies are installed there.
   Evidence: `ls` of the worktree; `package-lock.json` is identical to the main checkout's.
+
+- Observation: the phone bottom sheet rendered at the bottom of the page instead of the bottom of the screen. Each page's root has the `animate-fade-in` class, whose animation ended on `transform: translateY(0)` and kept it (`animation-fill-mode: both`); an element with a transform becomes the reference box for `position: fixed` descendants, so the sheet was fixed to the page container.
+  Evidence (2026-10-04, harness at 390 × 844): the dialog measured 16 px in from each side with the page scrolled to its end. After changing the fill mode to `backwards` in `src/app/globals.css` (the end state is the element's natural state, so nothing needs holding) it measured `left: 0`, `width: 384` (the viewport less the scrollbar), `bottomGap: 0`. Setting the last keyframe to `transform: none` alone did not fix it.
+
+- Observation: the picker's cells animate their colors, so a screenshot taken the instant a drag reaches a cell shows the tint mid-transition. The checks wait half a second before capturing.
+  Evidence: class names read during a drag from May to August: `May:solid Jun:tint Jul:tint Aug:solid`, identical at both widths.
 
 ## Decision Log
 
@@ -134,7 +140,11 @@ The design is the private canvas at https://claude.ai/artifact/EyaPtP3r23ijd6mpP
 
 ## Outcomes & Retrospective
 
-Nothing shipped yet. Fill this in at the end of Milestones 4, 5, 6 and 8.
+Milestones 0 to 7 are complete on branch `worktree-period-picker` (2026-10-04); nothing is merged or deployed. All three pages use one `PeriodBar`, and every scenario in `Validation and Acceptance` was observed in the browser harness at desktop and phone widths. `npx vitest run --dir src` reports 605 passed and 41 skipped across 58 files; `npx tsc --noEmit -p .` reports no errors under `src/`; `npm run lint` reports no errors (one warning in `src/lib/sync-holdings.ts` that predates this work).
+
+What remains is Milestone 8: the read-only production check, the merge, the deploy, and a drag on a real iPhone. The touch drag is proven in Chromium only.
+
+Lessons. Validating assumptions before writing code changed the design in six places and each change held up in implementation. The one bug the browser found (the phone sheet) was not on the assumption list, because it came from an unrelated animation on the page root; a check in the real browser at phone width caught what 605 unit tests could not.
 
 ## Context and Orientation
 
@@ -348,7 +358,42 @@ Every step is an edit to source files or a read-only check and can be repeated. 
 
 The reference logic is in the script block at the end of `docs/design/period-picker/boards/Dashboard.dc.html`. The parts that carry over nearly line for line are `resolve` (period to months and labels), the `prevFn` and `nextFn` stepping rules, the `cells` mapping (month grid states), and the drag handlers `down`, `enter`, `keyPick`, `dragEnd` and `dragCancel` (the boards track the drag with `pointerenter`; the implementation uses `pointermove` hit-testing instead, for the reason in the Decision Log). The board uses month indexes into a generated list; the implementation uses "YYYY-MM" keys.
 
-Record here, as the milestones complete: the vitest summary lines, the harness screenshots' findings, and the production totals from Milestone 8.
+Test summary (2026-10-04, from the worktree root):
+
+    Test Files  57 passed | 1 skipped (58)
+         Tests  605 passed | 41 skipped (646)
+
+Browser check (2026-10-04). The three scripts in `docs/design/period-picker/harness/` walk each page and return what they observed; run a fixtures file first, then the check, each as a page function. They write screenshots to `docs/design/period-picker/evidence/` (names start `desktop-` or `phone-`). Observed at both 1440 × 1000 and 390 × 844 unless noted:
+
+    Dashboard (clock 2026-09-26)
+      opens on 6M        button "Apr–Sep 2026", six columns
+      MTD                "Sep 1–26, 2026", four tiles read "vs Aug 1–26", September highlighted in Apr–Sep
+      YTD                "Jan 1–Sep 26, 2026", four tiles read "vs 2025 to date"
+      previous year      "2025", no segment lit, mint border, 12 columns, "No net worth history for this period."
+      click Aug in grid  "August 2026", picker closed, "Net worth at the end of Aug 2026", "vs Jul", Mar–Aug with Aug highlighted
+      next month         "Sep 1–26, 2026", MTD lit, next arrow disabled
+      drag Mar to Jun    hint "Release to select Mar–Jun 2026.", then "Mar–Jun 2026", "vs prior 4 mo", four columns
+      drag out, release  period unchanged, picker still open; Escape closes it and focus returns to the button
+      keyboard           Enter on May selects "May 2026"; Shift+Enter on July gives "May–Jul 2026"; focus ring 2px solid rgb(52, 211, 153)
+      column click       "July 2026" with Feb–Jul drawn and July highlighted
+      March 2026         "Net worth at the end of Mar 2026", change labelled "Feb 28–Mar 31, includes estimates"
+      rolling ranges     3M 3 columns, 6M 6, 1Y 12, All 21 ("Jan 2025–Sep 2026")
+      layout             no horizontal scroll; controls 30/38 px at 1440 and all 44 px at 390; picker absolute and 328 px wide at 1440, fixed with no gap at the bottom at 390
+
+    Analytics (clock 2026-09-26)
+      opens on 1Y        "Oct 2025–Sep 2026", "of income kept · Oct 2025–Sep 2026"
+      Last year          "2025", "of income kept · Jan–Dec 2025", "no earlier months to compare", 12 bars per category
+      click Aug          "August 2026", "Compared with July 2026", 1 bar per category
+      touch drag Feb–May pointer type "touch", hint shown, "Feb–May 2026", page did not scroll (Chromium, debugging protocol)
+      unscoped cards     Year to date and Recurring charges text identical before and after
+
+    Investments (clock 2026-09-29)
+      opens on 3M        bar above the hero, no range buttons in the hero, request `?days=90`
+      MTD                request `?days=28` (the old 1M)
+      picker bounds      March 2026 disabled, April enabled, "Earlier year" disabled (history starts 2026-04-01)
+      click Jul          request `?days=90&end=2026-07-31`, "Portfolio value at the end of Jul 2026", $387,878 against $391,405 live, no change column, "as of today" three times, "today" on five tiles, activity all in July
+      next month twice   `?days=59&end=2026-08-31`, then `?days=28` with MTD lit
+      drag May to Jun    `?days=151&end=2026-06-30`, "Portfolio value at the end of Jun 2026"
 
 ## Interfaces and Dependencies
 
@@ -469,5 +514,7 @@ At the end of Milestone 6, `GET /api/analytics/investments` accepts `days` (as n
 ---
 
 Revision note, 2026-10-03: initial version, written after the owner reviewed the canvas design and chose drag for custom ranges.
+
+Revision note, 2026-10-04 (implementation): Milestones 0 to 7 implemented and verified; `Progress`, `Surprises & Discoveries`, `Outcomes & Retrospective` and `Artifacts and Notes` updated with what was observed. Two small departures from the plan's text, both recorded here: a column click on the Dashboard keeps an open details panel (as selecting a month always has), while a change made through the period bar closes it; and the `SavingsRateCard` takes an optional `comparison` label so calendar periods read "vs Jul" or "vs 2024" instead of "vs the previous 1 months".
 
 Revision note, 2026-10-04: the owner asked for the Investments page to share the picker, and for the plan's assumptions to be validated first. Validation (code inspection, a scratch vitest run, a Chromium touch test) changed the plan in six ways, each recorded in `Surprises & Discoveries` and the `Decision Log`: Investments is added as Milestone 6 with an `end` parameter and `firstDate` on its route, because browser trimming was shown not to work there; net worth fetches a week early to use the previous close as a baseline and defines its one-point and no-point states, because history is one point per month before July 2026 and absent before 2026-01-31; past-period net worth also trims coverage events and uses reported values; the drag uses `pointermove` hit-testing and the keyboard an explicit Shift handler; `PeriodBar` is decoupled from the cash flow list through `describePeriod`; and the harness clock is pinned, with `npm ci` added as Milestone 0. The acceptance scenario was corrected (it had expected a net worth figure for December 2025, which has no history).

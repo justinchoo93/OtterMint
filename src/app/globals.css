@@ -174,12 +174,13 @@ body {
 
 @keyframes fade-in {
   from { opacity: 0; transform: translateY(6px); }
-  /* none, not translateY(0): a leftover transform would trap fixed-position sheets inside the view. */
-  to { opacity: 1; transform: none; }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 .animate-fade-in {
-  animation: fade-in 0.4s ease-out both;
+  /* backwards, not both: a transform held after the animation ends would trap
+     fixed-position children (the period picker's phone sheet) inside the view. */
+  animation: fade-in 0.4s ease-out backwards;
 }
 
 @keyframes pulse-subtle {

@@ -1,0 +1,146 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Period picker · phone, picker as a sheet</title>
+<!-- Static render of the approved design canvas board; see README.md. -->
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=Instrument+Serif&display=swap">
+<style>
+body{margin:0;background:#0a0d0c}
+a{color:#34d399}a:hover{color:#edf1ef}
+button{font:inherit;cursor:pointer}
+button:disabled{cursor:default}
+button:focus-visible{outline:2px solid #34d399;outline-offset:2px}
+.ctl{height:44px}.sq{width:44px}.cell{height:44px}
+@media(min-width:640px){.ctl{height:34px}.sq{width:34px}.cell{height:38px}}
+.seg:hover,.navi:hover{color:#edf1ef !important}
+.hov:hover:not(:disabled){background:#1c2320 !important}
+.col:hover > span:first-child{background:#171d1a}
+</style>
+</head>
+<body>
+<div style="position:relative;width:390px;height:844px;overflow:hidden;box-sizing:border-box;background:#0a0d0c;color:#edf1ef;font-family:'DM Sans',system-ui,sans-serif">
+<header style="display:flex;align-items:center;justify-content:space-between;gap:12px;height:60px;box-sizing:border-box;padding:0 16px;background:#111614;border-bottom:1px solid #242c28">
+<div style="display:flex;align-items:baseline;gap:12px"><span style="font-family:'Instrument Serif',Georgia,serif;font-size:24px;line-height:1">ottermint</span><h1 style="margin:0;font-family:'Instrument Serif',Georgia,serif;font-size:22px;line-height:1;font-weight:400;color:#a3ada8">Dashboard</h1></div>
+<span aria-hidden="true" style="width:34px;height:34px;border-radius:50%;background:#242c28;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:600">J</span>
+</header>
+<main style="box-sizing:border-box;padding:16px;display:flex;flex-direction:column;gap:12px">
+<div role="group" aria-label="Quick ranges" style="display:flex;gap:2px;box-sizing:border-box;padding:3px;border:1px solid #242c28;border-radius:10px;background:#171d1a">
+
+<button type="button" class="ctl seg" aria-pressed="true" style="flex:1;border:0;border-radius:7px;padding:0 4px;font-size:13px;font-weight:500;white-space:nowrap;background:#242c28;color:#edf1ef">MTD</button>
+
+<button type="button" class="ctl seg" aria-pressed="false" style="flex:1;border:0;border-radius:7px;padding:0 4px;font-size:13px;font-weight:500;white-space:nowrap;background:transparent;color:#a3ada8">3M</button>
+
+<button type="button" class="ctl seg" aria-pressed="false" style="flex:1;border:0;border-radius:7px;padding:0 4px;font-size:13px;font-weight:500;white-space:nowrap;background:transparent;color:#a3ada8">6M</button>
+
+<button type="button" class="ctl seg" aria-pressed="false" style="flex:1;border:0;border-radius:7px;padding:0 4px;font-size:13px;font-weight:500;white-space:nowrap;background:transparent;color:#a3ada8">YTD</button>
+
+<button type="button" class="ctl seg" aria-pressed="false" style="flex:1;border:0;border-radius:7px;padding:0 4px;font-size:13px;font-weight:500;white-space:nowrap;background:transparent;color:#a3ada8">1Y</button>
+
+<button type="button" class="ctl seg" aria-pressed="false" style="flex:1;border:0;border-radius:7px;padding:0 4px;font-size:13px;font-weight:500;white-space:nowrap;background:transparent;color:#a3ada8">All</button>
+
+</div>
+<div style="display:flex;align-items:center;gap:6px">
+<button type="button" class="ctl sq hov" aria-label="Previous month" style="flex:none;display:flex;align-items:center;justify-content:center;border:1px solid #242c28;border-radius:10px;background:#171d1a;color:#edf1ef;padding:0;"><svg viewBox="0 0 24 24" aria-hidden="true" style="width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round"><path d="m15 18-6-6 6-6"></path></svg></button>
+<button type="button" class="ctl hov" aria-haspopup="dialog" aria-expanded="true" style="flex:1;min-width:0;display:flex;align-items:center;gap:8px;padding:0 12px;border-radius:10px;background:#171d1a;color:#edf1ef;font-size:14px;font-weight:500;border:1px solid #242c28"><svg viewBox="0 0 24 24" aria-hidden="true" style="width:15px;height:15px;flex:none;fill:none;stroke:#a3ada8;stroke-width:2;stroke-linecap:round;stroke-linejoin:round"><rect x="3" y="4" width="18" height="18" rx="2"></rect><path d="M16 2v4M8 2v4M3 10h18"></path></svg><span style="flex:1;text-align:left;white-space:nowrap">Oct 1–3, 2026</span><svg viewBox="0 0 24 24" aria-hidden="true" style="width:14px;height:14px;flex:none;fill:none;stroke:#a3ada8;stroke-width:2;stroke-linecap:round;stroke-linejoin:round"><path d="m6 9 6 6 6-6"></path></svg></button>
+<button type="button" class="ctl sq hov" aria-label="Next month" disabled="true" style="flex:none;display:flex;align-items:center;justify-content:center;border:1px solid #242c28;border-radius:10px;background:#171d1a;color:#edf1ef;padding:0;opacity:0.35"><svg viewBox="0 0 24 24" aria-hidden="true" style="width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round"><path d="m9 18 6-6-6-6"></path></svg></button>
+</div>
+<span style="font-size:13px;color:#85908a">vs Sep 1–3</span>
+<section aria-label="Net worth" style="box-sizing:border-box;padding:20px;border:1px solid #242c28;border-radius:16px;background:#111614;display:flex;flex-direction:column;gap:8px">
+<span style="font-size:13px;font-weight:500;color:#a3ada8">Net worth</span>
+<span style="font-size:40px;line-height:1.05;font-weight:600;letter-spacing:-0.025em">$248,022</span>
+<div style="display:flex;flex-wrap:wrap;gap:2px 8px;font-size:13px"><span style="font-weight:600;color:#34d399">↑ +$253 (+0.1%)</span><span style="color:#a3ada8">over Oct 1–3, 2026</span></div>
+<div style="margin-top:8px;border-bottom:1px solid #2e3833">
+<svg viewBox="0 0 1000 200" preserveAspectRatio="none" aria-hidden="true" style="display:block;width:100%;height:120px">
+<path d="M0.0 190.0 L500.0 94.3 L1000.0 15.0 L1000 200 L0 200 Z" style="fill:rgba(52,211,153,0.12);stroke:none"></path>
+<path d="M0.0 190.0 L500.0 94.3 L1000.0 15.0" style="fill:none;stroke:#34d399;stroke-width:2;stroke-linejoin:round;vector-effect:non-scaling-stroke"></path>
+</svg>
+</div>
+<div style="display:flex;justify-content:space-between;font-size:11px;color:#85908a"><span>Oct 1, 2026</span><span>Oct 3, 2026</span></div>
+</section>
+<div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px">
+
+<div style="box-sizing:border-box;min-height:104px;padding:14px 16px;border:1px solid #242c28;border-radius:14px;background:#111614;display:flex;flex-direction:column;gap:6px">
+<span style="font-size:13px;font-weight:500;color:#a3ada8">Income</span>
+<span style="font-size:24px;line-height:1.1;font-weight:600;letter-spacing:-0.02em">$1,825</span>
+<span style="display:flex;flex-wrap:wrap;gap:2px 6px;font-size:12px;color:#85908a"><span style="font-weight:600;color:#34d399">↑ +130%</span><span>vs Sep 1–3</span></span>
+</div>
+
+<div style="box-sizing:border-box;min-height:104px;padding:14px 16px;border:1px solid #242c28;border-radius:14px;background:#111614;display:flex;flex-direction:column;gap:6px">
+<span style="font-size:13px;font-weight:500;color:#a3ada8">Spending</span>
+<span style="font-size:24px;line-height:1.1;font-weight:600;letter-spacing:-0.02em">$1,210</span>
+<span style="display:flex;flex-wrap:wrap;gap:2px 6px;font-size:12px;color:#85908a"><span style="font-weight:600;color:#f0836f">↑ +130%</span><span>vs Sep 1–3</span></span>
+</div>
+
+<div style="box-sizing:border-box;min-height:104px;padding:14px 16px;border:1px solid #242c28;border-radius:14px;background:#111614;display:flex;flex-direction:column;gap:6px">
+<span style="font-size:13px;font-weight:500;color:#a3ada8">Saved</span>
+<span style="font-size:24px;line-height:1.1;font-weight:600;letter-spacing:-0.02em">$219</span>
+<span style="display:flex;flex-wrap:wrap;gap:2px 6px;font-size:12px;color:#85908a"><span style="font-weight:600;color:#34d399">↑ +130%</span><span>vs Sep 1–3</span></span>
+</div>
+
+<div style="box-sizing:border-box;min-height:104px;padding:14px 16px;border:1px solid #242c28;border-radius:14px;background:#111614;display:flex;flex-direction:column;gap:6px">
+<span style="font-size:13px;font-weight:500;color:#a3ada8">Net cash flow</span>
+<span style="font-size:24px;line-height:1.1;font-weight:600;letter-spacing:-0.02em">$615</span>
+<span style="display:flex;flex-wrap:wrap;gap:2px 6px;font-size:12px;color:#85908a"><span style="font-weight:600;color:#34d399">↑ +131%</span><span>vs Sep 1–3 · 34% kept</span></span>
+</div>
+
+</div>
+</main>
+
+
+<button type="button" aria-label="Close period picker" style="position:absolute;inset:0;z-index:10;border:0;background:rgba(0,0,0,0.6);cursor:default"></button>
+<div role="dialog" aria-label="Choose a period" style="position:absolute;left:0;right:0;bottom:0;z-index:20;box-sizing:border-box;padding:10px 16px 28px;display:flex;flex-direction:column;gap:14px;border-top:1px solid #242c28;border-radius:20px 20px 0 0;background:#171d1a">
+<span aria-hidden="true" style="align-self:center;width:36px;height:4px;border-radius:2px;background:#3a453f"></span>
+<div style="display:flex;align-items:center;justify-content:space-between"><h2 style="margin:0;font-family:'Instrument Serif',Georgia,serif;font-size:22px;line-height:1.15;font-weight:400">Choose a period</h2><button type="button" class="cell hov" style="padding:0 12px;border:0;border-radius:8px;background:transparent;color:#34d399;font-size:14px;font-weight:500">Done</button></div>
+<div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px">
+
+<button type="button" class="cell hov" aria-pressed="true" style="border-radius:8px;font-size:13px;font-weight:500;border:1px solid #34d399;background:rgba(52,211,153,0.12);color:#edf1ef">This month</button>
+
+<button type="button" class="cell hov" aria-pressed="false" style="border-radius:8px;font-size:13px;font-weight:500;border:1px solid #242c28;background:transparent;color:#a3ada8">Last month</button>
+
+<button type="button" class="cell hov" aria-pressed="false" style="border-radius:8px;font-size:13px;font-weight:500;border:1px solid #242c28;background:transparent;color:#a3ada8">This year</button>
+
+<button type="button" class="cell hov" aria-pressed="false" style="border-radius:8px;font-size:13px;font-weight:500;border:1px solid #242c28;background:transparent;color:#a3ada8">Last year</button>
+
+</div>
+<div style="height:1px;background:#242c28"></div>
+<div style="display:flex;align-items:center;gap:6px">
+<button type="button" class="cell sq hov" aria-label="Earlier year" style="display:flex;align-items:center;justify-content:center;border:0;border-radius:8px;background:transparent;color:#edf1ef;padding:0;"><svg viewBox="0 0 24 24" aria-hidden="true" style="width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round"><path d="m15 18-6-6 6-6"></path></svg></button>
+<span style="min-width:44px;text-align:center;font-size:15px;font-weight:600">2026</span>
+<button type="button" class="cell sq hov" aria-label="Later year" disabled="true" style="display:flex;align-items:center;justify-content:center;border:0;border-radius:8px;background:transparent;color:#edf1ef;padding:0;opacity:0.35"><svg viewBox="0 0 24 24" aria-hidden="true" style="width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round"><path d="m9 18 6-6-6-6"></path></svg></button>
+<span style="flex:1"></span>
+<button type="button" class="cell hov" aria-pressed="false" style="padding:0 12px;border-radius:8px;font-size:13px;font-weight:500;border:1px solid #242c28;background:transparent;color:#a3ada8">All of 2026</button>
+</div>
+<div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;touch-action:none;user-select:none">
+
+<button type="button" class="cell hov" aria-label="January 2026" aria-pressed="false" style="border-radius:8px;font-size:13px;font-weight:500;border:1px solid transparent;background:transparent;color:#edf1ef">Jan</button>
+
+<button type="button" class="cell hov" aria-label="February 2026" aria-pressed="false" style="border-radius:8px;font-size:13px;font-weight:500;border:1px solid transparent;background:transparent;color:#edf1ef">Feb</button>
+
+<button type="button" class="cell hov" aria-label="March 2026" aria-pressed="false" style="border-radius:8px;font-size:13px;font-weight:500;border:1px solid transparent;background:transparent;color:#edf1ef">Mar</button>
+
+<button type="button" class="cell hov" aria-label="April 2026" aria-pressed="false" style="border-radius:8px;font-size:13px;font-weight:500;border:1px solid transparent;background:transparent;color:#edf1ef">Apr</button>
+
+<button type="button" class="cell hov" aria-label="May 2026" aria-pressed="false" style="border-radius:8px;font-size:13px;font-weight:500;border:1px solid transparent;background:transparent;color:#edf1ef">May</button>
+
+<button type="button" class="cell hov" aria-label="June 2026" aria-pressed="false" style="border-radius:8px;font-size:13px;font-weight:500;border:1px solid transparent;background:transparent;color:#edf1ef">Jun</button>
+
+<button type="button" class="cell hov" aria-label="July 2026" aria-pressed="false" style="border-radius:8px;font-size:13px;font-weight:500;border:1px solid transparent;background:transparent;color:#edf1ef">Jul</button>
+
+<button type="button" class="cell hov" aria-label="August 2026" aria-pressed="false" style="border-radius:8px;font-size:13px;font-weight:500;border:1px solid transparent;background:transparent;color:#edf1ef">Aug</button>
+
+<button type="button" class="cell hov" aria-label="September 2026" aria-pressed="false" style="border-radius:8px;font-size:13px;font-weight:500;border:1px solid transparent;background:transparent;color:#edf1ef">Sep</button>
+
+<button type="button" class="cell hov" aria-label="October 2026" aria-pressed="true" style="border-radius:8px;font-size:13px;font-weight:500;border:1px solid #85908a;background:#34d399;color:#0a0d0c;border-color:#34d399">Oct</button>
+
+<button type="button" class="cell hov" aria-label="November 2026" aria-pressed="false" disabled="true" style="border-radius:8px;font-size:13px;font-weight:500;border:1px solid transparent;background:transparent;color:#85908a;opacity:0.4">Nov</button>
+
+<button type="button" class="cell hov" aria-label="December 2026" aria-pressed="false" disabled="true" style="border-radius:8px;font-size:13px;font-weight:500;border:1px solid transparent;background:transparent;color:#85908a;opacity:0.4">Dec</button>
+
+</div>
+<div style="font-size:12px;line-height:1.4;color:#85908a">Select a month, or drag across months for a range. Shift-click reaches across years.</div>
+</div>
+
+</div>
+</body>
+</html>

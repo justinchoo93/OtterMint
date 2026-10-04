@@ -14,6 +14,8 @@ async (page) => {
     });
     return { p: m ? m[1] : u, q };
   };
+  // The data below ends on 2026-09-26, so pin the page's clock there: the period picker reads today's date.
+  await page.clock.setFixedTime(new Date('2026-09-26T12:00:00Z'));
   const money = (n) => n.toFixed(2);
   const iso = (t) => new Date(t).toISOString().slice(0, 10);
   const TODAY = Date.UTC(2026, 8, 26);
