@@ -1,9 +1,10 @@
 // @vitest-environment node
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-const { mockGetUserId, mockWhere } = vi.hoisted(() => ({
+const { mockGetUserId, mockWhere, mockMemoriesWhere } = vi.hoisted(() => ({
   mockGetUserId: vi.fn(),
   mockWhere: vi.fn(),
+  mockMemoriesWhere: vi.fn(),
 }));
 
 const AUTH_ERROR = new Error("unauthorized");
@@ -17,10 +18,13 @@ vi.mock("@/lib/db/with-user", () => ({
   withUser: vi.fn(async (_userId: string, callback: (tx: unknown) => unknown) =>
     callback({
       select: vi.fn(() => ({
+        // Transactions: from().innerJoin().innerJoin().where();
+        // category memories: from().where().
         from: vi.fn(() => ({
           innerJoin: vi.fn(() => ({
             innerJoin: vi.fn(() => ({ where: mockWhere })),
           })),
+          where: mockMemoriesWhere,
         })),
       })),
     })
@@ -67,6 +71,7 @@ beforeEach(() => {
   vi.useFakeTimers();
   vi.setSystemTime(new Date("2026-09-29T12:00:00Z"));
   mockGetUserId.mockResolvedValue("user-123");
+  mockMemoriesWhere.mockResolvedValue([]);
   mockWhere.mockResolvedValue(FIXTURE_ROWS);
 });
 

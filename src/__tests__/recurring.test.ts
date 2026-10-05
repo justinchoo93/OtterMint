@@ -7,6 +7,7 @@ const TODAY = "2026-09-29";
 
 function row(date: string, amount: number, overrides: Partial<CashflowRow> = {}): CashflowRow {
   return {
+    id: 1,
     date,
     amount: amount.toFixed(2),
     name: "FIXTURE",

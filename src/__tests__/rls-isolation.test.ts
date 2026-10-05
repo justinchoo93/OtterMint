@@ -144,6 +144,14 @@ describe.skipIf(!APP_URL)("RLS full isolation", () => {
         investment_transaction_id, date, name, amount, type)
       values (${userB}, ${"acc-b-" + SUFFIX}, ${"itx-b-" + SUFFIX}, '2026-01-01', 'B div', '-20', 'cash')`;
 
+    // remembered categories
+    await adminSql`insert into category_memories (user_id, match_key, category,
+        category_detailed)
+      values (${userA}, 'a merchant', 'FOOD_AND_DRINK', 'FOOD_AND_DRINK_GROCERIES')`;
+    await adminSql`insert into category_memories (user_id, match_key, category,
+        category_detailed)
+      values (${userB}, 'b merchant', 'FOOD_AND_DRINK', 'FOOD_AND_DRINK_GROCERIES')`;
+
     // share links
     await adminSql`insert into share_links (user_id, token, include_net_worth)
       values (${userA}, ${"share-a-" + SUFFIX}, true)`;
@@ -214,6 +222,7 @@ describe.skipIf(!APP_URL)("RLS full isolation", () => {
     "account_balance_snapshots",
     "holding_snapshots",
     "investment_transactions",
+    "category_memories",
     "sessions",
   ] as const;
 
@@ -227,6 +236,7 @@ describe.skipIf(!APP_URL)("RLS full isolation", () => {
     "account_balance_snapshots",
     "holding_snapshots",
     "investment_transactions",
+    "category_memories",
     "sessions",
   ] as const;
 
@@ -266,6 +276,28 @@ describe.skipIf(!APP_URL)("RLS full isolation", () => {
                    ${"sneaky-coverage-" + SUFFIX}, '1', '0')`
       )
     ).rejects.toThrow(/row-level security/);
+  });
+
+  it("category_memories: WITH CHECK rejects a memory owned by B", async () => {
+    await expect(
+      asUser(userA, (tx) =>
+        tx`insert into category_memories (user_id, match_key, category, category_detailed)
+           values (${userB}, 'sneaky', 'FOOD_AND_DRINK', 'FOOD_AND_DRINK_GROCERIES')`
+      )
+    ).rejects.toThrow(/row-level security/);
+  });
+
+  it("transactions: A can set its own category choice but cannot touch B's", async () => {
+    const own = await asUser(userA, (tx) =>
+      tx`update transactions set user_category = 'INCOME', user_category_detailed = 'INCOME_SALARY'
+         where transaction_id = ${"txn-a-" + SUFFIX} returning id`
+    );
+    expect(own).toHaveLength(1);
+    const other = await asUser(userA, (tx) =>
+      tx`update transactions set user_category = 'INCOME', user_category_detailed = 'INCOME_SALARY'
+         where transaction_id = ${"txn-b-" + SUFFIX} returning id`
+    );
+    expect(other).toHaveLength(0);
   });
 
   it("leak proof: superuser sees BOTH A's and B's manual accounts", async () => {

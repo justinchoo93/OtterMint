@@ -13,6 +13,8 @@ import { eq, and, gte, asc, desc, inArray, sql } from "drizzle-orm";
 import { enforceRateLimit, getClientIp } from "@/lib/rate-limit";
 import { withUser } from "@/lib/db/with-user";
 import { applyCategoryRules } from "@/lib/category-rules";
+import { applyUserCategories } from "@/lib/category-memory";
+import { selectCategoryMemories } from "@/lib/db/classified-transactions";
 
 interface ShareLinkRow {
   user_id: string;
@@ -159,8 +161,10 @@ export async function GET(
                     merchantName: transactions.merchantName,
                     amount: transactions.amount,
                     category: transactions.category,
-                    // Selected only for applyCategoryRules; stripped below.
+                    // Selected only to correct the category; stripped below.
                     categoryDetailed: transactions.categoryDetailed,
+                    userCategory: transactions.userCategory,
+                    userCategoryDetailed: transactions.userCategoryDetailed,
                   })
                   .from(transactions)
                   .where(inArray(transactions.accountId, accountIds))
@@ -168,10 +172,10 @@ export async function GET(
                   .limit(200)
               : [];
 
-          // Corrected categories, same as the owner's own views; the shared
-          // payload keeps its original five fields.
-          result.transactions = txns
-            .map(applyCategoryRules)
+          // Corrected categories and the owner's own choices, same as the
+          // owner's views; the shared payload keeps its original five fields.
+          const memories = await selectCategoryMemories(tx, ownerId);
+          result.transactions = applyUserCategories(txns, txns.map(applyCategoryRules), memories)
             .map(({ date, name, merchantName, amount, category }) => ({
               date,
               name,

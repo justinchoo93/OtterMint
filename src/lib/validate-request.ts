@@ -82,3 +82,10 @@ export function validateBoundedInteger(
   }
   return { success: true };
 }
+
+/** A serial primary key from a path segment ("42"), or null when it is not one. */
+export function parseSerialId(raw: string): number | null {
+  if (!/^[1-9]\d{0,9}$/.test(raw)) return null;
+  const id = Number(raw);
+  return id <= 2147483647 ? id : null;
+}

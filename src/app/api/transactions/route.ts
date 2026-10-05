@@ -5,6 +5,8 @@ import { desc, eq, getTableColumns } from "drizzle-orm";
 import { getUserId, isAuthError } from "@/lib/auth/get-user-id";
 import { withUser } from "@/lib/db/with-user";
 import { applyCategoryRules } from "@/lib/category-rules";
+import { applyUserCategories } from "@/lib/category-memory";
+import { selectCategoryMemories } from "@/lib/db/classified-transactions";
 
 export type TransactionRow = {
   id: number;
@@ -15,6 +17,7 @@ export type TransactionRow = {
   merchantName: string | null;
   name: string;
   category: string | null;
+  categoryDetailed: string | null;
   pending: boolean;
   isoCurrencyCode: string | null;
 };
@@ -28,20 +31,23 @@ export async function GET(request: NextRequest) {
 
     // Scope transactions to the authenticated user via join (RLS also enforces
     // the boundary on every joined table).
-    const rows = await withUser(userId, (tx) =>
-      tx
+    const { rows, memories } = await withUser(userId, async (tx) => ({
+      rows: await tx
         .select({ ...getTableColumns(transactions) })
         .from(transactions)
         .innerJoin(accounts, eq(transactions.accountId, accounts.accountId))
         .innerJoin(plaidItems, eq(accounts.plaidItemId, plaidItems.id))
         .where(eq(plaidItems.userId, userId))
         .orderBy(desc(transactions.date), desc(transactions.id))
-        .limit(limit)
-    );
+        .limit(limit),
+      memories: await selectCategoryMemories(tx, userId),
+    }));
 
-    // Corrected categories everywhere the user sees them, consistent with
-    // the analytics (see src/lib/category-rules.ts).
-    const result: TransactionRow[] = rows.map(applyCategoryRules).map((row) => ({
+    // Corrected categories and the owner's choices everywhere the user sees
+    // them, consistent with the analytics (src/lib/category-rules.ts,
+    // src/lib/category-memory.ts).
+    const corrected = applyUserCategories(rows, rows.map(applyCategoryRules), memories);
+    const result: TransactionRow[] = corrected.map((row) => ({
       id: row.id,
       accountId: row.accountId,
       transactionId: row.transactionId,
@@ -50,6 +56,7 @@ export async function GET(request: NextRequest) {
       merchantName: row.merchantName,
       name: row.name,
       category: row.category,
+      categoryDetailed: row.categoryDetailed,
       pending: row.pending,
       isoCurrencyCode: row.isoCurrencyCode,
     }));

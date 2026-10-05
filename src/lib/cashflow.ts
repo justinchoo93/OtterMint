@@ -19,6 +19,8 @@ export interface ClassifiableTransaction {
 }
 
 export interface CashflowRow extends ClassifiableTransaction {
+  /** transactions.id, so a line item can be recategorized. */
+  id: number;
   /** Transaction date, "YYYY-MM-DD". */
   date: string;
   pending: boolean;
@@ -29,6 +31,8 @@ export interface CashflowRow extends ClassifiableTransaction {
 }
 
 export interface CashflowLineItem {
+  /** transactions.id of the row behind the item. */
+  id: number;
   date: string;
   /** Display-signed: income received is positive; savings contributions
       positive, withdrawals negative. */
@@ -87,6 +91,9 @@ export interface CashflowMonth {
 // to direction-based defaults.
 const KNOWN_PRIMARIES = [
   "BANK_FEES",
+  "CUSTOM_INCOME",
+  "CUSTOM_SAVINGS",
+  "CUSTOM_SPENDING",
   "ENTERTAINMENT",
   "FOOD_AND_DRINK",
   "GENERAL_MERCHANDISE",
@@ -103,6 +110,13 @@ const KNOWN_PRIMARIES = [
   "TRANSPORTATION",
   "TRAVEL",
 ];
+
+/** The primaries of categories the owner creates, and the flow each declares. */
+export const CUSTOM_PRIMARY_FLOWS: Record<string, Exclude<FlowType, "internal">> = {
+  CUSTOM_INCOME: "income",
+  CUSTOM_SPENDING: "spending",
+  CUSTOM_SAVINGS: "savings",
+};
 
 function primaryOf(txn: ClassifiableTransaction): string | null {
   if (txn.category) return txn.category;
@@ -126,6 +140,11 @@ function primaryOf(txn: ClassifiableTransaction): string | null {
  */
 export function classifyTransaction(txn: ClassifiableTransaction): FlowType {
   const detailed = txn.categoryDetailed;
+
+  // 0. Categories the owner created declare their flow in their primary
+  // (src/lib/category-memory.ts). Savings stays a signed sum.
+  const customFlow = txn.category ? CUSTOM_PRIMARY_FLOWS[txn.category] : undefined;
+  if (customFlow) return customFlow;
 
   // 1. Credit-card payments are internal on both sides: the purchases the
   // payment settles were already counted as spending on the card.
@@ -221,6 +240,7 @@ function categoryKeyOf(row: CashflowRow): string {
  */
 function toLineItem(row: CashflowRow, displayCents: number): CashflowLineItem {
   return {
+    id: row.id,
     date: row.date,
     amount: fromCents(displayCents),
     name: row.name,

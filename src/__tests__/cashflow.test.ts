@@ -27,6 +27,7 @@ function row(
 ): CashflowRow {
   return {
     ...txn(overrides),
+    id: 1,
     date,
     pending: false,
     name: "Fixture Txn",
@@ -209,6 +210,20 @@ describe("classifyTransaction", () => {
         txn({ amount: "-50.00", category: null, categoryDetailed: null })
       )
     ).toBe("income");
+  });
+
+  it("classifies categories the owner created by the flow they declare", () => {
+    expect(
+      classifyTransaction(txn({ amount: "-300.00", category: "CUSTOM_INCOME", categoryDetailed: "CUSTOM_INCOME_SIDE_GIG" }))
+    ).toBe("income");
+    expect(
+      classifyTransaction(txn({ amount: "200.00", category: "CUSTOM_SAVINGS", categoryDetailed: "CUSTOM_SAVINGS_BITCOIN" }))
+    ).toBe("savings");
+    expect(
+      classifyTransaction(
+        txn({ amount: "45.00", category: "CUSTOM_SPENDING", categoryDetailed: "CUSTOM_SPENDING_KIDS_ACTIVITIES" })
+      )
+    ).toBe("spending");
   });
 
   it("classifies real debt service (mortgage) as spending", () => {
@@ -403,6 +418,7 @@ describe("aggregateCashflow", () => {
     const [august] = aggregateCashflow(rows, { months: 1, today: TODAY });
     expect(august.incomeItems).toEqual([
       {
+        id: 1,
         date: "2026-08-01",
         amount: "0.04",
         name: "INTEREST PAYMENT",
@@ -411,6 +427,7 @@ describe("aggregateCashflow", () => {
         accountName: "PREMIER PLUS CKG",
       },
       {
+        id: 1,
         date: "2026-08-09",
         amount: "2600.00",
         name: "KING COUNTY PAYROLL",
@@ -491,6 +508,11 @@ describe("aggregateCashflow", () => {
 });
 
 describe("labelForCategoryKey", () => {
+  it("labels a created category by its name", () => {
+    expect(labelForCategoryKey("CUSTOM_SPENDING_KIDS_ACTIVITIES")).toBe("Kids Activities");
+    expect(labelForCategoryKey("CUSTOM_INCOME_SIDE_GIG")).toBe("Side Gig");
+  });
+
   it("strips the primary prefix from detailed keys", () => {
     expect(labelForCategoryKey("FOOD_AND_DRINK_RESTAURANTS")).toBe(
       "Restaurants"

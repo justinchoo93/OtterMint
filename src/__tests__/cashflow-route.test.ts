@@ -1,9 +1,10 @@
 // @vitest-environment node
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-const { mockGetUserId, mockWhere } = vi.hoisted(() => ({
+const { mockGetUserId, mockWhere, mockMemoriesWhere } = vi.hoisted(() => ({
   mockGetUserId: vi.fn(),
   mockWhere: vi.fn(),
+  mockMemoriesWhere: vi.fn(),
 }));
 
 const AUTH_ERROR = new Error("unauthorized");
@@ -17,10 +18,13 @@ vi.mock("@/lib/db/with-user", () => ({
   withUser: vi.fn(async (_userId: string, callback: (tx: unknown) => unknown) =>
     callback({
       select: vi.fn(() => ({
+        // Transactions: from().innerJoin().innerJoin().where();
+        // category memories: from().where().
         from: vi.fn(() => ({
           innerJoin: vi.fn(() => ({
             innerJoin: vi.fn(() => ({ where: mockWhere })),
           })),
+          where: mockMemoriesWhere,
         })),
       })),
     })
@@ -114,6 +118,7 @@ beforeEach(() => {
   vi.useFakeTimers();
   vi.setSystemTime(new Date("2026-08-13T12:00:00Z"));
   mockGetUserId.mockResolvedValue("user-123");
+  mockMemoriesWhere.mockResolvedValue([]);
   mockWhere.mockResolvedValue(FIXTURE_ROWS);
 });
 
@@ -220,6 +225,63 @@ describe("GET /api/analytics/cashflow", () => {
 
     expect(body.months[0].spendingByCategory).toEqual([
       { key: "ENTERTAINMENT_TV_AND_MOVIES", primary: "ENTERTAINMENT", total: "33.48" },
+    ]);
+  });
+
+  it("applies a memory to an uncategorized payroll descriptor, making it income", async () => {
+    // Without the memory the placeholder category counts this deposit as
+    // negative spending (src/lib/cashflow.ts rule 9).
+    const payroll = fixtureRow({
+      id: 900,
+      amount: "-2000.00",
+      date: "2026-08-08",
+      name: "ACME PAYROLL PPD 123",
+      category: "UNCATEGORIZED",
+      categoryDetailed: null,
+    });
+    mockWhere.mockResolvedValueOnce([payroll]);
+    const before = (await (await GET(request("?months=1"))).json()).months[0];
+    expect(before.income).toBe("0.00");
+    expect(before.spending).toBe("-2000.00");
+
+    mockWhere.mockResolvedValueOnce([payroll]);
+    mockMemoriesWhere.mockResolvedValueOnce([
+      { id: 1, matchKey: "acme payroll ppd", category: "INCOME", categoryDetailed: "INCOME_SALARY" },
+    ]);
+    const after = (await (await GET(request("?months=1"))).json()).months[0];
+    expect(after.income).toBe("2000.00");
+    expect(after.spending).toBe("0.00");
+    expect(after.spendingByCategory.map((c: { key: string }) => c.key)).not.toContain("UNCATEGORIZED");
+  });
+
+  it("totals a transaction under the owner's own choice, over a memory", async () => {
+    mockWhere.mockResolvedValueOnce([
+      fixtureRow({
+        id: 901,
+        amount: "45.00",
+        date: "2026-08-06",
+        name: "SOCCER CLUB 1",
+        category: "GENERAL_SERVICES",
+        categoryDetailed: "GENERAL_SERVICES_OTHER_GENERAL_SERVICES",
+        userCategory: "CUSTOM_SPENDING",
+        userCategoryDetailed: "CUSTOM_SPENDING_KIDS_ACTIVITIES",
+      }),
+      fixtureRow({
+        id: 902,
+        amount: "30.00",
+        date: "2026-08-07",
+        name: "SOCCER CLUB 2",
+        category: "GENERAL_SERVICES",
+        categoryDetailed: "GENERAL_SERVICES_OTHER_GENERAL_SERVICES",
+      }),
+    ]);
+    mockMemoriesWhere.mockResolvedValueOnce([
+      { id: 2, matchKey: "soccer club", category: "ENTERTAINMENT", categoryDetailed: "ENTERTAINMENT_SPORTING_EVENTS" },
+    ]);
+    const body = await (await GET(request("?months=1"))).json();
+    expect(body.months[0].spendingByCategory).toEqual([
+      { key: "CUSTOM_SPENDING_KIDS_ACTIVITIES", primary: "CUSTOM_SPENDING", total: "45.00" },
+      { key: "ENTERTAINMENT_SPORTING_EVENTS", primary: "ENTERTAINMENT", total: "30.00" },
     ]);
   });
 

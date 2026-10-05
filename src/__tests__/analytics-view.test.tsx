@@ -53,10 +53,10 @@ function buildMonths(): CashflowMonth[] {
           ]
         : [],
       incomeItems: hasData
-        ? [{ date: `${month}-15`, amount: income.toFixed(2), name: `PAYROLL ${month}`, merchantName: null, categoryKey: "INCOME_WAGES", accountName: "TOTAL CHECKING" }]
+        ? [{ id: 1, date: `${month}-15`, amount: income.toFixed(2), name: `PAYROLL ${month}`, merchantName: null, categoryKey: "INCOME_WAGES", accountName: "TOTAL CHECKING" }]
         : [],
       savingsItems: hasData
-        ? [{ date: `${month}-16`, amount: savings.toFixed(2), name: `BROKERAGE ${month}`, merchantName: null, categoryKey: "TRANSFER_OUT_INVESTMENT_AND_RETIREMENT_FUNDS", accountName: "TOTAL CHECKING" }]
+        ? [{ id: 2, date: `${month}-16`, amount: savings.toFixed(2), name: `BROKERAGE ${month}`, merchantName: null, categoryKey: "TRANSFER_OUT_INVESTMENT_AND_RETIREMENT_FUNDS", accountName: "TOTAL CHECKING" }]
         : [],
     };
   });
@@ -67,8 +67,8 @@ const ITEMS = {
   count: 2,
   total: "96.40",
   items: [
-    { date: "2026-09-21", amount: "58.20", name: "DIN TAI FUNG", merchantName: "Din Tai Fung", categoryKey: "FOOD_AND_DRINK_RESTAURANTS", accountName: "Sapphire" },
-    { date: "2026-09-12", amount: "38.20", name: "TACOS EL SOL", merchantName: null, categoryKey: "FOOD_AND_DRINK_RESTAURANTS", accountName: "Sapphire" },
+    { id: 21, date: "2026-09-21", amount: "58.20", name: "DIN TAI FUNG", merchantName: "Din Tai Fung", categoryKey: "FOOD_AND_DRINK_RESTAURANTS", accountName: "Sapphire" },
+    { id: 12, date: "2026-09-12", amount: "38.20", name: "TACOS EL SOL", merchantName: null, categoryKey: "FOOD_AND_DRINK_RESTAURANTS", accountName: "Sapphire" },
   ],
 };
 

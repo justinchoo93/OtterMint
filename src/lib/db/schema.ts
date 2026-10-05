@@ -220,6 +220,10 @@ export const transactions = pgTable(
     categoryDetailed: text("category_detailed"),
     pending: boolean("pending").notNull().default(false),
     isoCurrencyCode: text("iso_currency_code").default("USD"),
+    // The owner's choice for this one transaction, applied at read time over
+    // Plaid's columns (which sync rewrites). See src/lib/category-memory.ts.
+    userCategory: text("user_category"),
+    userCategoryDetailed: text("user_category_detailed"),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),
@@ -230,6 +234,28 @@ export const transactions = pgTable(
     index("idx_transactions_date_id").on(t.date, t.id),
     index("idx_transactions_user_id").on(t.userId),
   ]
+);
+
+// The owner's remembered categories: every transaction whose merchant key
+// matches `matchKey` takes this pair at read time (src/lib/category-memory.ts).
+export const categoryMemories = pgTable(
+  "category_memories",
+  {
+    id: serial("id").primaryKey(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    matchKey: text("match_key").notNull(),
+    category: text("category").notNull(),
+    categoryDetailed: text("category_detailed").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [unique("category_memories_user_key_unique").on(t.userId, t.matchKey)]
 );
 
 export const holdings = pgTable(
