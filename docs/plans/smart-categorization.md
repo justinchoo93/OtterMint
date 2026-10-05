@@ -19,11 +19,13 @@ To see it working: sign in, open Analytics, find "Needs a category", click the f
 - [x] (2026-10-04 02:46Z) Read the two earlier plans, the read path, the schema, the migration and deploy procedure, the Analytics and Dashboard components and the test idioms. Asked the owner four scope questions (answers in the Decision Log). Wrote this plan.
 - [x] (2026-10-04) Load-bearing review: thirteen assumptions listed; eight settled by reading the code and folded into the plan; five checked against production (read-only). Two were false (transaction ids are not URL-safe; one matching rule does not group person-to-person payments by payee) and the plan changed for both.
 - [x] (2026-10-04) Milestone 0 (prototype), done as part of the review: the owner's 2,226 rows were grouped under the matching rule with caps of three, four and five words; cap four chosen; results in Surprises & Discoveries.
-- [ ] Milestone 1: pure module `src/lib/category-memory.ts`, custom-category support in `src/lib/cashflow.ts`, unit tests.
-- [ ] Milestone 2: migration `0015`, schema, the shared read helper and the two display routes apply the owner's choices; route tests updated.
-- [ ] Milestone 3: the read and write API routes with route tests.
-- [ ] Milestone 4: the picker, the "Needs a category" card, the inline buttons and the Settings page, with component tests.
-- [ ] Milestone 5: visual check in the database-free harness, full checks, production before-and-after check, migration, merge and deploy (deploy only on the owner's go-ahead).
+- [x] (2026-10-04) Milestone 1: `src/lib/category-memory.ts` and created-category flows in `src/lib/cashflow.ts`; `category-memory.test.ts` and the new `cashflow.test.ts` cases pass.
+- [x] (2026-10-04) Milestone 2: migration `drizzle/0015_pale_black_bolt.sql` (generated offline, grants and policy appended by hand); the read helper (`loadClassifiedTransactions`) and both display routes apply the owner's choices; route mocks updated; the payroll-memory and own-choice route tests pass. All sixteen migrations applied cleanly to a disposable local PostgreSQL 17, and the real-database RLS suite (four new cases) passes 45/45.
+- [x] (2026-10-04) Milestone 3: the six routes and `category-routes.test.ts` (16 cases).
+- [x] (2026-10-04) Milestone 4: picker, queue card, inline buttons, settings page, avatar link; `category-picker.test.tsx`, `needs-category-card.test.tsx`, and one new case each in the two view suites.
+- [x] (2026-10-05 00:30Z) Milestone 5, local: the real app against the disposable database with a synthetic owner, driven with Playwright at 1440 and 390 wide (evidence in Artifacts and Notes); a gated real-database test runs the real sync upserts; the real-row check on the production export; full gate green after rebasing onto main's period picker (665 passed, 46 skipped without a database; 46/46 real-database; tsc, lint and build clean).
+- [x] (2026-10-05 00:40Z) Milestone 5, production: migration rehearsed in a rolled-back transaction as `app_user`, then applied (journal row 16, `1245a391d99f`, 1791159472147).
+- [ ] Milestone 5, remaining: merge to main, deploy, verify the live app; the owner categorizes one real group.
 
 
 ## Surprises & Discoveries
@@ -58,6 +60,17 @@ Seeded from research; add implementation findings below.
   Evidence: role `app_user` exists without superuser or bypass; `app_current_user_id()` exists; `transactions` grants select, insert, update and delete to `app_user` and has the policy `transactions_isolation` for all commands with row-level security enabled and forced; the migration journal's latest row is `0014_rich_big_bertha` (15 rows), so the next is `0015`.
 
 - Observation: backfilled payroll carries both `INCOME_SALARY` and `INCOME_WAGES`; both have the primary `INCOME`, which is what `classifyTransaction` reads, so both count as income.
+
+- Observation (implementation): the negative-spending bug distorts comparisons as well as totals. With uncategorized payroll in the prior period, the Dashboard showed "Spending +136% vs prior 6 mo" against a negative prior total; after one memory the prior period's spending became a real $3,966.81 and the comparison +374%. On the synthetic owner, one save moved 2026 income from $45,980 to $78,140 and year-to-date spending from −$16,129 to $16,031.
+
+- Observation (implementation): the views animate in with `transform: translateY(0)` held by `animation-fill-mode: both`, which makes every fixed-position descendant position relative to the view instead of the window. The picker is therefore portaled to `<body>`.
+  Evidence: `.animate-fade-in` in `src/app/globals.css`.
+
+- Observation (implementation): `buttonClassName` carries `inline-flex`, which beats an appended `hidden` (the design-system note about unmerged classes, in practice). The queue row's decorative pill is wrapped in a `hidden sm:block` span instead.
+
+- Observation (production export, real-row check): with eight memories a person would make from the largest groups (Venmo skipped as a channel), 99 of the 475 uncategorized rows take a category; uncategorized purchases fall from $57,146.10 to $51,976.45 and uncategorized inflows from $9,555.25 to $608.14; no row outside a memorized group changes. 85 rows move within spending and 14 card payments move from spending to internal, so total spending rises in months with a "BA ELECTRONIC PAYMENT" (January 2026 by $2,000): those payments had been subtracting from spending.
+
+- Observation (implementation): a memory's "similar" count includes Plaid-era rows that already carry the same category (the synthetic payroll group showed "44 similar", 33 backfilled and 11 Plaid-era). The count is accurate about reach; it is not a count of rows that will change.
 
 
 ## Decision Log
@@ -136,10 +149,30 @@ Seeded from research; add implementation findings below.
   Rationale: one save, one stored fact, so there is never a stale single choice shadowing a memory the owner just made.
   Date/Author: 2026-10-03, Claude.
 
+- Decision: A save with "apply to similar" writes into the memory that already decides the row when there is one (`memoryKeyForRow`), and only otherwise into the row's own key.
+  Rationale: if a longer memory already decides a row, a new shorter memory would lose to it and the save would visibly do nothing to the row the owner clicked.
+  Date/Author: 2026-10-04, Claude (implementation).
+
+- Decision: The uncategorized route reports money out and money in separately (`outflow`, `inflow`), and the card's caption shows both.
+  Rationale: the production groups mix purchases with deposits and card payments; one signed total would hide both.
+  Date/Author: 2026-10-04, Claude (implementation).
+
+- Decision: In the queue, the whole row is the button; the "Categorize" pill is decoration shown from `sm` up.
+  Rationale: at 390 wide a separate button left about 140px for the merchant name; the row as the control keeps a 62px tap target and roughly doubles the visible label.
+  Date/Author: 2026-10-05, Claude (Playwright check at 390 wide).
+
+- Decision: Local acceptance ran the real app against a disposable PostgreSQL 17 container (all migrations, the `app_user` role, a synthetic owner registered through the real API) rather than the database-free harness, and "survives a Plaid sync" is proven by a gated real-database test that runs the real `syncTransactions` with Plaid's API mocked.
+  Rationale: Docker was available, which tests the migration, RLS, writes and reads end to end; the Refresh button needs live Plaid credentials the development machine does not have.
+  Date/Author: 2026-10-04, Claude.
+
 
 ## Outcomes & Retrospective
 
-Nothing built yet.
+(2026-10-05, before deploy) The owner can now categorize any transaction in the app, from the Analytics tab's "Needs a category" queue, the Dashboard's detail rows or the Recent Transactions feed, and the app remembers the choice for the merchant's past and future transactions unless the box is unticked. Created categories declare their flow and count in the right total. Every choice is read-time, so Plaid sync never touches it and removing a memory restores exactly what was there. On the owner's real rows, eight choices clear a fifth of the uncategorized transactions and nearly all of the deposits that were being counted as negative spending.
+
+Storage is one additive migration (two nullable columns and one RLS-guarded table), rehearsed and applied in production before the code. The load-bearing review paid for itself before any code existed: it replaced an enrichment-dependent matcher that would have silently dropped memories, and it caught the colon-bearing transaction ids that would have broken the routes. Running the real app against a disposable database caught what unit tests could not: the transform that would have trapped the dialog, the phone layout, and the sign of the sample amounts.
+
+What remains: the deploy and the owner's first real save. The accepted limits of the matching rule stand (era split for seventeen merchants, one-word memories reaching wider until a longer one exists, reference codes in the first four words).
 
 
 ## Context and Orientation
@@ -321,6 +354,19 @@ Every code step is additive and covered by tests; re-running a check is harmless
 
 Production facts (2026-10-04) are in Surprises & Discoveries: 2,226 rows, 475 uncategorized in about 290 groups. The export and the analysis scripts from the review are in the session scratchpad and are not checked in; the export query is in Concrete Steps.
 
+Local end-to-end run (2026-10-05), real app on `next dev` against a disposable `postgres:17` container on 127.0.0.1:5433 with all sixteen migrations and a synthetic owner (289 transactions shaped like production; no real data). Observed through the UI and the same APIs the charts use:
+
+    Payroll group (34 rows) saved as Salary  -> queue 89 -> 55 rows; Uncategorized fold -$4,896 -> -$511 a month
+    Monkey Grind (16 rows, $116.62) as Coffee -> UNCATEGORIZED -116.62, FOOD_AND_DRINK_COFFEE +116.62, total spending unchanged
+    One Uber ride, box unticked, Kids Activities -> Taxis -36.49, Kids Activities +36.49, no memory written
+    Settings: remove Monkey Grind             -> group back in the queue with 16 rows, $116.62
+    Feed: Reset to original                   -> the ride shows Taxis And Ride Shares again
+    Venmo similar -> key "venmo", defaultApply false; Trader Joe's -> 91 similar, defaultApply true; "BP 1234" -> key ""
+    Pending one-off PUT -> 400; no session -> 401 on all four GET routes; foreign Origin PUT -> 403
+    Second user probing the first user's ids -> 404 on similar, PUT, DELETE and memory DELETE
+
+Production rehearsal of `0015` (rolled back): CREATE TABLE, ALTER x3, GRANT x2, ALTER x2, CREATE POLICY; as app_user under the owner's context the upsert inserted then updated, the owner saw 1 memory, `UPDATE 1` on a transaction; after ROLLBACK the table was absent and the journal still had 15 rows. Applied: journal row 16 `1245a391d99f` / 1791159472147.
+
 The fixed pairs always offered by the picker, chosen because they change how money is counted or are everyday needs: `INCOME` / `INCOME_SALARY`, `INCOME` / `INCOME_INTEREST_EARNED`, `INCOME` / `INCOME_DIVIDENDS`, `TRANSFER_OUT` / `TRANSFER_OUT_SAVINGS`, `TRANSFER_OUT` / `TRANSFER_OUT_INVESTMENT_AND_RETIREMENT_FUNDS`, `TRANSFER_IN` / `TRANSFER_IN_INVESTMENT_AND_RETIREMENT_FUNDS`, `TRANSFER_OUT` / `TRANSFER_OUT_ACCOUNT_TRANSFER`, `TRANSFER_IN` / `TRANSFER_IN_ACCOUNT_TRANSFER`, `LOAN_PAYMENTS` / `LOAN_PAYMENTS_CREDIT_CARD_PAYMENT`, `FOOD_AND_DRINK` / `FOOD_AND_DRINK_GROCERIES`, `RENT_AND_UTILITIES` / `RENT_AND_UTILITIES_RENT`. Production carries both `INCOME_SALARY` and `INCOME_WAGES` for payroll; both count as income. The account-transfer and card-payment pairs are how the owner marks a row as "not counted" (the classifier treats them as internal).
 
 
@@ -339,12 +385,19 @@ In `src/lib/category-memory.ts` (new, pure):
     }
     export type CustomFlow = "income" | "spending" | "savings";
 
+    /** A row from the read helper: merchantName may come from enrichment; storedMerchantName is the column. */
+    export interface ReadRow { id: number; name: string; merchantName: string | null; storedMerchantName: string | null; userCategory?: string | null; userCategoryDetailed?: string | null }
     /**
      * The key a memory saved from this row gets. `stored` is the row as stored;
      * `enrichedMerchantName` is the merchant enrichment joined it to, if any.
      * Empty string when the row cannot be memorized.
      */
     export function memoryKeyToSave(stored: { merchantName: string | null; name: string }, enrichedMerchantName: string | null): string;
+    export function rowMemoryKey(row: ReadRow): string;
+    /** The memory that already decides the row, else rowMemoryKey: what a save writes. */
+    export function memoryKeyForRow(row: ReadRow, memories: CategoryMemory[]): string;
+    /** The rows each memory decides, by key (rows with their own choice excluded). */
+    export function memoryMatches<T extends ReadRow>(rows: T[], memories: CategoryMemory[]): Map<string, T[]>;
     /** The memory that applies to a stored row, or null (exact for Plaid-named rows, longest prefix for descriptors). */
     export function findMemory<M extends CategoryMemory>(stored: { merchantName: string | null; name: string }, memories: M[]): M | null;
     /**
@@ -352,8 +405,8 @@ In `src/lib/category-memory.ts` (new, pure):
      * else memory, else unchanged (same object). The two arrays are index-aligned. Never mutates.
      */
     export function applyUserCategories<S extends MemoryRow, T extends { category: string | null; categoryDetailed: string | null }>(stored: S[], processed: T[], memories: CategoryMemory[]): T[];
-    /** Stored rows a memory with this key would apply to, excluding the given transaction. */
-    export function similarRows<T extends MemoryRow>(stored: T[], key: string, exceptId: number): T[];
+    /** Rows a memory with this key would decide alongside the existing memories, excluding the given transaction and rows with their own choice. */
+    export function similarRows<T extends ReadRow>(rows: T[], key: string, exceptId: number, memories?: CategoryMemory[]): T[];
     /** False for payment-app, check and cash keys, where similar descriptors are different payees. */
     export function defaultApplyToSimilar(key: string): boolean;
     export interface UncategorizedGroup {
@@ -372,7 +425,9 @@ In `src/lib/cashflow.ts` (changed): three created primaries in `KNOWN_PRIMARIES`
 
 In `src/lib/db/schema.ts` (changed): `transactions.userCategory`, `transactions.userCategoryDetailed`, and `categoryMemories`.
 
-In `src/lib/db/classified-transactions.ts` (changed): `ClassifiedTransactionRow` gains `id`, `userCategory`, `userCategoryDetailed`; new `selectCategoryMemories(tx: WithUserTx, userId: string): Promise<CategoryMemory[]>`; the helper returns `applyUserCategories(rows, enrichDescriptors(rows).map(applyCategoryRules), memories)`. Because the write routes need each row's stored merchant name to compute the key to save, the helper's rows also carry `storedMerchantName: string | null`.
+In `src/lib/db/classified-transactions.ts` (changed): `ClassifiedTransactionRow` gains `id`, `storedMerchantName`, `userCategory`, `userCategoryDetailed`; new `selectCategoryMemories(tx, userId): Promise<StoredCategoryMemory[]>` (memories with their `id`) and `loadClassifiedTransactions(tx, userId, since): Promise<{ rows, memories }>`, which the category routes use so the memories are read once; `selectClassifiedTransactionRows` returns its `rows`.
+
+In `src/lib/validate-request.ts` (changed): `parseSerialId(raw: string): number | null` for the `[id]` path segments.
 
 In `src/app/api/transactions/route.ts` (changed): `TransactionRow` gains `categoryDetailed: string | null`.
 
@@ -384,5 +439,7 @@ Components (new): `src/components/dashboard/CategoryPicker.tsx`, `src/components
 ---
 
 Revision note (2026-10-03): Initial version, written from a read of the code and the two earlier category plans, with the owner's four scope answers. Nothing implemented.
+
+Revision note (2026-10-05): Implemented Milestones 1 to 5 up to the deploy. Recorded the implementation decisions (save into the deciding memory, out/in totals, whole-row buttons on phones, local acceptance against a disposable PostgreSQL), the surprises (the fade-in transform, the unmerged button class, the comparison distortion, the real-row results), the local and production evidence, and the interfaces as built. Rebased onto main's period picker before merging.
 
 Revision note (2026-10-04): Load-bearing review. Matching now reads stored columns only (the first draft's dependence on enrichment could make a memory stop applying and made the feed disagree with analytics); the four-letter floor guards prefix matches only; the save cap is four words; the "apply to similar" box starts unticked for payment-app, check and cash keys and the picker shows sample transactions; single-transaction routes are keyed on the numeric id because backfilled transaction ids contain colons; the category button is disabled on pending rows; the feed's API and labels carry the detailed category; a rolled-back production rehearsal precedes the migration; the picker's options include pairs held only by memories; the uncategorized figures are corrected from 217 to 475 and the claim that a few choices clear most of the pile is withdrawn. Milestone 0 was completed as part of the review. The statement importer was found outside the repository and read: reruns skip existing rows, so that risk is closed.
