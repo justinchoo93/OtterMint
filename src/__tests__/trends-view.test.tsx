@@ -113,9 +113,29 @@ const RECURRING: RecurringSummary = {
   asOf: "2026-09-26",
 };
 
-function stubFetch(options: { months?: CashflowMonth[]; cashflowOk?: boolean; recurringOk?: boolean } = {}) {
+const QUEUE = {
+  groups: [{ key: "acme payroll ppd", label: "ACME PAYROLL PPD 123", count: 24, total: "-48000.00", firstDate: "2025-01-15", lastDate: "2025-12-31", id: 77 }],
+  count: 24,
+  outflow: "0.00",
+  inflow: "48000.00",
+};
+
+function stubFetch(
+  options: { months?: CashflowMonth[]; cashflowOk?: boolean; recurringOk?: boolean; uncategorized?: typeof QUEUE } = {}
+) {
   const months = options.months ?? buildMonths();
   const fn = vi.fn(async (url: string) => {
+    if (url.startsWith("/api/analytics/uncategorized")) {
+      return { ok: true, json: async () => options.uncategorized ?? { groups: [], count: 0, outflow: "0.00", inflow: "0.00" } };
+    }
+    if (url === "/api/categories") return { ok: true, json: async () => ({ options: [] }) };
+    if (url.endsWith("/similar")) {
+      return {
+        ok: true,
+        json: async () => ({ key: "payroll", label: "PAYROLL", similarCount: 5, samples: [], defaultApply: true, category: "INCOME", categoryDetailed: "INCOME_WAGES", hasOwnChoice: false, hasMemory: false, pending: false }),
+      };
+    }
+
     if (url.startsWith("/api/analytics/recurring")) {
       return options.recurringOk === false ? { ok: false, status: 500 } : { ok: true, json: async () => RECURRING };
     }
@@ -139,6 +159,16 @@ afterEach(() => {
 });
 
 describe("TrendsView", () => {
+  it("shows the Needs a category queue above recurring charges and opens the picker from it", async () => {
+    stubFetch({ uncategorized: QUEUE });
+    render(<TrendsView />);
+    const queue = await screen.findByRole("region", { name: "Needs a category" });
+    const recurring = screen.getByRole("region", { name: "Recurring charges" });
+    expect(queue.compareDocumentPosition(recurring) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    fireEvent.click(within(queue).getByRole("button", { name: "Categorize ACME PAYROLL PPD 123" }));
+    expect(screen.getByRole("dialog", { name: "Choose a category" })).toBeInTheDocument();
+  });
+
   it("fetches cash flow and recurring charges once and opens on 1Y with a comparison", async () => {
     const fetchMock = stubFetch();
     render(<TrendsView />);

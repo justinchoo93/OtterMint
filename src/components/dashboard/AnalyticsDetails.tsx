@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import { X } from "lucide-react";
 import { Button, Card, CardHeader, cx, EmptyState } from "@/components/ui";
 import type { AnalyticsDetail } from "@/components/dashboard/AnalyticsView";
+import { CategoryPicker } from "@/components/dashboard/CategoryPicker";
 import {
   categoryRowFor,
   monthLongLabel,
@@ -26,6 +27,8 @@ interface AnalyticsDetailsProps {
   onClose: () => void;
   /** Changes after a data refresh; refetches the open list. */
   refreshKey?: number;
+  /** Called after the owner changes a transaction's category here. */
+  onCategorized?: () => void;
 }
 
 type ItemsState =
@@ -54,7 +57,32 @@ function Stat({ label, value }: { label: string; value: string }) {
   );
 }
 
-function ItemsTable({ items, tone }: { items: CashflowLineItem[]; tone: "income" | "neutral" }) {
+function CategoryButton({ item, onPick }: { item: CashflowLineItem; onPick: (item: CashflowLineItem) => void }) {
+  const label = labelForCategoryKey(item.categoryKey);
+  return (
+    <button
+      type="button"
+      onClick={() => onPick(item)}
+      aria-label={`Change category of ${item.merchantName ?? item.name}, now ${label}`}
+      // The ::before extends the tap target to 44px on phones without
+      // changing the row's height; the label truncates in its own span so the
+      // button does not clip that target.
+      className="relative inline-flex max-w-full text-left transition-colors before:absolute before:-inset-x-1 before:-inset-y-3 before:content-[''] hover:text-ink md:before:-inset-y-1"
+    >
+      <span className="truncate underline decoration-line decoration-dotted underline-offset-4">{label}</span>
+    </button>
+  );
+}
+
+function ItemsTable({
+  items,
+  tone,
+  onPick,
+}: {
+  items: CashflowLineItem[];
+  tone: "income" | "neutral";
+  onPick: (item: CashflowLineItem) => void;
+}) {
   return (
     <div className="mt-4 max-h-[480px] overflow-y-auto">
       <table className="w-full table-fixed border-collapse text-[13px]">
@@ -68,21 +96,23 @@ function ItemsTable({ items, tone }: { items: CashflowLineItem[]; tone: "income"
           </tr>
         </thead>
         <tbody>
-          {items.map((item, index) => {
+          {items.map((item) => {
             const amount = Number.parseFloat(item.amount);
             return (
-              <tr key={`${item.date}-${item.name}-${index}`} className="border-b border-line-subtle">
+              <tr key={item.id} className="border-b border-line-subtle">
                 <td className="py-2.5 pr-3 pl-2.5 align-top font-mono text-xs text-ink-muted tabular-nums">
                   {shortDate(item.date)}
                 </td>
                 <td className="py-2.5 pr-3 align-top">
                   <span className="block truncate text-ink">{item.merchantName ?? item.name}</span>
-                  <span className="block truncate text-xs text-ink-muted md:hidden">
-                    {labelForCategoryKey(item.categoryKey)} · {item.accountName}
+                  <span className="flex min-w-0 text-xs text-ink-muted md:hidden">
+                    <CategoryButton item={item} onPick={onPick} />
+                    <span className="shrink-0 px-1">·</span>
+                    <span className="truncate">{item.accountName}</span>
                   </span>
                 </td>
-                <td className="hidden truncate py-2.5 pr-3 align-top text-ink-secondary md:table-cell">
-                  {labelForCategoryKey(item.categoryKey)}
+                <td className="hidden py-2.5 pr-3 align-top text-ink-secondary md:table-cell">
+                  <CategoryButton item={item} onPick={onPick} />
                 </td>
                 <td className="hidden truncate py-2.5 pr-3 align-top text-ink-secondary md:table-cell">
                   {item.accountName}
@@ -152,9 +182,11 @@ export function AnalyticsDetails({
   rows,
   onClose,
   refreshKey,
+  onCategorized,
 }: AnalyticsDetailsProps) {
   const ref = useRef<HTMLElement>(null);
   const [items, setItems] = useState<ItemsState>({ status: "idle" });
+  const [picking, setPicking] = useState<CashflowLineItem | null>(null);
   const from = periodMonths[0]?.month ?? "";
   const to = periodMonths[periodMonths.length - 1]?.month ?? "";
   const selectedCategory = detail?.kind === "category" ? detail.key : null;
@@ -230,7 +262,7 @@ export function AnalyticsDetails({
     if (items.data.items.length === 0) {
       return <EmptyState className="mt-4">No transactions in this period.</EmptyState>;
     }
-    return <ItemsTable items={items.data.items} tone={tone} />;
+    return <ItemsTable items={items.data.items} tone={tone} onPick={setPicking} />;
   };
   const remoteCount = items.status === "ready" ? items.data.count : null;
 
@@ -261,7 +293,7 @@ export function AnalyticsDetails({
       list.length === 0 ? (
         <EmptyState className="mt-4">No transactions in this period.</EmptyState>
       ) : (
-        <ItemsTable items={list} tone={isIncome ? "income" : "neutral"} />
+        <ItemsTable items={list} tone={isIncome ? "income" : "neutral"} onPick={setPicking} />
       );
     footer = `${list.length} ${list.length === 1 ? "transaction" : "transactions"}`;
   } else if (detail.kind === "net") {
@@ -342,6 +374,14 @@ export function AnalyticsDetails({
       />
       {body}
       {footer && <p className="mt-3 text-xs text-ink-muted">{footer}</p>}
+      {picking && (
+        <CategoryPicker
+          id={picking.id}
+          title={picking.merchantName ?? picking.name}
+          onClose={() => setPicking(null)}
+          onSaved={() => onCategorized?.()}
+        />
+      )}
     </Card>
   );
 }

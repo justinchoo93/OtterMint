@@ -76,6 +76,13 @@ export function AvatarMenu({ displayName }: AvatarMenuProps) {
           >
             Share Links
           </Link>
+          <Link
+            href="/settings/categories"
+            className="block px-3 py-2 text-sm text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-hover)]"
+            onClick={() => setOpen(false)}
+          >
+            Categories
+          </Link>
           <button
             onClick={handleSignOut}
             className="block w-full px-3 py-2 text-left text-sm text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-hover)]"

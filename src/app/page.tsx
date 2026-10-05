@@ -132,6 +132,10 @@ export default function Dashboard() {
     }
   }, [group]);
 
+  // A category change re-reads every view that shows categories; nothing
+  // else (accounts, balances) changed, so no account refetch.
+  const handleCategorized = useCallback(() => setRefreshKey((k) => k + 1), []);
+
   const handleRefresh = useCallback(() => {
     fetchAccounts();
     setRefreshKey((k) => k + 1);
@@ -208,6 +212,7 @@ export default function Dashboard() {
           manualAccounts={visibleManualAccounts}
           groupId={isHousehold ? group?.id : undefined}
           refreshKey={refreshKey}
+          onCategorized={handleCategorized}
         />
       );
     }
@@ -238,7 +243,7 @@ export default function Dashboard() {
               Household transaction feeds are not available yet.
             </div>
           ) : (
-            <TransactionsFeed refreshKey={refreshKey} />
+            <TransactionsFeed refreshKey={refreshKey} onCategorized={handleCategorized} />
           )}
         </div>
       );
@@ -262,6 +267,7 @@ export default function Dashboard() {
       <TrendsView
         groupId={isHousehold ? group?.id : undefined}
         refreshKey={refreshKey}
+        onCategorized={handleCategorized}
       />
     );
   };

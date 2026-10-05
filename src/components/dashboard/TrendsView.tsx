@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Card, EmptyState, Skeleton } from "@/components/ui";
 import { CategoryTrendsCard } from "@/components/dashboard/CategoryTrendsCard";
+import { NeedsCategoryCard } from "@/components/dashboard/NeedsCategoryCard";
 import { PeriodBar } from "@/components/dashboard/PeriodBar";
 import { RecurringChargesCard, type RecurringState } from "@/components/dashboard/RecurringChargesCard";
 import { SavingsRateCard } from "@/components/dashboard/SavingsRateCard";
@@ -24,6 +25,8 @@ interface TrendsViewProps {
   /** Set for the household view, which has no analytics yet. */
   groupId?: string;
   refreshKey?: number;
+  /** Called after the owner changes a category, so every view refetches. */
+  onCategorized?: () => void;
 }
 
 type CashflowState = {
@@ -36,7 +39,7 @@ type CashflowState = {
  * trends, scoped by the period bar), this year against last, and what
  * repeats (recurring charges, not scoped).
  */
-export function TrendsView({ groupId, refreshKey }: TrendsViewProps) {
+export function TrendsView({ groupId, refreshKey, onCategorized }: TrendsViewProps) {
   const [selection, setSelection] = useState<Period>({ kind: "preset", id: "1Y" });
   const [cashflow, setCashflow] = useState<CashflowState>({ status: "loading", months: [] });
   const [recurring, setRecurring] = useState<RecurringState>({ status: "loading", summary: null });
@@ -151,6 +154,8 @@ export function TrendsView({ groupId, refreshKey }: TrendsViewProps) {
           </div>
         </>
       )}
+
+      <NeedsCategoryCard refreshKey={refreshKey} onCategorized={onCategorized} />
 
       <RecurringChargesCard state={recurring} />
     </div>

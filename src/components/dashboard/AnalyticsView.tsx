@@ -42,6 +42,8 @@ interface AnalyticsViewProps {
   /** Set for the household view, which has net worth only. */
   groupId?: string;
   refreshKey?: number;
+  /** Called after the owner changes a category, so every view refetches. */
+  onCategorized?: () => void;
 }
 
 type CashflowState =
@@ -61,7 +63,7 @@ const TILES: Array<{
   { kind: "net", label: "Net cash flow", key: "netCashFlow", upIsGood: true },
 ];
 
-export function AnalyticsView({ accounts, manualAccounts, groupId, refreshKey }: AnalyticsViewProps) {
+export function AnalyticsView({ accounts, manualAccounts, groupId, refreshKey, onCategorized }: AnalyticsViewProps) {
   const [selection, setSelection] = useState<Period>({ kind: "preset", id: "6M" });
   const [detail, setDetail] = useState<AnalyticsDetail>(null);
   const [cashflow, setCashflow] = useState<CashflowState>({ status: "loading", months: [] });
@@ -162,6 +164,7 @@ export function AnalyticsView({ accounts, manualAccounts, groupId, refreshKey }:
           detail={detail}
           onDetailChange={setDetail}
           refreshKey={refreshKey}
+          onCategorized={onCategorized}
         />
       )}
     </div>
@@ -176,6 +179,7 @@ interface CashflowSectionsProps {
   detail: AnalyticsDetail;
   onDetailChange: (detail: AnalyticsDetail) => void;
   refreshKey?: number;
+  onCategorized?: () => void;
 }
 
 function focusFirst(selector: string) {
@@ -190,6 +194,7 @@ function CashflowSections({
   detail,
   onDetailChange,
   refreshKey,
+  onCategorized,
 }: CashflowSectionsProps) {
   const totals = sumPeriod(period.periodMonths);
   // Like for like: a period ending in the current month compares with the same days of the prior one.
@@ -240,6 +245,7 @@ function CashflowSections({
         comparisonLabel={period.comparisonLabel}
         rows={rows}
         refreshKey={refreshKey}
+        onCategorized={onCategorized}
         onClose={() => {
           // Return focus to the tile or row that opened the panel before it unmounts.
           if (detail?.kind === "category") focusFirst(`[data-category-key="${detail.key}"]`);

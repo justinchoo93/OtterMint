@@ -80,6 +80,13 @@ function stubFetch(options: { months?: CashflowMonth[]; cashflowOk?: boolean } =
       return options.cashflowOk === false ? { ok: false, status: 500 } : { ok: true, json: async () => ({ months }) };
     }
     if (url.includes("/net-worth")) return { ok: true, json: async () => HISTORY };
+    if (url === "/api/categories") return { ok: true, json: async () => ({ options: [] }) };
+    if (url.endsWith("/similar")) {
+      return {
+        ok: true,
+        json: async () => ({ key: "payroll", label: "PAYROLL", similarCount: 5, samples: [], defaultApply: true, category: "INCOME", categoryDetailed: "INCOME_WAGES", hasOwnChoice: false, hasMemory: false, pending: false }),
+      };
+    }
     throw new Error(`unexpected fetch ${url}`);
   });
   vi.stubGlobal("fetch", fn);
@@ -285,6 +292,18 @@ describe("AnalyticsView", () => {
     fireEvent.click(within(panel).getByRole("button", { name: "Close details" }));
     expect(screen.queryByRole("region", { name: "Income details" })).not.toBeInTheDocument();
     expect(tile("Income")).toHaveAttribute("aria-pressed", "false");
+  });
+
+  it("opens the category picker from a line item's category", async () => {
+    const fetchMock = stubFetch();
+    await renderView();
+    fireEvent.click(tile("Income"));
+    const details = screen.getByRole("region", { name: "Income details" });
+    const [button] = within(details).getAllByRole("button", { name: "Change category of PAYROLL 2026-09, now Wages" });
+    fireEvent.click(button);
+    expect(screen.getByRole("dialog", { name: "Choose a category" })).toBeInTheDocument();
+    await screen.findByRole("checkbox", { name: "Also apply to 5 similar transactions and future ones" });
+    expect(calls(fetchMock, "/api/transactions/")).toEqual(["/api/transactions/1/similar"]);
   });
 
   it("shows savings withdrawals as negative amounts", async () => {

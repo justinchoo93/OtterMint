@@ -1,29 +1,14 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { CategoryPicker } from "@/components/dashboard/CategoryPicker";
+import { labelForCategoryKey } from "@/lib/cashflow";
 import { formatCurrency } from "@/lib/format";
 import type { TransactionRow } from "@/app/api/transactions/route";
 
-const CATEGORY_LABELS: Record<string, string> = {
-  FOOD_AND_DRINK: "Food & Drink",
-  TRANSPORTATION: "Transport",
-  TRAVEL: "Travel",
-  TRANSFER_IN: "Transfer In",
-  TRANSFER_OUT: "Transfer Out",
-  LOAN_PAYMENTS: "Loan Payment",
-  RENT_AND_UTILITIES: "Bills",
-  ENTERTAINMENT: "Entertainment",
-  GENERAL_MERCHANDISE: "Shopping",
-  GENERAL_SERVICES: "Services",
-  PERSONAL_CARE: "Personal Care",
-  MEDICAL: "Medical",
-  INCOME: "Income",
-  GOVERNMENT_AND_NON_PROFIT: "Government",
-};
-
-function formatCategory(category: string | null): string {
-  if (!category) return "Other";
-  return CATEGORY_LABELS[category] ?? category.replace(/_/g, " ").toLowerCase();
+/** The same label the analytics use, from the most specific category. */
+function categoryLabel(txn: TransactionRow): string {
+  return labelForCategoryKey(txn.categoryDetailed ?? txn.category ?? "UNCATEGORIZED");
 }
 
 function formatDate(dateStr: string): string {
@@ -43,11 +28,14 @@ function formatDate(dateStr: string): string {
 
 interface TransactionsFeedProps {
   refreshKey?: number;
+  /** Called after the owner changes a category, so every view refetches. */
+  onCategorized?: () => void;
 }
 
-export function TransactionsFeed({ refreshKey }: TransactionsFeedProps) {
+export function TransactionsFeed({ refreshKey, onCategorized }: TransactionsFeedProps) {
   const [transactions, setTransactions] = useState<TransactionRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [picking, setPicking] = useState<TransactionRow | null>(null);
 
   const fetchTransactions = useCallback(async () => {
     try {
@@ -124,9 +112,19 @@ export function TransactionsFeed({ refreshKey }: TransactionsFeedProps) {
                   <div className="flex items-center gap-2 text-xs text-[var(--text-muted)]">
                     <span>{formatDate(txn.date)}</span>
                     <span>·</span>
-                    <span className="capitalize">
-                      {formatCategory(txn.category)}
-                    </span>
+                    {txn.pending ? (
+                      // A choice on a pending row would be lost when it posts.
+                      <span>{categoryLabel(txn)}</span>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => setPicking(txn)}
+                        aria-label={`Change category of ${txn.merchantName ?? txn.name}, now ${categoryLabel(txn)}`}
+                        className="relative underline decoration-[var(--border)] decoration-dotted underline-offset-4 transition-colors before:absolute before:-inset-x-1 before:-inset-y-3 before:content-[''] hover:text-[var(--text-primary)] sm:before:-inset-y-1"
+                      >
+                        {categoryLabel(txn)}
+                      </button>
+                    )}
                   </div>
                 </div>
               </div>
@@ -144,6 +142,14 @@ export function TransactionsFeed({ refreshKey }: TransactionsFeedProps) {
           );
         })}
       </div>
+      {picking && (
+        <CategoryPicker
+          id={picking.id}
+          title={picking.merchantName ?? picking.name}
+          onClose={() => setPicking(null)}
+          onSaved={() => (onCategorized ? onCategorized() : fetchTransactions())}
+        />
+      )}
     </div>
   );
 }
