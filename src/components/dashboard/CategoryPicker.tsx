@@ -34,6 +34,17 @@ function sampleDate(date: string): string {
   return `${MONTHS[Number(date.slice(5, 7)) - 1]} ${Number(date.slice(8, 10))}, ${date.slice(0, 4)}`;
 }
 
+/** Plaid's sign flipped for reading: money in shows as +$X, money out as $X. */
+function SampleAmount({ amount }: { amount: string }) {
+  const value = Number.parseFloat(amount);
+  return (
+    <span className={cx("shrink-0 font-mono tabular-nums", value < 0 && "text-positive")}>
+      {value < 0 ? "+" : ""}
+      {formatCurrency(Math.abs(value))}
+    </span>
+  );
+}
+
 function samePair(a: CategoryPair | null, b: { category: string | null; categoryDetailed: string | null }): boolean {
   return Boolean(a && a.category === b.category && a.categoryDetailed === b.categoryDetailed);
 }
@@ -279,6 +290,7 @@ export function CategoryPicker({ id, title, onClose, onSaved }: CategoryPickerPr
                       value={newFlow}
                       onChange={setNewFlow}
                       size="sm"
+                      className="self-start"
                     />
                     {newName.trim() !== "" && !created && (
                       <p className="text-xs text-negative">Use up to 30 letters, numbers and spaces.</p>
@@ -314,7 +326,7 @@ export function CategoryPicker({ id, title, onClose, onSaved }: CategoryPickerPr
                       <span className="truncate">
                         {sampleDate(sample.date)} · {sample.name}
                       </span>
-                      <span className="shrink-0 font-mono tabular-nums">{formatCurrency(sample.amount)}</span>
+                      <SampleAmount amount={sample.amount} />
                     </li>
                   ))}
                   {similar.similarCount > similar.samples.length && (

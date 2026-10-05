@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Button, Card, CardHeader, cx } from "@/components/ui";
+import { Button, buttonClassName, Card, CardHeader, cx } from "@/components/ui";
 import { CategoryPicker } from "@/components/dashboard/CategoryPicker";
 import { formatCurrency, formatWholeCurrency } from "@/lib/format";
 import type { UncategorizedGroup } from "@/lib/category-memory";
@@ -92,25 +92,31 @@ export function NeedsCategoryCard({ refreshKey, onCategorized }: NeedsCategoryCa
           const cents = Math.round(Number.parseFloat(group.total) * 100);
           const inflow = cents < 0;
           return (
-            <li key={group.key} className="flex items-center gap-3 py-3">
-              <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-                <span className="truncate text-sm text-ink">{group.label}</span>
-                <span className="truncate text-xs text-ink-muted">
-                  {group.count} {group.count === 1 ? "transaction" : "transactions"} · {span(group)}
-                </span>
-              </div>
-              <span
-                className={cx(
-                  "shrink-0 font-mono text-sm tabular-nums",
-                  inflow ? "text-positive" : "text-ink"
-                )}
+            <li key={group.key}>
+              {/* The whole row is the control, so phones keep the label room
+                  a separate button would take; the pill shows from sm up. */}
+              <button
+                type="button"
+                onClick={() => setPicking(group)}
+                aria-label={`Categorize ${group.label}`}
+                className="group flex min-h-11 w-full items-center gap-3 rounded-control px-1 py-3 text-left transition-colors hover:bg-surface-hover"
               >
-                {inflow ? "+" : ""}
-                {formatCurrency(Math.abs(cents) / 100)}
-              </span>
-              <Button size="sm" onClick={() => setPicking(group)} aria-label={`Categorize ${group.label}`}>
-                Categorize
-              </Button>
+                <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+                  <span className="truncate text-sm text-ink">{group.label}</span>
+                  <span className="truncate text-xs text-ink-muted">
+                    {group.count} {group.count === 1 ? "transaction" : "transactions"} · {span(group)}
+                  </span>
+                </span>
+                <span
+                  className={cx("shrink-0 font-mono text-sm tabular-nums", inflow ? "text-positive" : "text-ink")}
+                >
+                  {inflow ? "+" : ""}
+                  {formatCurrency(Math.abs(cents) / 100)}
+                </span>
+                <span aria-hidden className="hidden shrink-0 sm:block">
+                  <span className={buttonClassName({ size: "sm", className: "group-hover:text-ink" })}>Categorize</span>
+                </span>
+              </button>
             </li>
           );
         })}
