@@ -25,7 +25,9 @@ The design is the private canvas at https://claude.ai/artifact/EyaPtP3r23ijd6mpP
 - [x] (2026-10-04) Milestone 5: Analytics wired; `SavingsRateCard` summarizes the period and draws the window.
 - [x] (2026-10-04) Milestone 6: Investments wired; the route takes `end` and returns `firstDate` and `end`.
 - [x] (2026-10-04) Milestone 7: browser check at 1440 × 1000 and 390 × 844 on all three pages, with a mouse drag, a touch drag (Chromium), keyboard selection and the sparse net worth cases; findings and screenshots are under `docs/design/period-picker/evidence/` and in `Artifacts and Notes`. One bug found and fixed (the phone sheet; see `Surprises & Discoveries`).
-- [ ] Milestone 8: production data check, then merge and deploy, each only with the owner's go-ahead; one manual drag check on the owner's phone after deploy. Not started: every step needs the owner.
+- [x] (2026-10-04) Milestone 8, production check: snapshots and investment events per month counted read-only with the owner's go-ahead; findings in `Surprises & Discoveries`.
+- [x] (2026-10-04) Milestone 8, merge and deploy: on the owner's instruction, `worktree-period-picker` fast-forwarded to `origin/main` at `e6f8a50` and deployed with `scripts/deploy.sh`; health check `{"status":"ok","db":"ok"}`; the server's checkout is at `e6f8a50`; the new `end` parameter answers 401 without a session, as every authenticated route does.
+- [ ] Milestone 8, remaining: the owner drags across months in the picker once on their iPhone. If the drag does not extend on iOS Safari, add a tap-first-month, tap-last-month mode for touch.
 
 ## Surprises & Discoveries
 
