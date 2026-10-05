@@ -25,7 +25,8 @@ To see it working: sign in, open Analytics, find "Needs a category", click the f
 - [x] (2026-10-04) Milestone 4: picker, queue card, inline buttons, settings page, avatar link; `category-picker.test.tsx`, `needs-category-card.test.tsx`, and one new case each in the two view suites.
 - [x] (2026-10-05 00:30Z) Milestone 5, local: the real app against the disposable database with a synthetic owner, driven with Playwright at 1440 and 390 wide (evidence in Artifacts and Notes); a gated real-database test runs the real sync upserts; the real-row check on the production export; full gate green after rebasing onto main's period picker (665 passed, 46 skipped without a database; 46/46 real-database; tsc, lint and build clean).
 - [x] (2026-10-05 00:40Z) Milestone 5, production: migration rehearsed in a rolled-back transaction as `app_user`, then applied (journal row 16, `1245a391d99f`, 1791159472147).
-- [ ] Milestone 5, remaining: merge to main, deploy, verify the live app; the owner categorizes one real group.
+- [x] (2026-10-05 00:45Z) Milestone 5, ship: fast-forwarded main to `650da07` and deployed with `scripts/deploy.sh` (health `{"status":"ok","db":"ok"}`). Inside the container, without a session, the four new GET routes and the existing analytics and feed routes answer 401 and `/settings/categories` answers 200; no errors in the app log; `category_memories` holds 0 rows and no transaction carries its own choice yet.
+- [ ] Remaining: the owner categorizes one real group (the agent has no owner login) and confirms the behavior in Purpose; a spot check then shows the memory row.
 
 
 ## Surprises & Discoveries
