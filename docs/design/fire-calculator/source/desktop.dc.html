@@ -1,0 +1,794 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>FIRE calculator</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&amp;family=Instrument+Serif&amp;family=JetBrains+Mono:wght@400;500;600&amp;display=swap">
+<style>
+body{margin:0;background:#0A0D0C;color:#EDF1EF;font-family:'DM Sans',system-ui,-apple-system,sans-serif;-webkit-font-smoothing:antialiased}
+a{color:#34D399}a:hover{color:#6EE7B7}
+button{font:inherit;color:inherit;background:none;border:0;padding:0;margin:0;cursor:pointer;text-align:left}
+input{font:inherit;color:inherit}
+button:focus-visible,a:focus-visible,input:focus-visible,summary:focus-visible{outline:2px solid #34D399;outline-offset:2px}
+.mono{font-family:'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,monospace;font-variant-numeric:tabular-nums}
+.nav-item:hover{background:#1C2320;color:#EDF1EF}
+.ghost:hover{background:#1C2320;color:#EDF1EF}
+.secondary:hover{background:#1C2320;color:#EDF1EF}
+.field:focus-within{border-color:#3A453F}
+.field input{background:transparent;border:0;outline:none;min-width:0;width:100%}
+.field input::-webkit-outer-spin-button,.field input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+.row:hover{background:#171D1A}
+input[type=range]{accent-color:#34D399}
+summary{list-style:none;cursor:pointer}
+summary::-webkit-details-marker{display:none}
+@media (max-width: 760px){.side{display:none}.hero-num{font-size:40px}.pad{padding:20px}.hdr{padding:12px 16px}.main{padding:20px 16px}}
+</style>
+</helmet>
+<div style="min-height: 100vh; display: flex; flex-wrap: wrap; background: #0A0D0C; color: #EDF1EF; font-family: 'DM Sans', system-ui, sans-serif">
+
+  <aside class="side" style="flex: 0 0 240px; box-sizing: border-box; padding: 16px 12px; border-right: 1px solid #242C28; background: #111614; display: flex; flex-direction: column">
+    <div style="height: 40px; display: flex; align-items: center; justify-content: space-between">
+      <span style="font-family: 'Instrument Serif', Georgia, serif; font-size: 24px; line-height: 1">ottermint</span>
+      <button class="ghost" aria-label="Collapse navigation" style="width: 36px; height: 36px; border-radius: 10px; display: flex; align-items: center; justify-content: center; color: #85908A">
+        <svg width="16" height="16"><g transform="scale(0.6667)" style="fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round"><path d="M15 18l-6-6 6-6"></path></g></svg>
+      </button>
+    </div>
+    <nav style="margin-top: 24px; display: flex; flex-direction: column; gap: 4px">
+      <button class="nav-item" style="height: 40px; display: flex; align-items: center; gap: 12px; padding: 0 12px; border-radius: 10px; font-size: 14px; font-weight: 500; color: #A3ADA8">
+        <svg width="16" height="16"><g transform="scale(0.6667)" style="fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round"><rect x="3" y="3" width="7" height="9" rx="1"></rect><rect x="14" y="3" width="7" height="5" rx="1"></rect><rect x="14" y="12" width="7" height="9" rx="1"></rect><rect x="3" y="16" width="7" height="5" rx="1"></rect></g></svg>
+        <span>Dashboard</span>
+      </button>
+      <button class="nav-item" style="height: 40px; display: flex; align-items: center; gap: 12px; padding: 0 12px; border-radius: 10px; font-size: 14px; font-weight: 500; color: #A3ADA8">
+        <svg width="16" height="16"><g transform="scale(0.6667)" style="fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round"><rect x="2" y="5" width="20" height="14" rx="2"></rect><path d="M2 10h20"></path></g></svg>
+        <span>Accounts</span>
+      </button>
+      <button class="nav-item" style="height: 40px; display: flex; align-items: center; gap: 12px; padding: 0 12px; border-radius: 10px; font-size: 14px; font-weight: 500; color: #A3ADA8">
+        <svg width="16" height="16"><g transform="scale(0.6667)" style="fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round"><path d="M10 6h11M10 12h11M10 18h11M4 6h1v4M4 10h2M6 18H4c0-1 2-2 2-3s-1-1.5-2-1"></path></g></svg>
+        <span>Transactions</span>
+      </button>
+      <button class="nav-item" style="height: 40px; display: flex; align-items: center; gap: 12px; padding: 0 12px; border-radius: 10px; font-size: 14px; font-weight: 500; color: #A3ADA8">
+        <svg width="16" height="16"><g transform="scale(0.6667)" style="fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round"><path d="M16 6V4a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2M22 13a18 18 0 0 1-20 0"></path><rect x="2" y="6" width="20" height="14" rx="2"></rect></g></svg>
+        <span>Investments</span>
+      </button>
+      <button class="nav-item" style="height: 40px; display: flex; align-items: center; gap: 12px; padding: 0 12px; border-radius: 10px; font-size: 14px; font-weight: 500; color: #A3ADA8">
+        <svg width="16" height="16"><g transform="scale(0.6667)" style="fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round"><path d="M3 3v18h18M18 17V9M13 17V5M8 17v-3"></path></g></svg>
+        <span>Analytics</span>
+      </button>
+      <button class="nav-item" aria-current="page" style="height: 40px; display: flex; align-items: center; gap: 12px; padding: 0 12px; border-radius: 10px; font-size: 14px; font-weight: 500; color: #EDF1EF; background: #1C2320">
+        <svg width="16" height="16" style="color: #34D399"><g transform="scale(0.6667)" style="fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.07-2.14-.22-4.05 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.15.43-2.29 1-3a2.5 2.5 0 0 0 2.5 2.5z"></path></g></svg>
+        <span>FIRE</span>
+      </button>
+    </nav>
+  </aside>
+
+  <div style="flex: 999 1 560px; min-width: 0; display: flex; flex-direction: column">
+    <header class="hdr" style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; padding: 16px 24px; border-bottom: 1px solid #242C28; background: #111614">
+      <h1 style="margin: 0; font-family: 'Instrument Serif', Georgia, serif; font-weight: 400; font-size: 26px; line-height: 1.1">FIRE</h1>
+      <div style="display: flex; align-items: center; gap: 12px">
+        <span style="font-size: 12px; color: #85908A">Updated 2h ago</span>
+        <button class="secondary" style="height: 36px; padding: 0 14px; border-radius: 10px; border: 1px solid #242C28; background: #171D1A; display: flex; align-items: center; gap: 6px; font-size: 14px; font-weight: 500; color: #A3ADA8">
+          <svg width="16" height="16"><g transform="scale(0.6667)" style="fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round"><path d="M21 12a9 9 0 1 1-2.64-6.36M21 3v6h-6"></path></g></svg>
+          <span>Refresh</span>
+        </button>
+        <button aria-label="Account menu" style="width: 28px; height: 28px; border-radius: 50%; background: #171D1A; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 500; color: #A3ADA8">J</button>
+      </div>
+    </header>
+
+    <main class="main" style="width: 100%; max-width: 1200px; box-sizing: border-box; padding: 32px 24px; margin: 0 auto; display: flex; flex-direction: column; gap: 24px">
+
+      <section aria-label="Earliest retirement" class="pad" style="background: #111614; border: 1px solid #242C28; border-radius: 16px; padding: 28px 32px; display: flex; flex-direction: column">
+        <div style="display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 24px">
+          <div style="display: flex; flex-direction: column; align-items: flex-start">
+            <span style="font-size: 13px; font-weight: 500; color: #A3ADA8">Earliest you could retire</span>
+            <span class="hero-num" style="margin-top: 8px; font-size: 52px; font-weight: 600; line-height: 1.05; letter-spacing: -0.025em">{{ heroBig }}</span>
+            <span style="margin-top: 12px; font-size: 14px; color: #A3ADA8">{{ heroSub }}</span>
+          </div>
+          <div style="flex: 0 1 340px; display: flex; flex-direction: column; gap: 8px">
+            <div style="display: flex; justify-content: space-between; gap: 12px; font-size: 13px">
+              <span style="color: #A3ADA8">Invested today</span>
+              <span class="mono" style="font-weight: 600">{{ progressText }}</span>
+            </div>
+            <div role="progressbar" aria-label="Progress toward what you need at retirement" aria-valuemin="0" aria-valuemax="100" aria-valuenow="{{ progressPct }}" style="height: 8px; border-radius: 4px; background: #242C28; overflow: hidden">
+              <div style="height: 8px; width: {{ progressPct }}%; background: #34D399; border-radius: 4px"></div>
+            </div>
+            <span style="font-size: 12px; color: #85908A">{{ progressCaption }}</span>
+          </div>
+        </div>
+
+        <div style="position: relative; height: 268px; margin: 58px 12px 0 60px">
+          <sc-for list="{{ grid }}" as="g" hint-placeholder-count="4">
+            <div style="position: absolute; left: 0; right: 0; top: {{ g.top }}px; height: 0">
+              <span class="mono" style="position: absolute; right: calc(100% + 10px); top: -7px; font-size: 11px; color: #85908A; white-space: nowrap">{{ g.label }}</span>
+              <div style="position: absolute; left: 0; right: 0; top: 0; height: 1px; background: #1E2622"></div>
+            </div>
+          </sc-for>
+          <div style="position: absolute; left: {{ retireLeft }}%; top: -6px; width: 1px; height: 246px; background: #3A453F"></div>
+          <span style="position: absolute; left: {{ retireLeft }}%; top: -28px; transform: translateX(-50%); font-size: 12px; font-weight: 600; color: #EDF1EF; white-space: nowrap">{{ retireMarker }}</span>
+          <sc-if value="{{ showPartnerMarker }}" hint-placeholder-val="{{ false }}">
+            <div style="position: absolute; left: {{ partnerLeft }}%; top: -24px; width: 1px; height: 264px; background: #3A453F"></div>
+            <span style="position: absolute; left: {{ partnerLeft }}%; top: -46px; transform: translateX(-50%); font-size: 12px; font-weight: 600; color: #A3ADA8; white-space: nowrap">{{ partnerMarker }}</span>
+          </sc-if>
+          <svg viewBox="0 0 1000 240" preserveAspectRatio="none" style="position: absolute; left: 0; top: 0; width: 100%; height: 240px; overflow: visible">
+            <path d="{{ areaPath }}" style="fill: #34D399; opacity: 0.1"></path>
+            <path d="{{ linePath }}" vector-effect="non-scaling-stroke" style="fill: none; stroke: #34D399; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round"></path>
+          </svg>
+          <sc-if value="{{ showOut }}" hint-placeholder-val="{{ false }}">
+            <div style="position: absolute; left: {{ outLeft }}%; top: 231px; width: 10px; height: 10px; margin-left: -5px; border-radius: 50%; background: #F0836F; border: 2px solid #111614; box-sizing: content-box"></div>
+            <span style="position: absolute; left: {{ outLeft }}%; top: 206px; transform: translateX(-50%); font-size: 12px; font-weight: 600; color: #F0836F; white-space: nowrap">{{ outLabel }}</span>
+          </sc-if>
+          <sc-for list="{{ xTicks }}" as="t" hint-placeholder-count="6">
+            <span class="mono" style="position: absolute; top: 250px; left: {{ t.left }}%; transform: translateX(-50%); font-size: 11px; color: #85908A; white-space: nowrap">{{ t.label }}</span>
+          </sc-for>
+          <sc-if value="{{ hovering }}" hint-placeholder-val="{{ false }}">
+            <div style="position: absolute; left: {{ hoverLeft }}%; top: 0; width: 1px; height: 240px; background: #3A453F"></div>
+            <div style="position: absolute; left: {{ hoverLeft }}%; top: {{ hoverTop }}px; width: 8px; height: 8px; margin: -6px 0 0 -6px; border-radius: 50%; background: #34D399; border: 2px solid #111614; box-sizing: content-box"></div>
+            <div style="position: absolute; left: {{ hoverLeft }}%; top: {{ tipTop }}px; transform: translateX({{ tipShift }}); padding: 6px 10px; border-radius: 8px; background: #242C28; display: flex; flex-direction: column; gap: 2px; white-space: nowrap; pointer-events: none">
+              <span style="font-size: 11px; color: #A3ADA8">{{ hoverLine1 }}</span>
+              <span class="mono" style="font-size: 13px; font-weight: 600">{{ hoverLine2 }}</span>
+            </div>
+          </sc-if>
+          <div aria-hidden="true" onMouseMove="{{ onMove }}" onMouseLeave="{{ onLeave }}" style="position: absolute; left: 0; top: 0; width: 100%; height: 240px; cursor: crosshair"></div>
+        </div>
+
+        <div style="margin-top: 20px; display: flex; flex-wrap: wrap; align-items: center; gap: 16px 24px">
+          <label for="retire-at" style="font-size: 13px; font-weight: 500; color: #A3ADA8; white-space: nowrap">Try retiring at</label>
+          <input id="retire-at" type="range" min="{{ sliderMin }}" max="{{ sliderMax }}" step="1" value="{{ sliderVal }}" onChange="{{ onSlide }}" style="flex: 1 1 220px; max-width: 360px">
+          <span class="mono" style="font-size: 14px; font-weight: 600; white-space: nowrap">{{ retireText }}</span>
+          <span style="display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 999px; background: {{ statusBg }}; color: {{ statusColor }}; font-size: 13px; font-weight: 500">
+            <svg width="14" height="14"><g transform="scale(0.5833)" style="fill: none; stroke: currentColor; stroke-width: 2.25; stroke-linecap: round; stroke-linejoin: round"><path d="{{ statusIcon }}"></path></g></svg>
+            <span>{{ statusText }}</span>
+          </span>
+          <sc-if value="{{ showReset }}" hint-placeholder-val="{{ false }}">
+            <button onClick="{{ resetRetire }}" style="font-size: 13px; color: #34D399; text-decoration: underline; text-decoration-color: rgba(52, 211, 153, 0.4); text-underline-offset: 2px">Back to earliest</button>
+          </sc-if>
+        </div>
+
+        <details style="margin-top: 16px; font-size: 12px; color: #85908A; max-width: 760px">
+          <summary style="display: inline-block"><span style="color: #34D399; text-decoration: underline; text-decoration-color: rgba(52, 211, 153, 0.4); text-underline-offset: 2px">About these numbers</span></summary>
+          <ul style="margin: 8px 0 0; padding-left: 18px; line-height: 1.55; display: flex; flex-direction: column; gap: 4px">
+            <li>Everything is in today's dollars. Returns are after inflation and move in a straight line; there are no bad years, which is why the return after retiring is set lower. The lower return starts when the first of you stops working.</li>
+            <li>Until someone retires, saving stays flat: the brokerage gets the cash you saved over the last 12 months, the 401(k) and 457(b) get the amounts in the table, PERS 3 gets 10% of salary. No raises. While only one of you works, that person keeps contributing, their take-home pay covers spending first, and any surplus goes to the brokerage.</li>
+            <li>Spending is flat apart from the changes you enter, which start once one of you stops working. Health insurance is free while either of you works, then half the amount for each of you until you each turn 65. There are no Medicare premiums and no one-off costs like a car, house or college.</li>
+            <li>One tax rate applies to every withdrawal, including Roth and brokerage money that would really be taxed less. The pension and Social Security are treated as tax-free.</li>
+            <li>Withdrawals go brokerage, crypto, 457(b), PERS 3 investment account, 401(k), then Roth IRAs, taking only from what is open. A 401(k) or PERS 3 investment account opens if its owner stops working in or after the year they turn 55, otherwise at 59½; for PERS 3 that follows the IRS rule, though DRS only says the penalty "might" apply. The 457(b) opens when your partner leaves. Roth contributions come out any time, growth at 59½. No Roth conversions, 72(t) payments or required minimum distributions.</li>
+            <li>The PERS 3 pension is 1% of salary per year of service, using today's salary as the final average. It is reduced by DRS's factors when it starts before 65; ages between DRS's published ones are interpolated. After your partner leaves it only grows with 20 or more years of service, so inflation wears it down until it starts. Once it starts it keeps pace with inflation (DRS caps raises at 3% a year) and is paid as a single life benefit; a survivor option would lower it.</li>
+            <li>Social Security uses SSA's rules: 30% less at 62, 24% more at 70. Retiring early also lowers the benefit itself, so use your ssa.gov estimate.</li>
+            <li>Cash and home equity aren't counted. A date works if the money lasts to the plan age with anything left. The search stops at 70.</li>
+          </ul>
+        </details>
+      </section>
+
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px">
+        <sc-for list="{{ tiles }}" as="k" hint-placeholder-count="4">
+          <div style="background: #111614; border: 1px solid #242C28; border-radius: 16px; padding: 18px 20px; display: flex; flex-direction: column; gap: 6px">
+            <span style="font-size: 13px; font-weight: 500; color: #A3ADA8">{{ k.label }}</span>
+            <span class="mono" style="font-size: 24px; font-weight: 600; letter-spacing: -0.01em">{{ k.value }}</span>
+            <span style="font-size: 12px; color: #85908A">{{ k.sub }}</span>
+          </div>
+        </sc-for>
+      </div>
+
+      <section aria-label="Which money pays for which years" class="pad" style="background: #111614; border: 1px solid #242C28; border-radius: 16px; padding: 24px 28px">
+        <h2 style="margin: 0; font-size: 16px; font-weight: 600">Which money pays for which years</h2>
+        <p style="margin: 4px 0 0; font-size: 13px; color: #A3ADA8">{{ timelineSub }}</p>
+        <ol style="list-style: none; margin: 20px 0 0; padding: 0; display: flex; flex-direction: column">
+          <sc-for list="{{ events }}" as="ev" hint-placeholder-count="5">
+            <li style="display: grid; grid-template-columns: 20px minmax(0, 1fr); column-gap: 14px">
+              <div style="display: flex; flex-direction: column; align-items: center">
+                <div style="width: 10px; height: 10px; margin-top: 5px; border-radius: 50%; background: {{ ev.dot }}"></div>
+                <div style="flex: 1; width: 1px; background: #242C28; min-height: 12px; opacity: {{ ev.lineOpacity }}"></div>
+              </div>
+              <div style="padding-bottom: 18px; display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 4px 24px">
+                <div style="display: flex; flex-direction: column; gap: 3px; min-width: 0">
+                  <span style="font-size: 14px; font-weight: 600">{{ ev.title }}</span>
+                  <span style="font-size: 12px; color: #85908A">{{ ev.when }}</span>
+                  <span style="font-size: 13px; color: #A3ADA8">{{ ev.detail }}</span>
+                  <sc-if value="{{ ev.hasCheck }}" hint-placeholder-val="{{ false }}">
+                    <span style="margin-top: 6px; display: inline-flex; align-items: flex-start; gap: 6px; font-size: 13px; color: {{ ev.checkColor }}">
+                      <svg width="14" height="14" style="flex-shrink: 0; margin-top: 2px"><g transform="scale(0.5833)" style="fill: none; stroke: currentColor; stroke-width: 2.25; stroke-linecap: round; stroke-linejoin: round"><path d="{{ ev.checkIcon }}"></path></g></svg>
+                      <span>{{ ev.checkText }}</span>
+                    </span>
+                  </sc-if>
+                </div>
+                <span class="mono" style="font-size: 15px; font-weight: 600; white-space: nowrap">{{ ev.amount }}</span>
+              </div>
+            </li>
+          </sc-for>
+        </ol>
+      </section>
+
+      <section aria-label="Accounts" class="pad" style="background: #111614; border: 1px solid #242C28; border-radius: 16px; padding: 24px 28px">
+        <div style="display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 8px 16px">
+          <div>
+            <h2 style="margin: 0; font-size: 16px; font-weight: 600">Accounts</h2>
+            <p style="margin: 4px 0 0; font-size: 13px; color: #A3ADA8">Balances from OtterMint update on their own. Enter the ones it can't see.</p>
+          </div>
+          <button class="secondary" onClick="{{ addAccount }}" style="height: 36px; padding: 0 14px; border-radius: 10px; border: 1px solid #242C28; background: #171D1A; display: flex; align-items: center; gap: 6px; font-size: 14px; font-weight: 500; color: #A3ADA8">
+            <svg width="16" height="16"><g transform="scale(0.6667)" style="fill: none; stroke: currentColor; stroke-width: 2.25; stroke-linecap: round"><path d="M12 5v14M5 12h14"></path></g></svg>
+            <span>Add an account</span>
+          </button>
+        </div>
+        <div style="margin-top: 16px; overflow-x: auto">
+          <div style="min-width: 760px">
+            <div style="display: grid; grid-template-columns: minmax(0, 2.2fr) minmax(0, 1fr) minmax(0, 1.7fr) 150px 150px; gap: 16px; padding: 0 8px 8px; border-bottom: 1px solid #242C28; font-size: 12px; font-weight: 500; color: #85908A">
+              <span>Account</span><span>Whose</span><span>Can use it</span><span style="text-align: right">Balance</span><span style="text-align: right">Added per year</span>
+            </div>
+            <sc-for list="{{ rows }}" as="r" hint-placeholder-count="7">
+              <div class="row" style="display: grid; grid-template-columns: minmax(0, 2.2fr) minmax(0, 1fr) minmax(0, 1.7fr) 150px 150px; gap: 16px; align-items: center; min-height: 52px; padding: 6px 8px; border-bottom: 1px solid #1E2622; border-radius: 8px">
+                <div style="display: flex; flex-direction: column; gap: 2px; min-width: 0">
+                  <span style="font-size: 14px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{ r.name }}</span>
+                  <span style="font-size: 11px; color: {{ r.sourceColor }}">{{ r.source }}</span>
+                </div>
+                <span style="font-size: 13px; color: #A3ADA8">{{ r.owner }}</span>
+                <span style="font-size: 13px; color: #A3ADA8">{{ r.opens }}</span>
+                <sc-if value="{{ r.editBalance }}" hint-placeholder-val="{{ false }}">
+                  <label class="field" style="height: 36px; display: flex; align-items: center; gap: 4px; padding: 0 10px; border: 1px solid #242C28; border-radius: 10px; background: #171D1A">
+                    <span style="font-size: 13px; color: #85908A">$</span>
+                    <input class="mono" type="number" inputmode="decimal" aria-label="{{ r.balanceLabel }}" value="{{ r.balanceValue }}" onChange="{{ r.onBalance }}" style="text-align: right; font-size: 13px">
+                  </label>
+                </sc-if>
+                <sc-if value="{{ r.showBalance }}" hint-placeholder-val="{{ true }}">
+                  <span class="mono" style="text-align: right; font-size: 13px; padding-right: 11px">{{ r.balanceText }}</span>
+                </sc-if>
+                <sc-if value="{{ r.editContrib }}" hint-placeholder-val="{{ true }}">
+                  <label class="field" style="height: 36px; display: flex; align-items: center; gap: 4px; padding: 0 10px; border: 1px solid #242C28; border-radius: 10px; background: #171D1A">
+                    <span style="font-size: 13px; color: #85908A">$</span>
+                    <input class="mono" type="number" inputmode="decimal" aria-label="{{ r.contribLabel }}" value="{{ r.contribValue }}" onChange="{{ r.onContrib }}" style="text-align: right; font-size: 13px">
+                  </label>
+                </sc-if>
+                <sc-if value="{{ r.showContrib }}" hint-placeholder-val="{{ false }}">
+                  <span style="display: flex; flex-direction: column; align-items: flex-end; padding-right: 11px">
+                    <span class="mono" style="font-size: 13px">{{ r.contribText }}</span>
+                    <span style="font-size: 11px; color: #85908A">{{ r.contribNote }}</span>
+                  </span>
+                </sc-if>
+              </div>
+            </sc-for>
+            <div style="display: grid; grid-template-columns: minmax(0, 2.2fr) minmax(0, 1fr) minmax(0, 1.7fr) 150px 150px; gap: 16px; align-items: center; padding: 12px 8px 0; font-size: 13px; font-weight: 600">
+              <span>Total</span><span></span><span></span>
+              <span class="mono" style="text-align: right; padding-right: 11px">{{ totalBalance }}</span>
+              <span class="mono" style="text-align: right; padding-right: 11px">{{ totalContrib }}</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section aria-label="Assumptions" class="pad" style="background: #111614; border: 1px solid #242C28; border-radius: 16px; padding: 24px 28px">
+        <h2 style="margin: 0; font-size: 16px; font-weight: 600">Assumptions</h2>
+        <p style="margin: 4px 0 0; font-size: 13px; color: #A3ADA8">Spending starts at what OtterMint saw over the last 12 months. Change anything and the date above moves.</p>
+        <div style="margin-top: 20px; display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 24px 28px">
+          <sc-for list="{{ groups }}" as="g" hint-placeholder-count="5">
+            <fieldset style="margin: 0; padding: 0; border: 0; min-width: 0; display: flex; flex-direction: column; gap: 12px">
+              <legend style="padding: 0; margin-bottom: 12px; font-size: 13px; font-weight: 600; color: #EDF1EF">{{ g.title }}</legend>
+              <sc-for list="{{ g.fields }}" as="f" hint-placeholder-count="3">
+                <div style="display: flex; flex-direction: column; gap: 6px">
+                  <label for="{{ f.id }}" style="font-size: 12px; color: #A3ADA8">{{ f.label }}</label>
+                  <div class="field" style="height: 40px; display: flex; align-items: center; gap: 4px; padding: 0 12px; border: 1px solid #242C28; border-radius: 10px; background: #171D1A">
+                    <sc-if value="{{ f.hasPrefix }}" hint-placeholder-val="{{ false }}"><span style="font-size: 13px; color: #85908A">{{ f.prefix }}</span></sc-if>
+                    <input id="{{ f.id }}" class="mono" type="number" inputmode="decimal" step="{{ f.step }}" value="{{ f.value }}" onChange="{{ f.onChange }}" style="font-size: 14px">
+                    <sc-if value="{{ f.hasSuffix }}" hint-placeholder-val="{{ false }}"><span style="font-size: 13px; color: #85908A; white-space: nowrap">{{ f.suffix }}</span></sc-if>
+                  </div>
+                  <sc-if value="{{ f.hasHint }}" hint-placeholder-val="{{ false }}"><span style="font-size: 11px; color: #85908A">{{ f.hint }}</span></sc-if>
+                </div>
+              </sc-for>
+            </fieldset>
+          </sc-for>
+        </div>
+        <p style="margin: 20px 0 0; font-size: 12px; color: #85908A">Your Social Security estimates are at <a href="https://www.ssa.gov/myaccount/" target="_blank" rel="noopener">ssa.gov/myaccount</a>; your partner's pension estimate is in their DRS online account.</p>
+      </section>
+
+      <section aria-label="What moves the date">
+        <h2 style="margin: 0 0 12px; font-size: 16px; font-weight: 600">What moves the date</h2>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px">
+          <sc-for list="{{ levers }}" as="l" hint-placeholder-count="3">
+            <div style="background: #111614; border: 1px solid #242C28; border-radius: 16px; padding: 18px 20px; display: flex; flex-direction: column; gap: 6px">
+              <span style="font-size: 13px; font-weight: 500; color: #A3ADA8">{{ l.label }}</span>
+              <span class="mono" style="font-size: 22px; font-weight: 600">{{ l.value }}</span>
+              <span style="font-size: 13px; font-weight: 500; color: {{ l.color }}">{{ l.sub }}</span>
+            </div>
+          </sc-for>
+        </div>
+      </section>
+
+    </main>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":2600}}'>
+// Sample household, not real data. The OtterMint balances and cash flow are illustrative;
+// the four accounts outside OtterMint use round balances the owner gave on 2026-10-09.
+// PERS 3 rules: drs.wa.gov/plan/pers3 and RCW 41.40.790/.820; Social Security: ssa.gov early/late rules.
+const C = {
+  surface: '#111614', raised: '#171D1A', border: '#242C28', text: '#EDF1EF', text2: '#A3ADA8', text3: '#85908A',
+  mint: '#34D399', mintBg: 'rgba(52, 211, 153, 0.12)', down: '#F0836F', downBg: 'rgba(240, 131, 111, 0.12)', slate: '#5B6661'
+};
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+const NOW_Y = 2026;
+const NOW_M = 9; // October, zero-based
+const ICON_OK = 'M5 12.5l4.5 4.5L19 7.5';
+const ICON_WARN = 'M12 8v5M12 16.5v.5M10.3 3.9L2.4 17.6A2 2 0 0 0 4.1 20.6h15.8a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z';
+
+// Withdrawal order follows `order`. Opening rules: anytime, at separation, Rule of 55, 59½.
+const KINDS = {
+  brokerage: { opens: 'anytime', order: 0 },
+  crypto: { opens: 'anytime', order: 1 },
+  k457: { opens: 'separation', order: 2 },
+  pers3: { opens: 'rule55', order: 3 },
+  k401: { opens: 'rule55', order: 4 },
+  roth: { opens: 'age59', order: 5 }
+};
+const OPENS_TEXT = {
+  anytime: 'Any time',
+  rule55: '59½, or on leaving at 55+',
+  age59: 'Contributions any time, growth at 59½'
+};
+
+const OTTERMINT = { takeHomeMonthly: 15000, spendingMonthly: 7500 };
+const ACCOUNTS = [
+  { id: 'brk', name: 'Brokerage (3 accounts)', prose: 'brokerage', owner: 'you', kind: 'brokerage', fromApp: true, balance: 450000, contrib: 90000, contribNote: 'cash saved, last 12 mo' },
+  { id: 'roth-you', name: 'Roth IRA', owner: 'you', kind: 'roth', fromApp: true, balance: 7000, contrib: 0, basisKey: 'rothBasisYou' },
+  { id: 'k401', name: '401(k)', owner: 'you', kind: 'k401', fromApp: true, balance: 150000, contrib: 24500 },
+  { id: 'river', name: 'River', owner: 'you', kind: 'crypto', fromApp: false, balance: 15000, contrib: 0 },
+  { id: 'roth-partner', name: 'Roth IRA', owner: 'partner', kind: 'roth', fromApp: false, balance: 20000, contrib: 0, basisKey: 'rothBasisPartner' },
+  { id: 'k457', name: '457(b)', owner: 'partner', kind: 'k457', fromApp: false, balance: 60000, contrib: 24500 },
+  { id: 'pers3', name: 'PERS 3 investment account', owner: 'partner', kind: 'pers3', fromApp: false, balance: 60000, contribPctOfSalary: 0.10 }
+];
+const DEFAULTS = {
+  yourAge: 35, partnerAge: 34, planAge: 95,
+  partnerOffset: 0, partnerTakeHome: 6000,
+  spend: 7500, health: 1200, tax: 10,
+  chg1Age: 55, chg1Amt: 0, chg2Age: 75, chg2Amt: 0,
+  rPre: 5, rPost: 3.5, rCrypto: 5, infl: 2.5,
+  salary: 95000, service: 6, pensionAge: 65,
+  ssYou: 2400, ssYouAge: 67, ssPartner: 1800, ssPartnerAge: 67,
+  rothBasisYou: 5000, rothBasisPartner: 15000
+};
+// DRS PERS 3 early-retirement factors for 10-29 years of service (ages between are interpolated).
+const EARLY = [[55, 0.4092], [58, 0.5280], [60, 0.6292], [62, 0.7538], [64, 0.9085], [65, 1]];
+
+function num(raw, fallback) {
+  const v = parseFloat(raw);
+  return Number.isFinite(v) ? v : fallback;
+}
+function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
+function money(v) { return (v < 0 ? '−$' : '$') + Math.abs(Math.round(v)).toLocaleString('en-US'); }
+function short(v) {
+  const a = Math.abs(v);
+  if (a >= 1e6) return '$' + (v / 1e6).toFixed(a >= 1e7 ? 1 : 2) + 'M';
+  if (a >= 1e3) return '$' + Math.round(v / 1e3) + 'k';
+  return '$' + Math.round(v);
+}
+function monthLabel(m) {
+  const t = NOW_M + m;
+  return MONTHS[t % 12] + ' ' + (NOW_Y + Math.floor(t / 12));
+}
+function yearOf(m) { return NOW_Y + Math.floor((NOW_M + m) / 12); }
+function ageText(a) {
+  const whole = Math.floor(a + 1e-9);
+  return a - whole >= 0.5 - 1e-9 ? whole + '½' : String(whole);
+}
+function span(months) {
+  const y = Math.floor(months / 12), mo = months % 12;
+  const parts = [];
+  if (y) parts.push(y + (y === 1 ? ' year' : ' years'));
+  if (mo) parts.push(mo + (mo === 1 ? ' month' : ' months'));
+  return parts.join(' ') || 'no change';
+}
+function earlyFactor(age) {
+  if (age >= 65) return 1;
+  for (let i = 0; i < EARLY.length - 1; i++) {
+    const [a0, f0] = EARLY[i], [a1, f1] = EARLY[i + 1];
+    if (age >= a0 && age <= a1) return f0 + (f1 - f0) * (age - a0) / (a1 - a0);
+  }
+  return EARLY[0][1];
+}
+// SSA: 5/9% a month for the first 36 months early, 5/12% after; 2/3% a month late, up to 70.
+function ssFactor(age) {
+  const m = Math.round((age - 67) * 12);
+  if (m >= 0) return 1 + Math.min(m, 36) * (2 / 3) / 100;
+  const e = -m;
+  return 1 - (Math.min(e, 36) * 5 / 9 + Math.max(0, e - 36) * 5 / 12) / 100;
+}
+
+// PERS 3 pension in today's dollars per month, and the month (from now) it starts.
+function pension(p, sepM) {
+  const service = p.service + sepM / 12;
+  const ageAtSep = p.partnerAge + sepM / 12;
+  const vested = service >= 10 || (service >= 5 && ageAtSep >= 45);
+  if (!vested || p.salary <= 0) return { monthly: 0, startM: Infinity, startAge: null, service };
+  let startAge = Math.max(p.pensionAge, ageAtSep, service >= 10 ? 55 : 65);
+  const factor = startAge >= 65 ? 1 : (service >= 30 ? 1 - 0.05 * (65 - startAge) : earlyFactor(startAge));
+  const deferred = Math.max(0, startAge - ageAtSep);
+  const indexedYears = service >= 20 ? Math.min(deferred, Math.max(0, 65 - ageAtSep)) : 0;
+  const real = Math.pow(1.0304, indexedYears) / Math.pow(1 + p.infl, deferred);
+  const monthly = 0.01 * service * p.salary / 12 * factor * real;
+  return { monthly, startM: Math.round((startAge - p.partnerAge) * 12), startAge, service };
+}
+
+// Month-by-month projection. yM = the month you stop working; your partner stops partnerOffset years later.
+function simulate(p, yM) {
+  const pM = Math.max(0, yM + Math.round(p.partnerOffset * 12));
+  const firstM = Math.min(yM, pM);
+  const H = Math.max(1, Math.round((p.planAge - p.yourAge) * 12));
+  const rate = (r) => Math.pow(1 + r, 1 / 12) - 1;
+  const gPre = rate(p.rPre), gPost = rate(p.rPost), gCrypto = rate(p.rCrypto);
+  const retM = { you: yM, partner: pM };
+  const ageNow = { you: p.yourAge, partner: p.partnerAge };
+  const accts = p.accounts.map((a) => {
+    const rule = KINDS[a.kind].opens;
+    const own = retM[a.owner], age0 = ageNow[a.owner];
+    const at59 = Math.max(0, Math.round((59.5 - age0) * 12));
+    let openM = 0;
+    if (rule === 'separation') openM = own;
+    if (rule === 'rule55') openM = age0 + own / 12 >= 55 ? own : Math.max(own, at59);
+    if (rule === 'age59') openM = at59;
+    return { ...a, bal: a.balance, basis: a.kind === 'roth' ? clamp(a.basis || 0, 0, a.balance) : 0, openM, hist: [], basisHist: [] };
+  });
+  const order = accts.slice().sort((a, b) => KINDS[a.kind].order - KINDS[b.kind].order);
+  const sink = accts.find((a) => a.kind === 'brokerage') || accts[0];
+  const avail = (a, m) => (m >= a.openM ? a.bal : (a.kind === 'roth' ? Math.min(a.basis, a.bal) : 0));
+  const take = (a, amt) => { a.bal -= amt; if (a.kind === 'roth') a.basis = Math.max(0, a.basis - amt); };
+  const pen = pension(p, pM);
+  const ssYouM = Math.round((p.ssYouAge - p.yourAge) * 12), ssYou = p.ssYou * ssFactor(p.ssYouAge);
+  const ssPartnerM = Math.round((p.ssPartnerAge - p.partnerAge) * 12), ssPartner = p.ssPartner * ssFactor(p.ssPartnerAge);
+  const yourPay = Math.max(0, OTTERMINT.takeHomeMonthly - p.partnerTakeHome);
+  const total = () => accts.reduce((s, a) => s + a.bal, 0);
+  const path = [];
+  let gapM = null, outM = null, low = null, lowM = null;
+  for (let m = 0; m <= H; m++) {
+    for (const a of accts) { a.hist.push(a.bal); a.basisHist.push(a.basis); }
+    path.push(total());
+    if (m === H) break;
+    const youWork = m < yM, partnerWork = m < pM;
+    const works = { you: youWork, partner: partnerWork };
+    for (const a of accts) {
+      const add = a.kind === 'brokerage' ? (youWork && partnerWork ? a.contrib / 12 : 0) : (works[a.owner] ? a.contrib / 12 : 0);
+      a.bal += add;
+      if (a.kind === 'roth') a.basis += add;
+    }
+    if (!(youWork && partnerWork)) {
+      const ageY = p.yourAge + m / 12, ageP = p.partnerAge + m / 12;
+      let spend = p.spend + (ageY >= p.chg1Age ? p.chg1Amt : 0) + (ageY >= p.chg2Age ? p.chg2Amt : 0);
+      if (!youWork && !partnerWork) spend += (ageY < 65 ? p.health / 2 : 0) + (ageP < 65 ? p.health / 2 : 0);
+      const income = (youWork ? yourPay : 0) + (partnerWork ? p.partnerTakeHome : 0)
+        + (m >= pen.startM ? pen.monthly : 0) + (m >= ssYouM ? ssYou : 0) + (m >= ssPartnerM ? ssPartner : 0);
+      const net = income - Math.max(0, spend);
+      if (net >= 0) {
+        sink.bal += net;
+      } else {
+        let need = -net / (1 - p.tax);
+        for (const a of order) {
+          if (need <= 0) break;
+          const t = Math.min(avail(a, m), need);
+          if (t > 0) { take(a, t); need -= t; }
+        }
+        if (need > 0.5) {
+          // Short on open money: note the gap, then draw locked accounts early so the line stays honest about the total.
+          if (gapM === null && order.some((a) => a.bal > 0.5)) gapM = m;
+          for (const a of order) {
+            if (need <= 0) break;
+            const t = Math.min(a.bal, need);
+            if (t > 0) { take(a, t); need -= t; }
+          }
+          if (need > 0.5 && outM === null) outM = m;
+        }
+      }
+      if (gapM === null && accts.some((a) => m < a.openM && a.bal - avail(a, m) > 0.5)) {
+        const open = accts.reduce((s, a) => s + avail(a, m), 0);
+        if (low === null || open < low) { low = open; lowM = m; }
+      }
+    }
+    for (const a of accts) a.bal *= 1 + (a.kind === 'crypto' ? gCrypto : (m < firstM ? gPre : gPost));
+  }
+  return { path, H, yM, pM, gapM, outM, low, lowM, accts, pen, ssYouM, ssYou, ssPartnerM, ssPartner, ok: gapM === null && outM === null };
+}
+
+function earliest(p) {
+  const maxM = Math.max(0, Math.round((70 - p.yourAge) * 12));
+  if (simulate(p, 0).ok) return 0;
+  if (!simulate(p, maxM).ok) return null;
+  let lo = 0, hi = maxM;
+  while (hi - lo > 1) {
+    const mid = (lo + hi) >> 1;
+    if (simulate(p, mid).ok) hi = mid; else lo = mid;
+  }
+  return hi;
+}
+
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { vals: {}, bal: {}, contrib: {}, extra: [], retireYears: null, hover: null };
+  }
+
+  params(over) {
+    const v = this.state.vals;
+    const g = (k) => num(v[k], DEFAULTS[k]);
+    const p = {
+      yourAge: g('yourAge'), partnerAge: g('partnerAge'), planAge: g('planAge'),
+      partnerOffset: g('partnerOffset'), partnerTakeHome: clamp(g('partnerTakeHome'), 0, OTTERMINT.takeHomeMonthly),
+      spend: g('spend'), health: g('health'), tax: clamp(g('tax') / 100, 0, 0.9),
+      chg1Age: g('chg1Age'), chg1Amt: g('chg1Amt'), chg2Age: g('chg2Age'), chg2Amt: g('chg2Amt'),
+      rPre: g('rPre') / 100, rPost: g('rPost') / 100, rCrypto: g('rCrypto') / 100, infl: g('infl') / 100,
+      salary: g('salary'), service: g('service'), pensionAge: clamp(g('pensionAge'), 55, 65),
+      ssYou: g('ssYou'), ssYouAge: clamp(g('ssYouAge'), 62, 70), ssPartner: g('ssPartner'), ssPartnerAge: clamp(g('ssPartnerAge'), 62, 70)
+    };
+    p.accounts = ACCOUNTS.concat(this.state.extra).map((a) => ({
+      ...a,
+      balance: a.fromApp ? a.balance : num(this.state.bal[a.id], a.balance),
+      contrib: a.contribPctOfSalary ? a.contribPctOfSalary * p.salary : num(this.state.contrib[a.id], a.contrib),
+      basis: a.basisKey ? g(a.basisKey) : 0
+    }));
+    if (over) over(p);
+    return p;
+  }
+
+  renderVals() {
+    const p = this.params();
+    const base = earliest(p);
+    const maxM = Math.max(0, Math.round((70 - p.yourAge) * 12));
+    const pickedM = this.state.retireYears === null ? null : Math.round((this.state.retireYears - p.yourAge) * 12);
+    const selM = clamp(pickedM !== null ? pickedM : (base !== null ? base : maxM), 0, maxM);
+    const sim = simulate(p, selM);
+    const H = sim.H;
+    const pM = sim.pM;
+    const investedNow = sim.path[0];
+    const together = pM === selM;
+    const youAt = (m) => ageText(p.yourAge + m / 12);
+    const partnerAt = (m) => ageText(p.partnerAge + m / 12);
+
+    // Hero
+    let heroBig, heroSub, progressPct, progressText, progressCaption;
+    if (base === null) {
+      heroBig = 'Not by 70';
+      heroSub = 'Even working to 70 the money runs short. Try lower spending or more saving below.';
+      progressPct = 0; progressText = short(investedNow); progressCaption = 'No retirement date works yet';
+    } else {
+      const bs = simulate(p, base);
+      const need = bs.path[base];
+      heroBig = base === 0 ? 'Now' : monthLabel(base);
+      heroSub = (base === 0 ? 'You could stop today' : 'In ' + span(base)) + ' · you ' + youAt(base)
+        + (bs.pM === base ? ', partner ' + partnerAt(base) : ' · partner stops ' + monthLabel(bs.pM) + ' at ' + partnerAt(bs.pM));
+      progressPct = clamp(Math.round(investedNow / need * 100), 0, 100);
+      progressText = short(investedNow) + ' of ' + short(need);
+      progressCaption = progressPct + '% of what you’d have invested on that date';
+    }
+
+    // Chart (viewBox 1000 × 240, plot from y=4 to y=236)
+    const peak = Math.max(1, ...sim.path);
+    const steps = [100000, 200000, 250000, 500000, 1000000, 2000000, 2500000, 5000000];
+    const step = steps.find((s) => peak / s <= 4) || 10000000;
+    const yMax = Math.ceil(peak * 1.04 / step) * step;
+    const yPx = (v) => 4 + (1 - Math.max(0, v) / yMax) * 232;
+    const xV = (m) => (m / H) * 1000;
+    let line = '';
+    for (let m = 0; m <= H; m += 3) line += (m === 0 ? 'M' : 'L') + xV(m).toFixed(1) + ' ' + yPx(sim.path[m]).toFixed(1);
+    line += 'L1000 ' + yPx(sim.path[H]).toFixed(1);
+    const area = line + 'L1000 236L0 236Z';
+    const grid = [];
+    for (let v = 0; v <= yMax + 1; v += step) grid.push({ top: yPx(v).toFixed(1), label: v === 0 ? '$0' : (v >= 1e6 ? '$' + parseFloat((v / 1e6).toFixed(2)) + 'M' : short(v)) });
+    const xTicks = [];
+    for (let a = Math.ceil((p.yourAge + 1) / 10) * 10; a <= p.planAge; a += 10) {
+      xTicks.push({ left: (((a - p.yourAge) * 12) / H * 100).toFixed(2), label: (xTicks.length ? '' : 'Age ') + a });
+    }
+    const hm = this.state.hover;
+    const hovering = hm !== null && hm >= 0 && hm <= H;
+    const hoverLeft = hovering ? (hm / H * 100).toFixed(2) : '0';
+    const hoverTop = hovering ? yPx(sim.path[hm]).toFixed(1) : '0';
+    const tipTop = hovering ? Math.max(-34, yPx(sim.path[hm]) - 64).toFixed(1) : '0';
+    const tipShift = !hovering ? '-50%' : (hm / H > 0.82 ? 'calc(-100% - 10px)' : (hm / H < 0.18 ? '10px' : '-50%'));
+    const onMove = (e) => {
+      const r = e.currentTarget.getBoundingClientRect();
+      const f = (e.clientX - r.left) / r.width;
+      this.setState({ hover: clamp(Math.round(f * H), 0, H) });
+    };
+    const onLeave = () => this.setState({ hover: null });
+
+    // Status for the chosen date
+    let statusText, statusColor, statusBg, statusIcon;
+    if (sim.gapM !== null) {
+      statusText = 'Short at ' + ageText(Math.floor(p.yourAge + sim.gapM / 12)) + ': open accounts run dry before the rest unlock';
+      statusColor = C.down; statusBg = C.downBg; statusIcon = ICON_WARN;
+    } else if (sim.outM !== null) {
+      statusText = 'Runs out at ' + ageText(Math.floor(p.yourAge + sim.outM / 12));
+      statusColor = C.down; statusBg = C.downBg; statusIcon = ICON_WARN;
+    } else {
+      statusText = 'Lasts to ' + p.planAge + ' · ' + short(sim.path[H]) + ' left';
+      statusColor = C.mint; statusBg = C.mintBg; statusIcon = ICON_OK;
+    }
+    const outShown = sim.outM !== null;
+
+    // Tiles
+    const yearlySaving = p.accounts.reduce((s, a) => s + a.contrib, 0);
+    const preTax = p.accounts.filter((a) => a.kind === 'k401' || a.kind === 'k457' || a.kind === 'pers3').reduce((s, a) => s + a.contrib, 0);
+    const savingRate = yearlySaving / (OTTERMINT.takeHomeMonthly * 12 + preTax);
+    const pen = sim.pen;
+    const guaranteed = pen.monthly + (p.ssYou > 0 ? sim.ssYou : 0) + (p.ssPartner > 0 ? sim.ssPartner : 0);
+    const lastStart = Math.max(pen.monthly > 0 ? pen.startM : 0, p.ssYou > 0 ? sim.ssYouM : 0, p.ssPartner > 0 ? sim.ssPartnerM : 0, selM);
+    const tiles = [
+      { label: 'Invested today', value: money(investedNow), sub: p.accounts.length + ' accounts, ' + p.accounts.filter((a) => !a.fromApp).length + ' entered by hand' },
+      { label: 'Saved per year', value: money(yearlySaving), sub: Math.round(savingRate * 100) + '% of pay, counting payroll contributions' },
+      { label: 'Spending in retirement', value: money(p.spend) + '/mo', sub: '+ ' + money(p.health) + '/mo health insurance until 65' },
+      { label: 'Pension and Social Security', value: money(guaranteed) + '/mo', sub: (pen.monthly > 0 ? 'In today’s dollars; ' : 'No pension; ') + 'full amount from ' + yearOf(lastStart) }
+    ];
+
+    // Timeline: retirements, accounts opening, income starting
+    const whose = (a) => (a.owner === 'you' ? 'Your ' : 'Partner’s ') + (a.prose || a.name);
+    const whoseList = (list) => (list.every((a) => a.owner === list[0].owner)
+      ? (list[0].owner === 'you' ? 'Your ' : 'Partner’s ') + list.map((a) => a.prose || a.name).join(' and ')
+      : list.map(whose).join(' and '));
+    const balAt = (a, m) => a.hist[clamp(m, 0, H)];
+    const firstM = Math.min(selM, pM);
+    const retireMs = together ? [selM] : [selM, pM].sort((a, b) => a - b);
+    const items = [];
+    for (const m of retireMs) {
+      const opening = sim.accts.filter((a) => (m === firstM ? a.openM <= m || a.kind === 'roth' : a.openM === m) && !(a.kind === 'roth' && m !== firstM));
+      const parts = opening.map((a) => {
+        const amt = a.openM <= m ? balAt(a, m) : Math.min(a.basisHist[clamp(m, 0, H)], balAt(a, m));
+        return { a, amt, text: whose(a) + (a.openM <= m ? ' ' : ' contributions ') + short(amt) };
+      }).filter((x) => x.amt > 0.5 || x.a.kind !== 'roth');
+      const title = together ? 'You both retire' : (m === selM ? 'You retire' : 'Partner retires');
+      const when = monthLabel(m) + ' · ' + (together ? 'you ' + youAt(m) + ', partner ' + partnerAt(m) : (m === selM ? 'you ' + youAt(m) : 'partner ' + partnerAt(m)));
+      items.push({
+        m, title, when,
+        detail: parts.length ? 'Open now: ' + parts.map((x) => x.text).join(' · ') : (m === selM ? 'Your' : 'Your partner’s') + ' paycheck stops; nothing new opens',
+        amount: parts.length ? short(parts.reduce((s, x) => s + x.amt, 0)) : '', dot: C.mint, first: m === firstM
+      });
+    }
+    const openGroups = new Map();
+    for (const a of sim.accts) {
+      if (a.openM <= firstM || retireMs.includes(a.openM)) continue;
+      if (!openGroups.has(a.openM)) openGroups.set(a.openM, []);
+      openGroups.get(a.openM).push(a);
+    }
+    for (const [m, list] of openGroups) {
+      const owner = list[0].owner;
+      items.push({
+        m, title: whoseList(list) + (list.length > 1 ? ' open' : ' opens'),
+        when: monthLabel(m) + ' · ' + (owner === 'you' ? 'you ' + youAt(m) : 'partner ' + partnerAt(m)),
+        detail: list.map((a) => whose(a) + ' ' + short(balAt(a, m))).join(' · '),
+        amount: short(list.reduce((s, a) => s + balAt(a, m), 0)), dot: C.slate
+      });
+    }
+    if (pen.monthly > 0) {
+      items.push({ m: Math.max(pen.startM, pM), title: 'PERS 3 pension starts', when: monthLabel(Math.max(pen.startM, pM)) + ' · partner ' + ageText(pen.startAge),
+        detail: Math.floor(pen.service) + ' years of service' + (pen.startAge < 65 ? ', reduced for starting before 65' : ''), amount: '+' + money(pen.monthly) + '/mo', dot: C.slate });
+    } else {
+      items.push({ m: Infinity, title: 'No PERS 3 pension', when: 'Partner leaves with ' + Math.floor(pen.service) + ' years of service',
+        detail: 'The pension needs 10 years of service, or 5 if some came after age 44', amount: '$0/mo', dot: C.slate });
+    }
+    const ssItem = (who, amt, m, age) => ({ m, title: who + ' Social Security starts', when: monthLabel(m) + ' · ' + (who === 'Your' ? 'you ' : 'partner ') + ageText(age),
+      detail: age === 67 ? 'Full amount, claimed at 67' : (age < 67 ? 'Reduced for claiming before 67' : 'Raised for waiting past 67'), amount: '+' + money(amt) + '/mo', dot: C.slate });
+    if (p.ssYou > 0) items.push(ssItem('Your', sim.ssYou, sim.ssYouM, p.ssYouAge));
+    if (p.ssPartner > 0) items.push(ssItem('Partner’s', sim.ssPartner, sim.ssPartnerM, p.ssPartnerAge));
+    items.sort((a, b) => a.m - b.m);
+    let checkText = '', checkColor = C.mint, checkIcon = ICON_OK;
+    if (sim.gapM !== null) {
+      const nextOpen = Math.min(...sim.accts.filter((a) => a.openM > sim.gapM).map((a) => a.openM), H);
+      checkText = 'Open money runs out at ' + ageText(Math.floor(p.yourAge + sim.gapM / 12)) + ', ' + span(Math.max(0, nextOpen - sim.gapM)) + ' before the next account opens. Retire later, or move some saving from the 401(k) to the brokerage.';
+      checkColor = C.down; checkIcon = ICON_WARN;
+    } else if (sim.low !== null) {
+      checkText = 'Open money never runs dry before the rest unlock. Lowest point: ' + short(sim.low) + ' in ' + monthLabel(sim.lowM) + '.';
+    }
+    const events = items.map((e, i) => ({
+      title: e.title, when: e.when, detail: e.detail, amount: e.amount, dot: e.dot,
+      hasCheck: !!e.first && checkText !== '', checkText, checkColor, checkIcon,
+      lineOpacity: i === items.length - 1 ? 0 : 1
+    }));
+
+    // Accounts table
+    const rows = p.accounts.map((a) => ({
+      name: a.name,
+      source: a.fromApp ? 'From OtterMint' : 'Entered by you',
+      sourceColor: a.fromApp ? C.mint : C.text3,
+      owner: a.owner === 'you' ? 'You' : 'Partner',
+      opens: KINDS[a.kind].opens === 'separation' ? 'When ' + (a.owner === 'you' ? 'you leave' : 'your partner leaves') + ' the job' : OPENS_TEXT[KINDS[a.kind].opens],
+      editBalance: !a.fromApp, showBalance: a.fromApp,
+      balanceText: money(a.balance), balanceValue: this.state.bal[a.id] ?? String(a.balance), balanceLabel: a.name + ' balance',
+      onBalance: (e) => this.setState({ bal: { ...this.state.bal, [a.id]: e.target.value } }),
+      editContrib: !a.contribPctOfSalary, showContrib: !!a.contribPctOfSalary,
+      contribValue: this.state.contrib[a.id] ?? String(a.contrib), contribLabel: a.name + ' added per year',
+      onContrib: (e) => this.setState({ contrib: { ...this.state.contrib, [a.id]: e.target.value } }),
+      contribText: money(a.contrib), contribNote: a.contribPctOfSalary ? Math.round(a.contribPctOfSalary * 100) + '% of salary' : ''
+    }));
+    const addAccount = () => {
+      const id = 'new-' + (this.state.extra.length + 1);
+      this.setState({ extra: this.state.extra.concat([{ id, name: 'New brokerage account', owner: 'you', kind: 'brokerage', fromApp: false, balance: 0, contrib: 0 }]) });
+    };
+
+    // Assumption fields
+    const field = (key, label, opts) => ({
+      id: 'f-' + key, label, step: (opts && opts.step) || '1',
+      value: this.state.vals[key] ?? String(DEFAULTS[key]),
+      onChange: (e) => this.setState({ vals: { ...this.state.vals, [key]: e.target.value } }),
+      prefix: (opts && opts.prefix) || '', hasPrefix: !!(opts && opts.prefix),
+      suffix: (opts && opts.suffix) || '', hasSuffix: !!(opts && opts.suffix),
+      hint: (opts && opts.hint) || '', hasHint: !!(opts && opts.hint)
+    });
+    const yourPay = Math.max(0, OTTERMINT.takeHomeMonthly - p.partnerTakeHome);
+    const groups = [
+      { title: 'You two', fields: [field('yourAge', 'Your age'), field('partnerAge', 'Partner’s age'), field('planAge', 'Plan until your age')] },
+      { title: 'Who stops working when', fields: [
+        field('partnerOffset', 'Partner retires', { suffix: 'years after you', step: '0.5', hint: 'Use a minus sign if they stop first' }),
+        field('partnerTakeHome', 'Partner’s take-home pay', { prefix: '$', suffix: '/mo', hint: 'Yours is the rest of OtterMint’s ' + money(OTTERMINT.takeHomeMonthly) + '/mo: ' + money(yourPay) })
+      ] },
+      { title: 'Spending in retirement', fields: [
+        field('spend', 'Monthly spending', { prefix: '$', hint: 'Last 12 months in OtterMint: ' + money(OTTERMINT.spendingMonthly) + '/mo' }),
+        field('health', 'Health insurance until 65', { prefix: '$', suffix: '/mo', hint: 'For both of you, once neither has a job' }),
+        field('tax', 'Tax on withdrawals', { suffix: '%', step: '0.5' })
+      ] },
+      { title: 'Spending changes', fields: [
+        field('chg1Age', 'From your age'),
+        field('chg1Amt', 'Spending changes by', { prefix: '$', suffix: '/mo', step: '100', hint: 'Minus for less, e.g. a paid-off mortgage' }),
+        field('chg2Age', 'Then from your age'),
+        field('chg2Amt', 'Spending changes by', { prefix: '$', suffix: '/mo', step: '100' })
+      ] },
+      { title: 'Returns after inflation', fields: [
+        field('rPre', 'Before retiring', { suffix: '%', step: '0.5' }),
+        field('rPost', 'After retiring', { suffix: '%', step: '0.5', hint: 'Lower, to leave room for bad years' }),
+        field('rCrypto', 'Crypto (River)', { suffix: '%', step: '0.5', hint: 'Used before and after retiring' }),
+        field('infl', 'Inflation', { suffix: '%', step: '0.5', hint: 'Only used to wear down the pension' })
+      ] },
+      { title: 'Partner’s PERS 3', fields: [
+        field('salary', 'Salary', { prefix: '$', suffix: '/yr' }),
+        field('service', 'Years of service so far', { step: '0.5' }),
+        field('pensionAge', 'Start the pension at', { hint: '55 at the earliest; full amount at 65' })
+      ] },
+      { title: 'Social Security', fields: [
+        field('ssYou', 'Yours at 67', { prefix: '$', suffix: '/mo' }),
+        field('ssYouAge', 'You claim at', { hint: '62 to 70' }),
+        field('ssPartner', 'Partner’s at 67', { prefix: '$', suffix: '/mo' }),
+        field('ssPartnerAge', 'Partner claims at', { hint: '62 to 70' })
+      ] },
+      { title: 'Roth IRAs', fields: [
+        field('rothBasisYou', 'Your contributions so far', { prefix: '$', hint: 'Can come out any time; growth waits for 59½' }),
+        field('rothBasisPartner', 'Partner’s contributions so far', { prefix: '$' })
+      ] }
+    ];
+
+    // What moves the date
+    const lever = (label, over) => {
+      const e = earliest(this.params(over));
+      if (e === null) return { label, value: 'Not by 70', sub: 'No date works', color: C.down };
+      if (base === null) return { label, value: monthLabel(e), sub: 'Makes retirement possible', color: C.mint };
+      const d = e - base;
+      return { label, value: monthLabel(e), sub: d === 0 ? 'No change' : span(Math.abs(d)) + (d < 0 ? ' sooner' : ' later'), color: d < 0 ? C.mint : (d > 0 ? C.down : C.text3) };
+    };
+    const levers = [
+      lever('Spend $500/mo less', (q) => { q.spend -= 500; }),
+      lever('Save $1,000/mo more', (q) => { q.accounts = q.accounts.map((a) => (a.id === 'brk' ? { ...a, contrib: a.contrib + 12000 } : a)); }),
+      lever('Returns 1 point lower', (q) => { q.rPre -= 0.01; q.rPost -= 0.01; q.rCrypto -= 0.01; })
+    ];
+
+    return {
+      heroBig, heroSub, progressPct, progressText, progressCaption,
+      grid, xTicks, linePath: line, areaPath: area,
+      retireLeft: (selM / H * 100).toFixed(2), retireMarker: (together ? 'Retire · ' : 'You retire · ') + youAt(selM),
+      showPartnerMarker: !together, partnerLeft: (Math.min(pM, H) / H * 100).toFixed(2), partnerMarker: 'Partner retires · ' + partnerAt(pM),
+      showOut: outShown, outLeft: outShown ? (sim.outM / H * 100).toFixed(2) : '0', outLabel: outShown ? 'Runs out at ' + ageText(Math.floor(p.yourAge + sim.outM / 12)) : '',
+      hovering, hoverLeft, hoverTop, tipTop, tipShift,
+      hoverLine1: hovering ? 'Age ' + ageText(Math.floor(p.yourAge + hm / 12)) + ' · ' + yearOf(hm) : '',
+      hoverLine2: hovering ? money(sim.path[hm]) : '',
+      onMove, onLeave,
+      sliderMin: Math.ceil(p.yourAge), sliderMax: Math.floor(p.yourAge + maxM / 12), sliderVal: Math.round(p.yourAge + selM / 12),
+      onSlide: (e) => this.setState({ retireYears: parseInt(e.target.value, 10), hover: null }),
+      retireText: monthLabel(selM) + (together ? '' : ' · partner ' + monthLabel(pM)),
+      statusText, statusColor, statusBg, statusIcon,
+      showReset: this.state.retireYears !== null && base !== null && pickedM !== base,
+      resetRetire: () => this.setState({ retireYears: null }),
+      tiles,
+      timelineSub: 'If you retire in ' + monthLabel(selM) + '. Balances are what each account would hold on that date.',
+      events, rows, addAccount,
+      totalBalance: money(investedNow), totalContrib: money(yearlySaving),
+      groups, levers
+    };
+  }
+}
+</script>
+</body>
+</html>

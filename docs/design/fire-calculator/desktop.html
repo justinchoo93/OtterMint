@@ -1,0 +1,816 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Fire calculator · desktop mock</title>
+<!-- Static render of the approved design canvas board; see README.md. -->
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&amp;family=Instrument+Serif&amp;family=JetBrains+Mono:wght@400;500;600&amp;display=swap">
+<style>
+body{margin:0;background:#0A0D0C;color:#EDF1EF;font-family:'DM Sans',system-ui,-apple-system,sans-serif;-webkit-font-smoothing:antialiased}
+a{color:#34D399}a:hover{color:#6EE7B7}
+button{font:inherit;color:inherit;background:none;border:0;padding:0;margin:0;cursor:pointer;text-align:left}
+input{font:inherit;color:inherit}
+button:focus-visible,a:focus-visible,input:focus-visible,summary:focus-visible{outline:2px solid #34D399;outline-offset:2px}
+.mono{font-family:'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,monospace;font-variant-numeric:tabular-nums}
+.nav-item:hover{background:#1C2320;color:#EDF1EF}
+.ghost:hover{background:#1C2320;color:#EDF1EF}
+.secondary:hover{background:#1C2320;color:#EDF1EF}
+.field:focus-within{border-color:#3A453F}
+.field input{background:transparent;border:0;outline:none;min-width:0;width:100%}
+.field input::-webkit-outer-spin-button,.field input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+.row:hover{background:#171D1A}
+input[type=range]{accent-color:#34D399}
+summary{list-style:none;cursor:pointer}
+summary::-webkit-details-marker{display:none}
+@media (max-width: 760px){.side{display:none}.hero-num{font-size:40px}.pad{padding:20px}.hdr{padding:12px 16px}.main{padding:20px 16px}}
+</style>
+</head>
+<body>
+<div style="min-height: 100vh; display: flex; flex-wrap: wrap; background: #0A0D0C; color: #EDF1EF; font-family: 'DM Sans', system-ui, sans-serif">
+
+  <aside class="side" style="flex: 0 0 240px; box-sizing: border-box; padding: 16px 12px; border-right: 1px solid #242C28; background: #111614; display: flex; flex-direction: column">
+    <div style="height: 40px; display: flex; align-items: center; justify-content: space-between">
+      <span style="font-family: 'Instrument Serif', Georgia, serif; font-size: 24px; line-height: 1">ottermint</span>
+      <button class="ghost" aria-label="Collapse navigation" style="width: 36px; height: 36px; border-radius: 10px; display: flex; align-items: center; justify-content: center; color: #85908A">
+        <svg width="16" height="16"><g transform="scale(0.6667)" style="fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round"><path d="M15 18l-6-6 6-6"></path></g></svg>
+      </button>
+    </div>
+    <nav style="margin-top: 24px; display: flex; flex-direction: column; gap: 4px">
+      <button class="nav-item" style="height: 40px; display: flex; align-items: center; gap: 12px; padding: 0 12px; border-radius: 10px; font-size: 14px; font-weight: 500; color: #A3ADA8">
+        <svg width="16" height="16"><g transform="scale(0.6667)" style="fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round"><rect x="3" y="3" width="7" height="9" rx="1"></rect><rect x="14" y="3" width="7" height="5" rx="1"></rect><rect x="14" y="12" width="7" height="9" rx="1"></rect><rect x="3" y="16" width="7" height="5" rx="1"></rect></g></svg>
+        <span>Dashboard</span>
+      </button>
+      <button class="nav-item" style="height: 40px; display: flex; align-items: center; gap: 12px; padding: 0 12px; border-radius: 10px; font-size: 14px; font-weight: 500; color: #A3ADA8">
+        <svg width="16" height="16"><g transform="scale(0.6667)" style="fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round"><rect x="2" y="5" width="20" height="14" rx="2"></rect><path d="M2 10h20"></path></g></svg>
+        <span>Accounts</span>
+      </button>
+      <button class="nav-item" style="height: 40px; display: flex; align-items: center; gap: 12px; padding: 0 12px; border-radius: 10px; font-size: 14px; font-weight: 500; color: #A3ADA8">
+        <svg width="16" height="16"><g transform="scale(0.6667)" style="fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round"><path d="M10 6h11M10 12h11M10 18h11M4 6h1v4M4 10h2M6 18H4c0-1 2-2 2-3s-1-1.5-2-1"></path></g></svg>
+        <span>Transactions</span>
+      </button>
+      <button class="nav-item" style="height: 40px; display: flex; align-items: center; gap: 12px; padding: 0 12px; border-radius: 10px; font-size: 14px; font-weight: 500; color: #A3ADA8">
+        <svg width="16" height="16"><g transform="scale(0.6667)" style="fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round"><path d="M16 6V4a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2M22 13a18 18 0 0 1-20 0"></path><rect x="2" y="6" width="20" height="14" rx="2"></rect></g></svg>
+        <span>Investments</span>
+      </button>
+      <button class="nav-item" style="height: 40px; display: flex; align-items: center; gap: 12px; padding: 0 12px; border-radius: 10px; font-size: 14px; font-weight: 500; color: #A3ADA8">
+        <svg width="16" height="16"><g transform="scale(0.6667)" style="fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round"><path d="M3 3v18h18M18 17V9M13 17V5M8 17v-3"></path></g></svg>
+        <span>Analytics</span>
+      </button>
+      <button class="nav-item" aria-current="page" style="height: 40px; display: flex; align-items: center; gap: 12px; padding: 0 12px; border-radius: 10px; font-size: 14px; font-weight: 500; color: #EDF1EF; background: #1C2320">
+        <svg width="16" height="16" style="color: #34D399"><g transform="scale(0.6667)" style="fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.07-2.14-.22-4.05 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.15.43-2.29 1-3a2.5 2.5 0 0 0 2.5 2.5z"></path></g></svg>
+        <span>FIRE</span>
+      </button>
+    </nav>
+  </aside>
+
+  <div style="flex: 999 1 560px; min-width: 0; display: flex; flex-direction: column">
+    <header class="hdr" style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; padding: 16px 24px; border-bottom: 1px solid #242C28; background: #111614">
+      <h1 style="margin: 0; font-family: 'Instrument Serif', Georgia, serif; font-weight: 400; font-size: 26px; line-height: 1.1">FIRE</h1>
+      <div style="display: flex; align-items: center; gap: 12px">
+        <span style="font-size: 12px; color: #85908A">Updated 2h ago</span>
+        <button class="secondary" style="height: 36px; padding: 0 14px; border-radius: 10px; border: 1px solid #242C28; background: #171D1A; display: flex; align-items: center; gap: 6px; font-size: 14px; font-weight: 500; color: #A3ADA8">
+          <svg width="16" height="16"><g transform="scale(0.6667)" style="fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round"><path d="M21 12a9 9 0 1 1-2.64-6.36M21 3v6h-6"></path></g></svg>
+          <span>Refresh</span>
+        </button>
+        <button aria-label="Account menu" style="width: 28px; height: 28px; border-radius: 50%; background: #171D1A; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 500; color: #A3ADA8">J</button>
+      </div>
+    </header>
+
+    <main class="main" style="width: 100%; max-width: 1200px; box-sizing: border-box; padding: 32px 24px; margin: 0 auto; display: flex; flex-direction: column; gap: 24px">
+
+      <section aria-label="Earliest retirement" class="pad" style="background: #111614; border: 1px solid #242C28; border-radius: 16px; padding: 28px 32px; display: flex; flex-direction: column">
+        <div style="display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 24px">
+          <div style="display: flex; flex-direction: column; align-items: flex-start">
+            <span style="font-size: 13px; font-weight: 500; color: #A3ADA8">Earliest you could retire</span>
+            <span class="hero-num" style="margin-top: 8px; font-size: 52px; font-weight: 600; line-height: 1.05; letter-spacing: -0.025em">Jul 2033</span>
+            <span style="margin-top: 12px; font-size: 14px; color: #A3ADA8">In 6 years 9 months · you 41½, partner 40½</span>
+          </div>
+          <div style="flex: 0 1 340px; display: flex; flex-direction: column; gap: 8px">
+            <div style="display: flex; justify-content: space-between; gap: 12px; font-size: 13px">
+              <span style="color: #A3ADA8">Invested today</span>
+              <span class="mono" style="font-weight: 600">$762k of $2.25M</span>
+            </div>
+            <div role="progressbar" aria-label="Progress toward what you need at retirement" aria-valuemin="0" aria-valuemax="100" aria-valuenow="34" style="height: 8px; border-radius: 4px; background: #242C28; overflow: hidden">
+              <div style="height: 8px; width: 34%; background: #34D399; border-radius: 4px"></div>
+            </div>
+            <span style="font-size: 12px; color: #85908A">34% of what you’d have invested on that date</span>
+          </div>
+        </div>
+
+        <div style="position: relative; height: 268px; margin: 58px 12px 0 60px">
+          
+            <div style="position: absolute; left: 0; right: 0; top: 236.0px; height: 0">
+              <span class="mono" style="position: absolute; right: calc(100% + 10px); top: -7px; font-size: 11px; color: #85908A; white-space: nowrap">$0</span>
+              <div style="position: absolute; left: 0; right: 0; top: 0; height: 1px; background: #1E2622"></div>
+            </div>
+          
+            <div style="position: absolute; left: 0; right: 0; top: 158.7px; height: 0">
+              <span class="mono" style="position: absolute; right: calc(100% + 10px); top: -7px; font-size: 11px; color: #85908A; white-space: nowrap">$1M</span>
+              <div style="position: absolute; left: 0; right: 0; top: 0; height: 1px; background: #1E2622"></div>
+            </div>
+          
+            <div style="position: absolute; left: 0; right: 0; top: 81.3px; height: 0">
+              <span class="mono" style="position: absolute; right: calc(100% + 10px); top: -7px; font-size: 11px; color: #85908A; white-space: nowrap">$2M</span>
+              <div style="position: absolute; left: 0; right: 0; top: 0; height: 1px; background: #1E2622"></div>
+            </div>
+          
+            <div style="position: absolute; left: 0; right: 0; top: 4.0px; height: 0">
+              <span class="mono" style="position: absolute; right: calc(100% + 10px); top: -7px; font-size: 11px; color: #85908A; white-space: nowrap">$3M</span>
+              <div style="position: absolute; left: 0; right: 0; top: 0; height: 1px; background: #1E2622"></div>
+            </div>
+          
+          <div style="position: absolute; left: 11.25%; top: -6px; width: 1px; height: 246px; background: #3A453F"></div>
+          <span style="position: absolute; left: 11.25%; top: -28px; transform: translateX(-50%); font-size: 12px; font-weight: 600; color: #EDF1EF; white-space: nowrap">Retire · 41½</span>
+          
+          <svg viewBox="0 0 1000 240" preserveAspectRatio="none" style="position: absolute; left: 0; top: 0; width: 100%; height: 240px; overflow: visible">
+            <path d="M0.0 177.1L4.2 173.5L8.3 169.8L12.5 166.1L16.7 162.3L20.8 158.5L25.0 154.7L29.2 150.8L33.3 146.9L37.5 142.9L41.7 138.8L45.8 134.7L50.0 130.6L54.2 126.4L58.3 122.2L62.5 117.9L66.7 113.5L70.8 109.1L75.0 104.7L79.2 100.2L83.3 95.6L87.5 91.0L91.7 86.3L95.8 81.6L100.0 76.8L104.2 72.0L108.3 67.1L112.5 62.1L116.7 62.8L120.8 63.6L125.0 64.4L129.2 65.1L133.3 65.9L137.5 66.7L141.7 67.5L145.8 68.3L150.0 69.1L154.2 69.9L158.3 70.7L162.5 71.5L166.7 72.3L170.8 73.2L175.0 74.0L179.2 74.9L183.3 75.7L187.5 76.6L191.7 77.4L195.8 78.3L200.0 79.2L204.2 80.1L208.3 81.0L212.5 81.9L216.7 82.8L220.8 83.8L225.0 84.7L229.2 85.6L233.3 86.6L237.5 87.5L241.7 88.5L245.8 89.5L250.0 90.5L254.2 91.4L258.3 92.4L262.5 93.4L266.7 94.5L270.8 95.5L275.0 96.5L279.2 97.6L283.3 98.6L287.5 99.7L291.7 100.7L295.8 101.8L300.0 102.9L304.2 104.0L308.3 105.1L312.5 106.2L316.7 107.3L320.8 108.5L325.0 109.6L329.2 110.8L333.3 111.9L337.5 113.1L341.7 114.3L345.8 115.5L350.0 116.7L354.2 117.9L358.3 119.1L362.5 120.4L366.7 121.6L370.8 122.9L375.0 124.2L379.2 125.5L383.3 126.8L387.5 128.1L391.7 129.4L395.8 130.7L400.0 132.1L404.2 133.4L408.3 134.8L412.5 136.2L416.7 137.6L420.8 139.0L425.0 140.4L429.2 141.8L433.3 143.3L437.5 144.7L441.7 146.2L445.8 147.7L450.0 149.2L454.2 150.7L458.3 152.2L462.5 153.7L466.7 155.3L470.8 156.8L475.0 158.4L479.2 160.0L483.3 161.6L487.5 163.2L491.7 164.8L495.8 166.5L500.0 168.1L504.2 169.6L508.3 171.2L512.5 172.7L516.7 174.2L520.8 175.5L525.0 176.8L529.2 178.1L533.3 179.4L537.5 180.1L541.7 180.8L545.8 181.5L550.0 182.2L554.2 182.4L558.3 182.7L562.5 182.9L566.7 183.2L570.8 183.4L575.0 183.7L579.2 183.9L583.3 184.2L587.5 184.5L591.7 184.7L595.8 185.0L600.0 185.3L604.2 185.6L608.3 185.8L612.5 186.1L616.7 186.4L620.8 186.7L625.0 187.0L629.2 187.2L633.3 187.5L637.5 187.8L641.7 188.1L645.8 188.4L650.0 188.7L654.2 189.0L658.3 189.3L662.5 189.6L666.7 190.0L670.8 190.3L675.0 190.6L679.2 190.9L683.3 191.2L687.5 191.6L691.7 191.9L695.8 192.2L700.0 192.5L704.2 192.9L708.3 193.2L712.5 193.6L716.7 193.9L720.8 194.3L725.0 194.6L729.2 195.0L733.3 195.3L737.5 195.7L741.7 196.0L745.8 196.4L750.0 196.8L754.2 197.1L758.3 197.5L762.5 197.9L766.7 198.3L770.8 198.7L775.0 199.1L779.2 199.5L783.3 199.9L787.5 200.3L791.7 200.7L795.8 201.1L800.0 201.5L804.2 201.9L808.3 202.3L812.5 202.7L816.7 203.1L820.8 203.6L825.0 204.0L829.2 204.4L833.3 204.9L837.5 205.3L841.7 205.8L845.8 206.2L850.0 206.7L854.2 207.1L858.3 207.6L862.5 208.1L866.7 208.5L870.8 209.0L875.0 209.5L879.2 210.0L883.3 210.5L887.5 210.9L891.7 211.4L895.8 211.9L900.0 212.4L904.2 213.0L908.3 213.5L912.5 214.0L916.7 214.5L920.8 215.0L925.0 215.6L929.2 216.1L933.3 216.6L937.5 217.2L941.7 217.7L945.8 218.3L950.0 218.8L954.2 219.4L958.3 220.0L962.5 220.6L966.7 221.1L970.8 221.7L975.0 222.3L979.2 222.9L983.3 223.5L987.5 224.1L991.7 224.7L995.8 225.3L1000.0 225.9L1000 225.9L1000 236L0 236Z" style="fill: #34D399; opacity: 0.1"></path>
+            <path d="M0.0 177.1L4.2 173.5L8.3 169.8L12.5 166.1L16.7 162.3L20.8 158.5L25.0 154.7L29.2 150.8L33.3 146.9L37.5 142.9L41.7 138.8L45.8 134.7L50.0 130.6L54.2 126.4L58.3 122.2L62.5 117.9L66.7 113.5L70.8 109.1L75.0 104.7L79.2 100.2L83.3 95.6L87.5 91.0L91.7 86.3L95.8 81.6L100.0 76.8L104.2 72.0L108.3 67.1L112.5 62.1L116.7 62.8L120.8 63.6L125.0 64.4L129.2 65.1L133.3 65.9L137.5 66.7L141.7 67.5L145.8 68.3L150.0 69.1L154.2 69.9L158.3 70.7L162.5 71.5L166.7 72.3L170.8 73.2L175.0 74.0L179.2 74.9L183.3 75.7L187.5 76.6L191.7 77.4L195.8 78.3L200.0 79.2L204.2 80.1L208.3 81.0L212.5 81.9L216.7 82.8L220.8 83.8L225.0 84.7L229.2 85.6L233.3 86.6L237.5 87.5L241.7 88.5L245.8 89.5L250.0 90.5L254.2 91.4L258.3 92.4L262.5 93.4L266.7 94.5L270.8 95.5L275.0 96.5L279.2 97.6L283.3 98.6L287.5 99.7L291.7 100.7L295.8 101.8L300.0 102.9L304.2 104.0L308.3 105.1L312.5 106.2L316.7 107.3L320.8 108.5L325.0 109.6L329.2 110.8L333.3 111.9L337.5 113.1L341.7 114.3L345.8 115.5L350.0 116.7L354.2 117.9L358.3 119.1L362.5 120.4L366.7 121.6L370.8 122.9L375.0 124.2L379.2 125.5L383.3 126.8L387.5 128.1L391.7 129.4L395.8 130.7L400.0 132.1L404.2 133.4L408.3 134.8L412.5 136.2L416.7 137.6L420.8 139.0L425.0 140.4L429.2 141.8L433.3 143.3L437.5 144.7L441.7 146.2L445.8 147.7L450.0 149.2L454.2 150.7L458.3 152.2L462.5 153.7L466.7 155.3L470.8 156.8L475.0 158.4L479.2 160.0L483.3 161.6L487.5 163.2L491.7 164.8L495.8 166.5L500.0 168.1L504.2 169.6L508.3 171.2L512.5 172.7L516.7 174.2L520.8 175.5L525.0 176.8L529.2 178.1L533.3 179.4L537.5 180.1L541.7 180.8L545.8 181.5L550.0 182.2L554.2 182.4L558.3 182.7L562.5 182.9L566.7 183.2L570.8 183.4L575.0 183.7L579.2 183.9L583.3 184.2L587.5 184.5L591.7 184.7L595.8 185.0L600.0 185.3L604.2 185.6L608.3 185.8L612.5 186.1L616.7 186.4L620.8 186.7L625.0 187.0L629.2 187.2L633.3 187.5L637.5 187.8L641.7 188.1L645.8 188.4L650.0 188.7L654.2 189.0L658.3 189.3L662.5 189.6L666.7 190.0L670.8 190.3L675.0 190.6L679.2 190.9L683.3 191.2L687.5 191.6L691.7 191.9L695.8 192.2L700.0 192.5L704.2 192.9L708.3 193.2L712.5 193.6L716.7 193.9L720.8 194.3L725.0 194.6L729.2 195.0L733.3 195.3L737.5 195.7L741.7 196.0L745.8 196.4L750.0 196.8L754.2 197.1L758.3 197.5L762.5 197.9L766.7 198.3L770.8 198.7L775.0 199.1L779.2 199.5L783.3 199.9L787.5 200.3L791.7 200.7L795.8 201.1L800.0 201.5L804.2 201.9L808.3 202.3L812.5 202.7L816.7 203.1L820.8 203.6L825.0 204.0L829.2 204.4L833.3 204.9L837.5 205.3L841.7 205.8L845.8 206.2L850.0 206.7L854.2 207.1L858.3 207.6L862.5 208.1L866.7 208.5L870.8 209.0L875.0 209.5L879.2 210.0L883.3 210.5L887.5 210.9L891.7 211.4L895.8 211.9L900.0 212.4L904.2 213.0L908.3 213.5L912.5 214.0L916.7 214.5L920.8 215.0L925.0 215.6L929.2 216.1L933.3 216.6L937.5 217.2L941.7 217.7L945.8 218.3L950.0 218.8L954.2 219.4L958.3 220.0L962.5 220.6L966.7 221.1L970.8 221.7L975.0 222.3L979.2 222.9L983.3 223.5L987.5 224.1L991.7 224.7L995.8 225.3L1000.0 225.9L1000 225.9" vector-effect="non-scaling-stroke" style="fill: none; stroke: #34D399; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round"></path>
+          </svg>
+          
+          
+            <span class="mono" style="position: absolute; top: 250px; left: 8.33%; transform: translateX(-50%); font-size: 11px; color: #85908A; white-space: nowrap">Age 40</span>
+          
+            <span class="mono" style="position: absolute; top: 250px; left: 25.00%; transform: translateX(-50%); font-size: 11px; color: #85908A; white-space: nowrap">50</span>
+          
+            <span class="mono" style="position: absolute; top: 250px; left: 41.67%; transform: translateX(-50%); font-size: 11px; color: #85908A; white-space: nowrap">60</span>
+          
+            <span class="mono" style="position: absolute; top: 250px; left: 58.33%; transform: translateX(-50%); font-size: 11px; color: #85908A; white-space: nowrap">70</span>
+          
+            <span class="mono" style="position: absolute; top: 250px; left: 75.00%; transform: translateX(-50%); font-size: 11px; color: #85908A; white-space: nowrap">80</span>
+          
+            <span class="mono" style="position: absolute; top: 250px; left: 91.67%; transform: translateX(-50%); font-size: 11px; color: #85908A; white-space: nowrap">90</span>
+          
+          
+          <div aria-hidden="true" style="position: absolute; left: 0; top: 0; width: 100%; height: 240px; cursor: crosshair"></div>
+        </div>
+
+        <div style="margin-top: 20px; display: flex; flex-wrap: wrap; align-items: center; gap: 16px 24px">
+          <label for="retire-at" style="font-size: 13px; font-weight: 500; color: #A3ADA8; white-space: nowrap">Try retiring at</label>
+          <input id="retire-at" type="range" min="35" max="70" step="1" value="42" style="flex: 1 1 220px; max-width: 360px">
+          <span class="mono" style="font-size: 14px; font-weight: 600; white-space: nowrap">Jul 2033</span>
+          <span style="display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 999px; background: rgba(52, 211, 153, 0.12); color: #34D399; font-size: 13px; font-weight: 500">
+            <svg width="14" height="14"><g transform="scale(0.5833)" style="fill: none; stroke: currentColor; stroke-width: 2.25; stroke-linecap: round; stroke-linejoin: round"><path d="M5 12.5l4.5 4.5L19 7.5"></path></g></svg>
+            <span>Lasts to 95 · $130k left</span>
+          </span>
+          
+        </div>
+
+        <details style="margin-top: 16px; font-size: 12px; color: #85908A; max-width: 760px">
+          <summary style="display: inline-block"><span style="color: #34D399; text-decoration: underline; text-decoration-color: rgba(52, 211, 153, 0.4); text-underline-offset: 2px">About these numbers</span></summary>
+          <ul style="margin: 8px 0 0; padding-left: 18px; line-height: 1.55; display: flex; flex-direction: column; gap: 4px">
+            <li>Everything is in today's dollars. Returns are after inflation and move in a straight line; there are no bad years, which is why the return after retiring is set lower. The lower return starts when the first of you stops working.</li>
+            <li>Until someone retires, saving stays flat: the brokerage gets the cash you saved over the last 12 months, the 401(k) and 457(b) get the amounts in the table, PERS 3 gets 10% of salary. No raises. While only one of you works, that person keeps contributing, their take-home pay covers spending first, and any surplus goes to the brokerage.</li>
+            <li>Spending is flat apart from the changes you enter, which start once one of you stops working. Health insurance is free while either of you works, then half the amount for each of you until you each turn 65. There are no Medicare premiums and no one-off costs like a car, house or college.</li>
+            <li>One tax rate applies to every withdrawal, including Roth and brokerage money that would really be taxed less. The pension and Social Security are treated as tax-free.</li>
+            <li>Withdrawals go brokerage, crypto, 457(b), PERS 3 investment account, 401(k), then Roth IRAs, taking only from what is open. A 401(k) or PERS 3 investment account opens if its owner stops working in or after the year they turn 55, otherwise at 59½; for PERS 3 that follows the IRS rule, though DRS only says the penalty "might" apply. The 457(b) opens when your partner leaves. Roth contributions come out any time, growth at 59½. No Roth conversions, 72(t) payments or required minimum distributions.</li>
+            <li>The PERS 3 pension is 1% of salary per year of service, using today's salary as the final average. It is reduced by DRS's factors when it starts before 65; ages between DRS's published ones are interpolated. After your partner leaves it only grows with 20 or more years of service, so inflation wears it down until it starts. Once it starts it keeps pace with inflation (DRS caps raises at 3% a year) and is paid as a single life benefit; a survivor option would lower it.</li>
+            <li>Social Security uses SSA's rules: 30% less at 62, 24% more at 70. Retiring early also lowers the benefit itself, so use your ssa.gov estimate.</li>
+            <li>Cash and home equity aren't counted. A date works if the money lasts to the plan age with anything left. The search stops at 70.</li>
+          </ul>
+        </details>
+      </section>
+
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px">
+        
+          <div style="background: #111614; border: 1px solid #242C28; border-radius: 16px; padding: 18px 20px; display: flex; flex-direction: column; gap: 6px">
+            <span style="font-size: 13px; font-weight: 500; color: #A3ADA8">Invested today</span>
+            <span class="mono" style="font-size: 24px; font-weight: 600; letter-spacing: -0.01em">$762,000</span>
+            <span style="font-size: 12px; color: #85908A">7 accounts, 4 entered by hand</span>
+          </div>
+        
+          <div style="background: #111614; border: 1px solid #242C28; border-radius: 16px; padding: 18px 20px; display: flex; flex-direction: column; gap: 6px">
+            <span style="font-size: 13px; font-weight: 500; color: #A3ADA8">Saved per year</span>
+            <span class="mono" style="font-size: 24px; font-weight: 600; letter-spacing: -0.01em">$148,500</span>
+            <span style="font-size: 12px; color: #85908A">62% of pay, counting payroll contributions</span>
+          </div>
+        
+          <div style="background: #111614; border: 1px solid #242C28; border-radius: 16px; padding: 18px 20px; display: flex; flex-direction: column; gap: 6px">
+            <span style="font-size: 13px; font-weight: 500; color: #A3ADA8">Spending in retirement</span>
+            <span class="mono" style="font-size: 24px; font-weight: 600; letter-spacing: -0.01em">$7,500/mo</span>
+            <span style="font-size: 12px; color: #85908A">+ $1,200/mo health insurance until 65</span>
+          </div>
+        
+          <div style="background: #111614; border: 1px solid #242C28; border-radius: 16px; padding: 18px 20px; display: flex; flex-direction: column; gap: 6px">
+            <span style="font-size: 13px; font-weight: 500; color: #A3ADA8">Pension and Social Security</span>
+            <span class="mono" style="font-size: 24px; font-weight: 600; letter-spacing: -0.01em">$4,755/mo</span>
+            <span style="font-size: 12px; color: #85908A">In today’s dollars; full amount from 2059</span>
+          </div>
+        
+      </div>
+
+      <section aria-label="Which money pays for which years" class="pad" style="background: #111614; border: 1px solid #242C28; border-radius: 16px; padding: 24px 28px">
+        <h2 style="margin: 0; font-size: 16px; font-weight: 600">Which money pays for which years</h2>
+        <p style="margin: 4px 0 0; font-size: 13px; color: #A3ADA8">If you retire in Jul 2033. Balances are what each account would hold on that date.</p>
+        <ol style="list-style: none; margin: 20px 0 0; padding: 0; display: flex; flex-direction: column">
+          
+            <li style="display: grid; grid-template-columns: 20px minmax(0, 1fr); column-gap: 14px">
+              <div style="display: flex; flex-direction: column; align-items: center">
+                <div style="width: 10px; height: 10px; margin-top: 5px; border-radius: 50%; background: #34D399"></div>
+                <div style="flex: 1; width: 1px; background: #242C28; min-height: 12px; opacity: 1"></div>
+              </div>
+              <div style="padding-bottom: 18px; display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 4px 24px">
+                <div style="display: flex; flex-direction: column; gap: 3px; min-width: 0">
+                  <span style="font-size: 14px; font-weight: 600">You both retire</span>
+                  <span style="font-size: 12px; color: #85908A">Jul 2033 · you 41½, partner 40½</span>
+                  <span style="font-size: 13px; color: #A3ADA8">Open now: Your brokerage $1.35M · Your Roth IRA contributions $5k · Your River $21k · Partner’s Roth IRA contributions $15k · Partner’s 457(b) $280k</span>
+                  
+                    <span style="margin-top: 6px; display: inline-flex; align-items: flex-start; gap: 6px; font-size: 13px; color: #34D399">
+                      <svg width="14" height="14" style="flex-shrink: 0; margin-top: 2px"><g transform="scale(0.5833)" style="fill: none; stroke: currentColor; stroke-width: 2.25; stroke-linecap: round; stroke-linejoin: round"><path d="M5 12.5l4.5 4.5L19 7.5"></path></g></svg>
+                      <span>Open money never runs dry before the rest unlock. Lowest point: $220k in Mar 2051.</span>
+                    </span>
+                  
+                </div>
+                <span class="mono" style="font-size: 15px; font-weight: 600; white-space: nowrap">$1.67M</span>
+              </div>
+            </li>
+          
+            <li style="display: grid; grid-template-columns: 20px minmax(0, 1fr); column-gap: 14px">
+              <div style="display: flex; flex-direction: column; align-items: center">
+                <div style="width: 10px; height: 10px; margin-top: 5px; border-radius: 50%; background: #5B6661"></div>
+                <div style="flex: 1; width: 1px; background: #242C28; min-height: 12px; opacity: 1"></div>
+              </div>
+              <div style="padding-bottom: 18px; display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 4px 24px">
+                <div style="display: flex; flex-direction: column; gap: 3px; min-width: 0">
+                  <span style="font-size: 14px; font-weight: 600">Your Roth IRA and 401(k) open</span>
+                  <span style="font-size: 12px; color: #85908A">Apr 2051 · you 59½</span>
+                  <span style="font-size: 13px; color: #A3ADA8">Your Roth IRA $18k · Your 401(k) $745k</span>
+                  
+                </div>
+                <span class="mono" style="font-size: 15px; font-weight: 600; white-space: nowrap">$763k</span>
+              </div>
+            </li>
+          
+            <li style="display: grid; grid-template-columns: 20px minmax(0, 1fr); column-gap: 14px">
+              <div style="display: flex; flex-direction: column; align-items: center">
+                <div style="width: 10px; height: 10px; margin-top: 5px; border-radius: 50%; background: #5B6661"></div>
+                <div style="flex: 1; width: 1px; background: #242C28; min-height: 12px; opacity: 1"></div>
+              </div>
+              <div style="padding-bottom: 18px; display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 4px 24px">
+                <div style="display: flex; flex-direction: column; gap: 3px; min-width: 0">
+                  <span style="font-size: 14px; font-weight: 600">Partner’s Roth IRA and PERS 3 investment account open</span>
+                  <span style="font-size: 12px; color: #85908A">Apr 2052 · partner 59½</span>
+                  <span style="font-size: 13px; color: #A3ADA8">Partner’s Roth IRA $53k · Partner’s PERS 3 investment account $304k</span>
+                  
+                </div>
+                <span class="mono" style="font-size: 15px; font-weight: 600; white-space: nowrap">$357k</span>
+              </div>
+            </li>
+          
+            <li style="display: grid; grid-template-columns: 20px minmax(0, 1fr); column-gap: 14px">
+              <div style="display: flex; flex-direction: column; align-items: center">
+                <div style="width: 10px; height: 10px; margin-top: 5px; border-radius: 50%; background: #5B6661"></div>
+                <div style="flex: 1; width: 1px; background: #242C28; min-height: 12px; opacity: 1"></div>
+              </div>
+              <div style="padding-bottom: 18px; display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 4px 24px">
+                <div style="display: flex; flex-direction: column; gap: 3px; min-width: 0">
+                  <span style="font-size: 14px; font-weight: 600">PERS 3 pension starts</span>
+                  <span style="font-size: 12px; color: #85908A">Oct 2057 · partner 65</span>
+                  <span style="font-size: 13px; color: #A3ADA8">12 years of service</span>
+                  
+                </div>
+                <span class="mono" style="font-size: 15px; font-weight: 600; white-space: nowrap">+$555/mo</span>
+              </div>
+            </li>
+          
+            <li style="display: grid; grid-template-columns: 20px minmax(0, 1fr); column-gap: 14px">
+              <div style="display: flex; flex-direction: column; align-items: center">
+                <div style="width: 10px; height: 10px; margin-top: 5px; border-radius: 50%; background: #5B6661"></div>
+                <div style="flex: 1; width: 1px; background: #242C28; min-height: 12px; opacity: 1"></div>
+              </div>
+              <div style="padding-bottom: 18px; display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 4px 24px">
+                <div style="display: flex; flex-direction: column; gap: 3px; min-width: 0">
+                  <span style="font-size: 14px; font-weight: 600">Your Social Security starts</span>
+                  <span style="font-size: 12px; color: #85908A">Oct 2058 · you 67</span>
+                  <span style="font-size: 13px; color: #A3ADA8">Full amount, claimed at 67</span>
+                  
+                </div>
+                <span class="mono" style="font-size: 15px; font-weight: 600; white-space: nowrap">+$2,400/mo</span>
+              </div>
+            </li>
+          
+            <li style="display: grid; grid-template-columns: 20px minmax(0, 1fr); column-gap: 14px">
+              <div style="display: flex; flex-direction: column; align-items: center">
+                <div style="width: 10px; height: 10px; margin-top: 5px; border-radius: 50%; background: #5B6661"></div>
+                <div style="flex: 1; width: 1px; background: #242C28; min-height: 12px; opacity: 0"></div>
+              </div>
+              <div style="padding-bottom: 18px; display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 4px 24px">
+                <div style="display: flex; flex-direction: column; gap: 3px; min-width: 0">
+                  <span style="font-size: 14px; font-weight: 600">Partner’s Social Security starts</span>
+                  <span style="font-size: 12px; color: #85908A">Oct 2059 · partner 67</span>
+                  <span style="font-size: 13px; color: #A3ADA8">Full amount, claimed at 67</span>
+                  
+                </div>
+                <span class="mono" style="font-size: 15px; font-weight: 600; white-space: nowrap">+$1,800/mo</span>
+              </div>
+            </li>
+          
+        </ol>
+      </section>
+
+      <section aria-label="Accounts" class="pad" style="background: #111614; border: 1px solid #242C28; border-radius: 16px; padding: 24px 28px">
+        <div style="display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 8px 16px">
+          <div>
+            <h2 style="margin: 0; font-size: 16px; font-weight: 600">Accounts</h2>
+            <p style="margin: 4px 0 0; font-size: 13px; color: #A3ADA8">Balances from OtterMint update on their own. Enter the ones it can't see.</p>
+          </div>
+          <button class="secondary" style="height: 36px; padding: 0 14px; border-radius: 10px; border: 1px solid #242C28; background: #171D1A; display: flex; align-items: center; gap: 6px; font-size: 14px; font-weight: 500; color: #A3ADA8">
+            <svg width="16" height="16"><g transform="scale(0.6667)" style="fill: none; stroke: currentColor; stroke-width: 2.25; stroke-linecap: round"><path d="M12 5v14M5 12h14"></path></g></svg>
+            <span>Add an account</span>
+          </button>
+        </div>
+        <div style="margin-top: 16px; overflow-x: auto">
+          <div style="min-width: 760px">
+            <div style="display: grid; grid-template-columns: minmax(0, 2.2fr) minmax(0, 1fr) minmax(0, 1.7fr) 150px 150px; gap: 16px; padding: 0 8px 8px; border-bottom: 1px solid #242C28; font-size: 12px; font-weight: 500; color: #85908A">
+              <span>Account</span><span>Whose</span><span>Can use it</span><span style="text-align: right">Balance</span><span style="text-align: right">Added per year</span>
+            </div>
+            
+              <div class="row" style="display: grid; grid-template-columns: minmax(0, 2.2fr) minmax(0, 1fr) minmax(0, 1.7fr) 150px 150px; gap: 16px; align-items: center; min-height: 52px; padding: 6px 8px; border-bottom: 1px solid #1E2622; border-radius: 8px">
+                <div style="display: flex; flex-direction: column; gap: 2px; min-width: 0">
+                  <span style="font-size: 14px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">Brokerage (3 accounts)</span>
+                  <span style="font-size: 11px; color: #34D399">From OtterMint</span>
+                </div>
+                <span style="font-size: 13px; color: #A3ADA8">You</span>
+                <span style="font-size: 13px; color: #A3ADA8">Any time</span>
+                
+                
+                  <span class="mono" style="text-align: right; font-size: 13px; padding-right: 11px">$450,000</span>
+                
+                
+                  <label class="field" style="height: 36px; display: flex; align-items: center; gap: 4px; padding: 0 10px; border: 1px solid #242C28; border-radius: 10px; background: #171D1A">
+                    <span style="font-size: 13px; color: #85908A">$</span>
+                    <input class="mono" type="number" inputmode="decimal" aria-label="Brokerage (3 accounts) added per year" value="90000" style="text-align: right; font-size: 13px">
+                  </label>
+                
+                
+              </div>
+            
+              <div class="row" style="display: grid; grid-template-columns: minmax(0, 2.2fr) minmax(0, 1fr) minmax(0, 1.7fr) 150px 150px; gap: 16px; align-items: center; min-height: 52px; padding: 6px 8px; border-bottom: 1px solid #1E2622; border-radius: 8px">
+                <div style="display: flex; flex-direction: column; gap: 2px; min-width: 0">
+                  <span style="font-size: 14px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">Roth IRA</span>
+                  <span style="font-size: 11px; color: #34D399">From OtterMint</span>
+                </div>
+                <span style="font-size: 13px; color: #A3ADA8">You</span>
+                <span style="font-size: 13px; color: #A3ADA8">Contributions any time, growth at 59½</span>
+                
+                
+                  <span class="mono" style="text-align: right; font-size: 13px; padding-right: 11px">$7,000</span>
+                
+                
+                  <label class="field" style="height: 36px; display: flex; align-items: center; gap: 4px; padding: 0 10px; border: 1px solid #242C28; border-radius: 10px; background: #171D1A">
+                    <span style="font-size: 13px; color: #85908A">$</span>
+                    <input class="mono" type="number" inputmode="decimal" aria-label="Roth IRA added per year" value="0" style="text-align: right; font-size: 13px">
+                  </label>
+                
+                
+              </div>
+            
+              <div class="row" style="display: grid; grid-template-columns: minmax(0, 2.2fr) minmax(0, 1fr) minmax(0, 1.7fr) 150px 150px; gap: 16px; align-items: center; min-height: 52px; padding: 6px 8px; border-bottom: 1px solid #1E2622; border-radius: 8px">
+                <div style="display: flex; flex-direction: column; gap: 2px; min-width: 0">
+                  <span style="font-size: 14px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">401(k)</span>
+                  <span style="font-size: 11px; color: #34D399">From OtterMint</span>
+                </div>
+                <span style="font-size: 13px; color: #A3ADA8">You</span>
+                <span style="font-size: 13px; color: #A3ADA8">59½, or on leaving at 55+</span>
+                
+                
+                  <span class="mono" style="text-align: right; font-size: 13px; padding-right: 11px">$150,000</span>
+                
+                
+                  <label class="field" style="height: 36px; display: flex; align-items: center; gap: 4px; padding: 0 10px; border: 1px solid #242C28; border-radius: 10px; background: #171D1A">
+                    <span style="font-size: 13px; color: #85908A">$</span>
+                    <input class="mono" type="number" inputmode="decimal" aria-label="401(k) added per year" value="24500" style="text-align: right; font-size: 13px">
+                  </label>
+                
+                
+              </div>
+            
+              <div class="row" style="display: grid; grid-template-columns: minmax(0, 2.2fr) minmax(0, 1fr) minmax(0, 1.7fr) 150px 150px; gap: 16px; align-items: center; min-height: 52px; padding: 6px 8px; border-bottom: 1px solid #1E2622; border-radius: 8px">
+                <div style="display: flex; flex-direction: column; gap: 2px; min-width: 0">
+                  <span style="font-size: 14px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">River</span>
+                  <span style="font-size: 11px; color: #85908A">Entered by you</span>
+                </div>
+                <span style="font-size: 13px; color: #A3ADA8">You</span>
+                <span style="font-size: 13px; color: #A3ADA8">Any time</span>
+                
+                  <label class="field" style="height: 36px; display: flex; align-items: center; gap: 4px; padding: 0 10px; border: 1px solid #242C28; border-radius: 10px; background: #171D1A">
+                    <span style="font-size: 13px; color: #85908A">$</span>
+                    <input class="mono" type="number" inputmode="decimal" aria-label="River balance" value="15000" style="text-align: right; font-size: 13px">
+                  </label>
+                
+                
+                
+                  <label class="field" style="height: 36px; display: flex; align-items: center; gap: 4px; padding: 0 10px; border: 1px solid #242C28; border-radius: 10px; background: #171D1A">
+                    <span style="font-size: 13px; color: #85908A">$</span>
+                    <input class="mono" type="number" inputmode="decimal" aria-label="River added per year" value="0" style="text-align: right; font-size: 13px">
+                  </label>
+                
+                
+              </div>
+            
+              <div class="row" style="display: grid; grid-template-columns: minmax(0, 2.2fr) minmax(0, 1fr) minmax(0, 1.7fr) 150px 150px; gap: 16px; align-items: center; min-height: 52px; padding: 6px 8px; border-bottom: 1px solid #1E2622; border-radius: 8px">
+                <div style="display: flex; flex-direction: column; gap: 2px; min-width: 0">
+                  <span style="font-size: 14px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">Roth IRA</span>
+                  <span style="font-size: 11px; color: #85908A">Entered by you</span>
+                </div>
+                <span style="font-size: 13px; color: #A3ADA8">Partner</span>
+                <span style="font-size: 13px; color: #A3ADA8">Contributions any time, growth at 59½</span>
+                
+                  <label class="field" style="height: 36px; display: flex; align-items: center; gap: 4px; padding: 0 10px; border: 1px solid #242C28; border-radius: 10px; background: #171D1A">
+                    <span style="font-size: 13px; color: #85908A">$</span>
+                    <input class="mono" type="number" inputmode="decimal" aria-label="Roth IRA balance" value="20000" style="text-align: right; font-size: 13px">
+                  </label>
+                
+                
+                
+                  <label class="field" style="height: 36px; display: flex; align-items: center; gap: 4px; padding: 0 10px; border: 1px solid #242C28; border-radius: 10px; background: #171D1A">
+                    <span style="font-size: 13px; color: #85908A">$</span>
+                    <input class="mono" type="number" inputmode="decimal" aria-label="Roth IRA added per year" value="0" style="text-align: right; font-size: 13px">
+                  </label>
+                
+                
+              </div>
+            
+              <div class="row" style="display: grid; grid-template-columns: minmax(0, 2.2fr) minmax(0, 1fr) minmax(0, 1.7fr) 150px 150px; gap: 16px; align-items: center; min-height: 52px; padding: 6px 8px; border-bottom: 1px solid #1E2622; border-radius: 8px">
+                <div style="display: flex; flex-direction: column; gap: 2px; min-width: 0">
+                  <span style="font-size: 14px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">457(b)</span>
+                  <span style="font-size: 11px; color: #85908A">Entered by you</span>
+                </div>
+                <span style="font-size: 13px; color: #A3ADA8">Partner</span>
+                <span style="font-size: 13px; color: #A3ADA8">When your partner leaves the job</span>
+                
+                  <label class="field" style="height: 36px; display: flex; align-items: center; gap: 4px; padding: 0 10px; border: 1px solid #242C28; border-radius: 10px; background: #171D1A">
+                    <span style="font-size: 13px; color: #85908A">$</span>
+                    <input class="mono" type="number" inputmode="decimal" aria-label="457(b) balance" value="60000" style="text-align: right; font-size: 13px">
+                  </label>
+                
+                
+                
+                  <label class="field" style="height: 36px; display: flex; align-items: center; gap: 4px; padding: 0 10px; border: 1px solid #242C28; border-radius: 10px; background: #171D1A">
+                    <span style="font-size: 13px; color: #85908A">$</span>
+                    <input class="mono" type="number" inputmode="decimal" aria-label="457(b) added per year" value="24500" style="text-align: right; font-size: 13px">
+                  </label>
+                
+                
+              </div>
+            
+              <div class="row" style="display: grid; grid-template-columns: minmax(0, 2.2fr) minmax(0, 1fr) minmax(0, 1.7fr) 150px 150px; gap: 16px; align-items: center; min-height: 52px; padding: 6px 8px; border-bottom: 1px solid #1E2622; border-radius: 8px">
+                <div style="display: flex; flex-direction: column; gap: 2px; min-width: 0">
+                  <span style="font-size: 14px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">PERS 3 investment account</span>
+                  <span style="font-size: 11px; color: #85908A">Entered by you</span>
+                </div>
+                <span style="font-size: 13px; color: #A3ADA8">Partner</span>
+                <span style="font-size: 13px; color: #A3ADA8">59½, or on leaving at 55+</span>
+                
+                  <label class="field" style="height: 36px; display: flex; align-items: center; gap: 4px; padding: 0 10px; border: 1px solid #242C28; border-radius: 10px; background: #171D1A">
+                    <span style="font-size: 13px; color: #85908A">$</span>
+                    <input class="mono" type="number" inputmode="decimal" aria-label="PERS 3 investment account balance" value="60000" style="text-align: right; font-size: 13px">
+                  </label>
+                
+                
+                
+                
+                  <span style="display: flex; flex-direction: column; align-items: flex-end; padding-right: 11px">
+                    <span class="mono" style="font-size: 13px">$9,500</span>
+                    <span style="font-size: 11px; color: #85908A">10% of salary</span>
+                  </span>
+                
+              </div>
+            
+            <div style="display: grid; grid-template-columns: minmax(0, 2.2fr) minmax(0, 1fr) minmax(0, 1.7fr) 150px 150px; gap: 16px; align-items: center; padding: 12px 8px 0; font-size: 13px; font-weight: 600">
+              <span>Total</span><span></span><span></span>
+              <span class="mono" style="text-align: right; padding-right: 11px">$762,000</span>
+              <span class="mono" style="text-align: right; padding-right: 11px">$148,500</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section aria-label="Assumptions" class="pad" style="background: #111614; border: 1px solid #242C28; border-radius: 16px; padding: 24px 28px">
+        <h2 style="margin: 0; font-size: 16px; font-weight: 600">Assumptions</h2>
+        <p style="margin: 4px 0 0; font-size: 13px; color: #A3ADA8">Spending starts at what OtterMint saw over the last 12 months. Change anything and the date above moves.</p>
+        <div style="margin-top: 20px; display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 24px 28px">
+          
+            <fieldset style="margin: 0; padding: 0; border: 0; min-width: 0; display: flex; flex-direction: column; gap: 12px">
+              <legend style="padding: 0; margin-bottom: 12px; font-size: 13px; font-weight: 600; color: #EDF1EF">You two</legend>
+              
+                <div style="display: flex; flex-direction: column; gap: 6px">
+                  <label for="f-yourAge" style="font-size: 12px; color: #A3ADA8">Your age</label>
+                  <div class="field" style="height: 40px; display: flex; align-items: center; gap: 4px; padding: 0 12px; border: 1px solid #242C28; border-radius: 10px; background: #171D1A">
+                    
+                    <input id="f-yourAge" class="mono" type="number" inputmode="decimal" step="1" value="35" style="font-size: 14px">
+                    
+                  </div>
+                  
+                </div>
+              
+                <div style="display: flex; flex-direction: column; gap: 6px">
+                  <label for="f-partnerAge" style="font-size: 12px; color: #A3ADA8">Partner’s age</label>
+                  <div class="field" style="height: 40px; display: flex; align-items: center; gap: 4px; padding: 0 12px; border: 1px solid #242C28; border-radius: 10px; background: #171D1A">
+                    
+                    <input id="f-partnerAge" class="mono" type="number" inputmode="decimal" step="1" value="34" style="font-size: 14px">
+                    
+                  </div>
+                  
+                </div>
+              
+                <div style="display: flex; flex-direction: column; gap: 6px">
+                  <label for="f-planAge" style="font-size: 12px; color: #A3ADA8">Plan until your age</label>
+                  <div class="field" style="height: 40px; display: flex; align-items: center; gap: 4px; padding: 0 12px; border: 1px solid #242C28; border-radius: 10px; background: #171D1A">
+                    
+                    <input id="f-planAge" class="mono" type="number" inputmode="decimal" step="1" value="95" style="font-size: 14px">
+                    
+                  </div>
+                  
+                </div>
+              
+            </fieldset>
+          
+            <fieldset style="margin: 0; padding: 0; border: 0; min-width: 0; display: flex; flex-direction: column; gap: 12px">
+              <legend style="padding: 0; margin-bottom: 12px; font-size: 13px; font-weight: 600; color: #EDF1EF">Who stops working when</legend>
+              
+                <div style="display: flex; flex-direction: column; gap: 6px">
+                  <label for="f-partnerOffset" style="font-size: 12px; color: #A3ADA8">Partner retires</label>
+                  <div class="field" style="height: 40px; display: flex; align-items: center; gap: 4px; padding: 0 12px; border: 1px solid #242C28; border-radius: 10px; background: #171D1A">
+                    
+                    <input id="f-partnerOffset" class="mono" type="number" inputmode="decimal" step="0.5" value="0" style="font-size: 14px">
+                    <span style="font-size: 13px; color: #85908A; white-space: nowrap">years after you</span>
+                  </div>
+                  <span style="font-size: 11px; color: #85908A">Use a minus sign if they stop first</span>
+                </div>
+              
+                <div style="display: flex; flex-direction: column; gap: 6px">
+                  <label for="f-partnerTakeHome" style="font-size: 12px; color: #A3ADA8">Partner’s take-home pay</label>
+                  <div class="field" style="height: 40px; display: flex; align-items: center; gap: 4px; padding: 0 12px; border: 1px solid #242C28; border-radius: 10px; background: #171D1A">
+                    <span style="font-size: 13px; color: #85908A">$</span>
+                    <input id="f-partnerTakeHome" class="mono" type="number" inputmode="decimal" step="1" value="6000" style="font-size: 14px">
+                    <span style="font-size: 13px; color: #85908A; white-space: nowrap">/mo</span>
+                  </div>
+                  <span style="font-size: 11px; color: #85908A">Yours is the rest of OtterMint’s $15,000/mo: $9,000</span>
+                </div>
+              
+            </fieldset>
+          
+            <fieldset style="margin: 0; padding: 0; border: 0; min-width: 0; display: flex; flex-direction: column; gap: 12px">
+              <legend style="padding: 0; margin-bottom: 12px; font-size: 13px; font-weight: 600; color: #EDF1EF">Spending in retirement</legend>
+              
+                <div style="display: flex; flex-direction: column; gap: 6px">
+                  <label for="f-spend" style="font-size: 12px; color: #A3ADA8">Monthly spending</label>
+                  <div class="field" style="height: 40px; display: flex; align-items: center; gap: 4px; padding: 0 12px; border: 1px solid #242C28; border-radius: 10px; background: #171D1A">
+                    <span style="font-size: 13px; color: #85908A">$</span>
+                    <input id="f-spend" class="mono" type="number" inputmode="decimal" step="1" value="7500" style="font-size: 14px">
+                    
+                  </div>
+                  <span style="font-size: 11px; color: #85908A">Last 12 months in OtterMint: $7,500/mo</span>
+                </div>
+              
+                <div style="display: flex; flex-direction: column; gap: 6px">
+                  <label for="f-health" style="font-size: 12px; color: #A3ADA8">Health insurance until 65</label>
+                  <div class="field" style="height: 40px; display: flex; align-items: center; gap: 4px; padding: 0 12px; border: 1px solid #242C28; border-radius: 10px; background: #171D1A">
+                    <span style="font-size: 13px; color: #85908A">$</span>
+                    <input id="f-health" class="mono" type="number" inputmode="decimal" step="1" value="1200" style="font-size: 14px">
+                    <span style="font-size: 13px; color: #85908A; white-space: nowrap">/mo</span>
+                  </div>
+                  <span style="font-size: 11px; color: #85908A">For both of you, once neither has a job</span>
+                </div>
+              
+                <div style="display: flex; flex-direction: column; gap: 6px">
+                  <label for="f-tax" style="font-size: 12px; color: #A3ADA8">Tax on withdrawals</label>
+                  <div class="field" style="height: 40px; display: flex; align-items: center; gap: 4px; padding: 0 12px; border: 1px solid #242C28; border-radius: 10px; background: #171D1A">
+                    
+                    <input id="f-tax" class="mono" type="number" inputmode="decimal" step="0.5" value="10" style="font-size: 14px">
+                    <span style="font-size: 13px; color: #85908A; white-space: nowrap">%</span>
+                  </div>
+                  
+                </div>
+              
+            </fieldset>
+          
+            <fieldset style="margin: 0; padding: 0; border: 0; min-width: 0; display: flex; flex-direction: column; gap: 12px">
+              <legend style="padding: 0; margin-bottom: 12px; font-size: 13px; font-weight: 600; color: #EDF1EF">Spending changes</legend>
+              
+                <div style="display: flex; flex-direction: column; gap: 6px">
+                  <label for="f-chg1Age" style="font-size: 12px; color: #A3ADA8">From your age</label>
+                  <div class="field" style="height: 40px; display: flex; align-items: center; gap: 4px; padding: 0 12px; border: 1px solid #242C28; border-radius: 10px; background: #171D1A">
+                    
+                    <input id="f-chg1Age" class="mono" type="number" inputmode="decimal" step="1" value="55" style="font-size: 14px">
+                    
+                  </div>
+                  
+                </div>
+              
+                <div style="display: flex; flex-direction: column; gap: 6px">
+                  <label for="f-chg1Amt" style="font-size: 12px; color: #A3ADA8">Spending changes by</label>
+                  <div class="field" style="height: 40px; display: flex; align-items: center; gap: 4px; padding: 0 12px; border: 1px solid #242C28; border-radius: 10px; background: #171D1A">
+                    <span style="font-size: 13px; color: #85908A">$</span>
+                    <input id="f-chg1Amt" class="mono" type="number" inputmode="decimal" step="100" value="0" style="font-size: 14px">
+                    <span style="font-size: 13px; color: #85908A; white-space: nowrap">/mo</span>
+                  </div>
+                  <span style="font-size: 11px; color: #85908A">Minus for less, e.g. a paid-off mortgage</span>
+                </div>
+              
+                <div style="display: flex; flex-direction: column; gap: 6px">
+                  <label for="f-chg2Age" style="font-size: 12px; color: #A3ADA8">Then from your age</label>
+                  <div class="field" style="height: 40px; display: flex; align-items: center; gap: 4px; padding: 0 12px; border: 1px solid #242C28; border-radius: 10px; background: #171D1A">
+                    
+                    <input id="f-chg2Age" class="mono" type="number" inputmode="decimal" step="1" value="75" style="font-size: 14px">
+                    
+                  </div>
+                  
+                </div>
+              
+                <div style="display: flex; flex-direction: column; gap: 6px">
+                  <label for="f-chg2Amt" style="font-size: 12px; color: #A3ADA8">Spending changes by</label>
+                  <div class="field" style="height: 40px; display: flex; align-items: center; gap: 4px; padding: 0 12px; border: 1px solid #242C28; border-radius: 10px; background: #171D1A">
+                    <span style="font-size: 13px; color: #85908A">$</span>
+                    <input id="f-chg2Amt" class="mono" type="number" inputmode="decimal" step="100" value="0" style="font-size: 14px">
+                    <span style="font-size: 13px; color: #85908A; white-space: nowrap">/mo</span>
+                  </div>
+                  
+                </div>
+              
+            </fieldset>
+          
+            <fieldset style="margin: 0; padding: 0; border: 0; min-width: 0; display: flex; flex-direction: column; gap: 12px">
+              <legend style="padding: 0; margin-bottom: 12px; font-size: 13px; font-weight: 600; color: #EDF1EF">Returns after inflation</legend>
+              
+                <div style="display: flex; flex-direction: column; gap: 6px">
+                  <label for="f-rPre" style="font-size: 12px; color: #A3ADA8">Before retiring</label>
+                  <div class="field" style="height: 40px; display: flex; align-items: center; gap: 4px; padding: 0 12px; border: 1px solid #242C28; border-radius: 10px; background: #171D1A">
+                    
+                    <input id="f-rPre" class="mono" type="number" inputmode="decimal" step="0.5" value="5" style="font-size: 14px">
+                    <span style="font-size: 13px; color: #85908A; white-space: nowrap">%</span>
+                  </div>
+                  
+                </div>
+              
+                <div style="display: flex; flex-direction: column; gap: 6px">
+                  <label for="f-rPost" style="font-size: 12px; color: #A3ADA8">After retiring</label>
+                  <div class="field" style="height: 40px; display: flex; align-items: center; gap: 4px; padding: 0 12px; border: 1px solid #242C28; border-radius: 10px; background: #171D1A">
+                    
+                    <input id="f-rPost" class="mono" type="number" inputmode="decimal" step="0.5" value="3.5" style="font-size: 14px">
+                    <span style="font-size: 13px; color: #85908A; white-space: nowrap">%</span>
+                  </div>
+                  <span style="font-size: 11px; color: #85908A">Lower, to leave room for bad years</span>
+                </div>
+              
+                <div style="display: flex; flex-direction: column; gap: 6px">
+                  <label for="f-rCrypto" style="font-size: 12px; color: #A3ADA8">Crypto (River)</label>
+                  <div class="field" style="height: 40px; display: flex; align-items: center; gap: 4px; padding: 0 12px; border: 1px solid #242C28; border-radius: 10px; background: #171D1A">
+                    
+                    <input id="f-rCrypto" class="mono" type="number" inputmode="decimal" step="0.5" value="5" style="font-size: 14px">
+                    <span style="font-size: 13px; color: #85908A; white-space: nowrap">%</span>
+                  </div>
+                  <span style="font-size: 11px; color: #85908A">Used before and after retiring</span>
+                </div>
+              
+                <div style="display: flex; flex-direction: column; gap: 6px">
+                  <label for="f-infl" style="font-size: 12px; color: #A3ADA8">Inflation</label>
+                  <div class="field" style="height: 40px; display: flex; align-items: center; gap: 4px; padding: 0 12px; border: 1px solid #242C28; border-radius: 10px; background: #171D1A">
+                    
+                    <input id="f-infl" class="mono" type="number" inputmode="decimal" step="0.5" value="2.5" style="font-size: 14px">
+                    <span style="font-size: 13px; color: #85908A; white-space: nowrap">%</span>
+                  </div>
+                  <span style="font-size: 11px; color: #85908A">Only used to wear down the pension</span>
+                </div>
+              
+            </fieldset>
+          
+            <fieldset style="margin: 0; padding: 0; border: 0; min-width: 0; display: flex; flex-direction: column; gap: 12px">
+              <legend style="padding: 0; margin-bottom: 12px; font-size: 13px; font-weight: 600; color: #EDF1EF">Partner’s PERS 3</legend>
+              
+                <div style="display: flex; flex-direction: column; gap: 6px">
+                  <label for="f-salary" style="font-size: 12px; color: #A3ADA8">Salary</label>
+                  <div class="field" style="height: 40px; display: flex; align-items: center; gap: 4px; padding: 0 12px; border: 1px solid #242C28; border-radius: 10px; background: #171D1A">
+                    <span style="font-size: 13px; color: #85908A">$</span>
+                    <input id="f-salary" class="mono" type="number" inputmode="decimal" step="1" value="95000" style="font-size: 14px">
+                    <span style="font-size: 13px; color: #85908A; white-space: nowrap">/yr</span>
+                  </div>
+                  
+                </div>
+              
+                <div style="display: flex; flex-direction: column; gap: 6px">
+                  <label for="f-service" style="font-size: 12px; color: #A3ADA8">Years of service so far</label>
+                  <div class="field" style="height: 40px; display: flex; align-items: center; gap: 4px; padding: 0 12px; border: 1px solid #242C28; border-radius: 10px; background: #171D1A">
+                    
+                    <input id="f-service" class="mono" type="number" inputmode="decimal" step="0.5" value="6" style="font-size: 14px">
+                    
+                  </div>
+                  
+                </div>
+              
+                <div style="display: flex; flex-direction: column; gap: 6px">
+                  <label for="f-pensionAge" style="font-size: 12px; color: #A3ADA8">Start the pension at</label>
+                  <div class="field" style="height: 40px; display: flex; align-items: center; gap: 4px; padding: 0 12px; border: 1px solid #242C28; border-radius: 10px; background: #171D1A">
+                    
+                    <input id="f-pensionAge" class="mono" type="number" inputmode="decimal" step="1" value="65" style="font-size: 14px">
+                    
+                  </div>
+                  <span style="font-size: 11px; color: #85908A">55 at the earliest; full amount at 65</span>
+                </div>
+              
+            </fieldset>
+          
+            <fieldset style="margin: 0; padding: 0; border: 0; min-width: 0; display: flex; flex-direction: column; gap: 12px">
+              <legend style="padding: 0; margin-bottom: 12px; font-size: 13px; font-weight: 600; color: #EDF1EF">Social Security</legend>
+              
+                <div style="display: flex; flex-direction: column; gap: 6px">
+                  <label for="f-ssYou" style="font-size: 12px; color: #A3ADA8">Yours at 67</label>
+                  <div class="field" style="height: 40px; display: flex; align-items: center; gap: 4px; padding: 0 12px; border: 1px solid #242C28; border-radius: 10px; background: #171D1A">
+                    <span style="font-size: 13px; color: #85908A">$</span>
+                    <input id="f-ssYou" class="mono" type="number" inputmode="decimal" step="1" value="2400" style="font-size: 14px">
+                    <span style="font-size: 13px; color: #85908A; white-space: nowrap">/mo</span>
+                  </div>
+                  
+                </div>
+              
+                <div style="display: flex; flex-direction: column; gap: 6px">
+                  <label for="f-ssYouAge" style="font-size: 12px; color: #A3ADA8">You claim at</label>
+                  <div class="field" style="height: 40px; display: flex; align-items: center; gap: 4px; padding: 0 12px; border: 1px solid #242C28; border-radius: 10px; background: #171D1A">
+                    
+                    <input id="f-ssYouAge" class="mono" type="number" inputmode="decimal" step="1" value="67" style="font-size: 14px">
+                    
+                  </div>
+                  <span style="font-size: 11px; color: #85908A">62 to 70</span>
+                </div>
+              
+                <div style="display: flex; flex-direction: column; gap: 6px">
+                  <label for="f-ssPartner" style="font-size: 12px; color: #A3ADA8">Partner’s at 67</label>
+                  <div class="field" style="height: 40px; display: flex; align-items: center; gap: 4px; padding: 0 12px; border: 1px solid #242C28; border-radius: 10px; background: #171D1A">
+                    <span style="font-size: 13px; color: #85908A">$</span>
+                    <input id="f-ssPartner" class="mono" type="number" inputmode="decimal" step="1" value="1800" style="font-size: 14px">
+                    <span style="font-size: 13px; color: #85908A; white-space: nowrap">/mo</span>
+                  </div>
+                  
+                </div>
+              
+                <div style="display: flex; flex-direction: column; gap: 6px">
+                  <label for="f-ssPartnerAge" style="font-size: 12px; color: #A3ADA8">Partner claims at</label>
+                  <div class="field" style="height: 40px; display: flex; align-items: center; gap: 4px; padding: 0 12px; border: 1px solid #242C28; border-radius: 10px; background: #171D1A">
+                    
+                    <input id="f-ssPartnerAge" class="mono" type="number" inputmode="decimal" step="1" value="67" style="font-size: 14px">
+                    
+                  </div>
+                  <span style="font-size: 11px; color: #85908A">62 to 70</span>
+                </div>
+              
+            </fieldset>
+          
+            <fieldset style="margin: 0; padding: 0; border: 0; min-width: 0; display: flex; flex-direction: column; gap: 12px">
+              <legend style="padding: 0; margin-bottom: 12px; font-size: 13px; font-weight: 600; color: #EDF1EF">Roth IRAs</legend>
+              
+                <div style="display: flex; flex-direction: column; gap: 6px">
+                  <label for="f-rothBasisYou" style="font-size: 12px; color: #A3ADA8">Your contributions so far</label>
+                  <div class="field" style="height: 40px; display: flex; align-items: center; gap: 4px; padding: 0 12px; border: 1px solid #242C28; border-radius: 10px; background: #171D1A">
+                    <span style="font-size: 13px; color: #85908A">$</span>
+                    <input id="f-rothBasisYou" class="mono" type="number" inputmode="decimal" step="1" value="5000" style="font-size: 14px">
+                    
+                  </div>
+                  <span style="font-size: 11px; color: #85908A">Can come out any time; growth waits for 59½</span>
+                </div>
+              
+                <div style="display: flex; flex-direction: column; gap: 6px">
+                  <label for="f-rothBasisPartner" style="font-size: 12px; color: #A3ADA8">Partner’s contributions so far</label>
+                  <div class="field" style="height: 40px; display: flex; align-items: center; gap: 4px; padding: 0 12px; border: 1px solid #242C28; border-radius: 10px; background: #171D1A">
+                    <span style="font-size: 13px; color: #85908A">$</span>
+                    <input id="f-rothBasisPartner" class="mono" type="number" inputmode="decimal" step="1" value="15000" style="font-size: 14px">
+                    
+                  </div>
+                  
+                </div>
+              
+            </fieldset>
+          
+        </div>
+        <p style="margin: 20px 0 0; font-size: 12px; color: #85908A">Your Social Security estimates are at <a href="https://www.ssa.gov/myaccount/" target="_blank" rel="noopener">ssa.gov/myaccount</a>; your partner's pension estimate is in their DRS online account.</p>
+      </section>
+
+      <section aria-label="What moves the date">
+        <h2 style="margin: 0 0 12px; font-size: 16px; font-weight: 600">What moves the date</h2>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px">
+          
+            <div style="background: #111614; border: 1px solid #242C28; border-radius: 16px; padding: 18px 20px; display: flex; flex-direction: column; gap: 6px">
+              <span style="font-size: 13px; font-weight: 500; color: #A3ADA8">Spend $500/mo less</span>
+              <span class="mono" style="font-size: 22px; font-weight: 600">Dec 2032</span>
+              <span style="font-size: 13px; font-weight: 500; color: #34D399">7 months sooner</span>
+            </div>
+          
+            <div style="background: #111614; border: 1px solid #242C28; border-radius: 16px; padding: 18px 20px; display: flex; flex-direction: column; gap: 6px">
+              <span style="font-size: 13px; font-weight: 500; color: #A3ADA8">Save $1,000/mo more</span>
+              <span class="mono" style="font-size: 22px; font-weight: 600">Mar 2033</span>
+              <span style="font-size: 13px; font-weight: 500; color: #34D399">4 months sooner</span>
+            </div>
+          
+            <div style="background: #111614; border: 1px solid #242C28; border-radius: 16px; padding: 18px 20px; display: flex; flex-direction: column; gap: 6px">
+              <span style="font-size: 13px; font-weight: 500; color: #A3ADA8">Returns 1 point lower</span>
+              <span class="mono" style="font-size: 22px; font-weight: 600">Dec 2034</span>
+              <span style="font-size: 13px; font-weight: 500; color: #F0836F">1 year 5 months later</span>
+            </div>
+          
+        </div>
+      </section>
+
+    </main>
+  </div>
+</div>
+</body>
+</html>

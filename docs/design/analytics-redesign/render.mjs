@@ -98,4 +98,7 @@ const dir = path.join(out, "source");
 const name = path.basename(out).replace(/-/g, " ").replace(/^./, (c) => c.toUpperCase());
 fs.mkdirSync(out, { recursive: true });
 render(`${dir}/desktop.dc.html`, `${out}/desktop.html`, { accent: "#34D399", serifTitles: true }, `${name} · desktop mock`);
-render(`${dir}/phone.dc.html`, `${out}/phone.html`, { accent: "#34D399", serifTitles: true }, `${name} · phone mock`);
+// A fluid board serves both widths, so a design may have no separate phone board.
+if (fs.existsSync(`${dir}/phone.dc.html`)) {
+  render(`${dir}/phone.dc.html`, `${out}/phone.html`, { accent: "#34D399", serifTitles: true }, `${name} · phone mock`);
+}
