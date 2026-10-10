@@ -118,7 +118,8 @@ export function FireAccounts({ accounts, plan, cashSavedYearly, onAppChoice, onT
           </Button>
         }
       />
-      <div className="mt-5 overflow-x-auto">
+      {/* relative: the visually hidden labels are absolutely positioned and must scroll with the table, not widen the page. */}
+      <div className="relative mt-5 overflow-x-auto">
         <div className="min-w-[920px]">
           <div className={cx(ROW, "border-b border-line px-2 pb-2 text-micro font-medium text-ink-muted")}>
             <span>Account</span>
@@ -201,7 +202,7 @@ export function FireAccounts({ accounts, plan, cashSavedYearly, onAppChoice, onT
         </div>
       </div>
       <p className="mt-3 text-micro text-ink-muted">
-        Plus {formatWholeCurrency(cashSavedYearly)} a year of cash saved from pay while you both work, invested as &ldquo;New savings&rdquo;.
+        {`Plus ${formatWholeCurrency(cashSavedYearly)} a year of cash saved from pay while you both work, invested as “New savings”.`}
       </p>
     </Card>
   );

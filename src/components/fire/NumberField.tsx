@@ -88,7 +88,7 @@ export function NumberField({
           onBlur={() => {
             if (invalid) setText(display(value));
           }}
-          className="w-full min-w-0 bg-transparent font-mono text-sm tabular-nums text-ink outline-none"
+          className="h-full w-full min-w-0 bg-transparent font-mono text-sm tabular-nums text-ink outline-none"
         />
         {suffix && <span className="whitespace-nowrap text-caption text-ink-muted">{suffix}</span>}
       </div>

@@ -34,7 +34,7 @@ export function FireAssumptions({ assumptions: a, cashflow, pensionMonthly, onCh
     ) : (
       <>
         {label} ·{" "}
-        <button type="button" className="text-accent underline decoration-accent/40 underline-offset-2" onClick={() => onChange({ [key]: null })}>
+        <button type="button" className="inline-flex min-h-11 items-center text-accent underline decoration-accent/40 underline-offset-2 sm:min-h-0" onClick={() => onChange({ [key]: null })}>
           Use it
         </button>
       </>

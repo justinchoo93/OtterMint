@@ -21,7 +21,7 @@ export function FireTimeline({ items, subtitle }: FireTimelineProps) {
               <span className={cx("mt-1.5 h-2.5 w-2.5 rounded-full", item.tone === "retire" ? "bg-accent" : "bg-chart-muted")} />
               {index < items.length - 1 && <span className="min-h-3 w-px flex-1 bg-line" />}
             </div>
-            <div className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1 pb-5">
+            <div className="grid grid-cols-[minmax(0,1fr)_auto] items-baseline gap-x-6 gap-y-1 pb-5">
               <div className="flex min-w-0 flex-col gap-0.5">
                 <span className="text-sm font-semibold text-ink">{item.title}</span>
                 <span className="text-micro text-ink-muted">{item.when}</span>

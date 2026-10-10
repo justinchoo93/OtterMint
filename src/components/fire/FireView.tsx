@@ -334,7 +334,7 @@ export function FireView({ refreshKey }: { refreshKey?: number }) {
         </div>
 
         <details className="mt-4 max-w-3xl text-micro text-ink-muted">
-          <summary className="inline-block cursor-pointer text-caption text-accent underline decoration-accent/40 underline-offset-2">
+          <summary className="inline-flex min-h-11 cursor-pointer items-center text-caption sm:min-h-0 text-accent underline decoration-accent/40 underline-offset-2">
             About these numbers
           </summary>
           <ul className="mt-2 flex list-disc flex-col gap-1 pl-4 leading-relaxed">

@@ -25,6 +25,11 @@ interface Datum {
   m: number;
 }
 
+/** "$1M" rather than "$1.00M" for whole millions; otherwise the app's compact form. */
+function axisMoney(value: number): string {
+  return value >= 1_000_000 && value % 1_000_000 === 0 ? `$${value / 1_000_000}M` : formatCompactCurrency(value);
+}
+
 /** A zero-based axis with at most five round gridlines. */
 function projectionScale(peak: number): { max: number; ticks: number[] } {
   const top = Math.max(1, peak);
@@ -88,7 +93,7 @@ export function FireChart({ params, sim }: FireChartProps) {
             tick={{ fontSize: 11, fill: "var(--text-muted)", fontFamily: "var(--font-geist-mono)" }}
             tickLine={false}
             axisLine={false}
-            tickFormatter={(value: number) => formatCompactCurrency(value)}
+            tickFormatter={axisMoney}
             width={56}
           />
           <Tooltip
