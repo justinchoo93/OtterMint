@@ -8,7 +8,7 @@ The reference for the FIRE destination (`docs/plans/fire-calculator.md`). The ow
 
 ## Checking the implementation against the mock
 
-`harness/mock-fixtures.js` (Milestone 5 of the plan) answers every `/api/*` request with this mock's sample household, so the real page renders locally with no database. The approach is the same as `docs/design/analytics-redesign/README.md`: run `npm run dev`, apply the harness in a Playwright browser as a page function, open FIRE, and screenshot at 1440 × 1000 and 390 × 844.
+The implementation was checked against this mock with the real app and a disposable database, seeded with the mock's sample household; the steps are under Concrete Steps in `docs/plans/fire-calculator.md`. The page showed the same headline (Jul 2033), status (Lasts to 95 · $130k left) and lever dates (Dec 2032, Mar 2033, Dec 2034). Use `http://localhost:<port>`, not `127.0.0.1`: Next's dev server blocks its client resources for that origin.
 
 ## Intended deviations in the implementation
 

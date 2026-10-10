@@ -15,16 +15,31 @@ To see it working after implementation, sign in and click "FIRE" in the sidebar.
 ## Progress
 
 - [x] (2026-10-09 20:10Z) Research, design decisions and this plan.
-- [ ] Milestone 1: design reference committed under `docs/design/fire-calculator/`.
-- [ ] Milestone 2: the pure projection model `src/lib/fire-model.ts` with unit tests.
-- [ ] Milestone 3: storage and API: `fire_plans` table and migration with Row-Level Security, plan validation, `GET`/`PUT /api/fire`, tests, and a real-database check.
-- [ ] Milestone 4: the FIRE destination UI with tests.
-- [ ] Milestone 5: harness screenshots against the mock, and a read-only production-data check.
-- [ ] Milestone 6: merge to main. The production migration and deploy wait for the owner's go-ahead.
+- [x] (2026-10-09 20:20Z) Milestone 1: design reference committed under `docs/design/fire-calculator/`. The render prints `leftover holes: 0`; `render.mjs` now skips a missing phone board.
+- [x] (2026-10-09 20:35Z) Milestone 2: `src/lib/fire-model.ts` with 25 unit tests. The mock's sample household reproduces its headline, "Jul 2033", and the binary search agrees with a linear scan.
+- [x] (2026-10-09 20:50Z) Milestone 3: `fire_plans` with its RLS policy (`drizzle/0016_famous_harpoon.sql`), `validateFirePlan`, `GET`/`PUT /api/fire`, and 13 tests. All 17 migrations applied to a fresh Postgres 17, and the gated RLS suite passed (48 tests, including the three new `fire_plans` cases).
+- [x] (2026-10-09 21:10Z) Milestone 4: the FIRE destination (`src/components/fire/`) and its nav item, with 6 view tests. The full suite passes (709 passed, 49 gated skips); `tsc` and `eslint src` are clean apart from one earlier warning in `src/lib/sync-holdings.ts`.
+- [x] (2026-10-09 21:30Z) Milestone 5: an end-to-end run of the real app against a disposable database seeded with the mock's household, with screenshots at 1440 and 390; three layout fixes came out of it. The read-only production replay matched the expected figures (see Surprises & Discoveries). The export and the temporary test were deleted.
+- [ ] Milestone 6: merge to main (completed: commits on branch `fire-calculator`; remaining: fast-forward `origin/main` and the local main). The production migration and deploy wait for the owner's go-ahead.
 
 ## Surprises & Discoveries
 
-(None yet.)
+- Observation: on production data the twelve-month figures come out at take-home $15,626 a month, spending $7,638 a month and cash saved $95,851 a year (October 2025 to September 2026, twelve months counted). The account types were suggested as expected:
+  - three brokerage accounts (Chase Self-Directed ····6850 and ····6940, Schwab Individual);
+  - one Roth IRA;
+  - the "Vanguard 401K" manual asset as a 401(k);
+  - both checking accounts and the "Kimmy Choo's Trust Fund" savings account as not counted.
+
+  Evidence: 1,291 classified rows and 11 category memories, exported read-only on 2026-10-10 and replayed through `enrichDescriptors`, `applyCategoryRules`, `applyUserCategories`, `aggregateCashflow` and `summarizeCashflow`. Two accounts share the name "Self-Directed", so the table's institution-and-mask line is what tells them apart.
+
+- Observation: the JSX compiler dropped the space in `Plus {formatWholeCurrency(x)} a year …` when the text after the expression ran to the end of the line, so the page read "$90,000a year".
+  Evidence: in the browser the text nodes were `"Plus "`, `"$90,000"`, `"a year of …"`. The sentence is now one template string.
+
+- Observation: the visually hidden labels (`sr-only`, absolutely positioned) inside the horizontally scrolling accounts table escaped its clipping and widened phones by 363 px. Their containing block was outside the scroll box.
+  Evidence: `scrollWidth − clientWidth` was 363 at 390 px wide and 0 on every other destination; it fell to 0 once the scroll box became `relative`.
+
+- Observation: Next's dev server blocks its client resources for the `127.0.0.1` origin, so the page never hydrated there. Use `http://localhost:<port>` for browser checks.
+  Evidence: "Blocked cross-origin request to Next.js dev resource /_next/webpack-hmr from 127.0.0.1" in the dev log, and the page stuck on its loading skeleton.
 
 ## Decision Log
 
@@ -68,9 +83,32 @@ To see it working after implementation, sign in and click "FIRE" in the sidebar.
   Rationale: a production schema change is outward-facing and hard to reverse. `scripts/deploy.sh` never runs migrations, and deploying the code before the table exists would make the FIRE page fail to load or save, while every other page keeps working.
   Date/Author: 2026-10-09, agent.
 
+- Decision: Milestone 5 ran the real app against a disposable Postgres, seeded with the mock's household through real accounts, transactions and a `PUT` of the mock's plan, instead of writing a route-fixture harness.
+  Rationale: this exercises the migration, RLS, the Drizzle upsert of the JSON column, autosave and reload, as well as the layout. A fixture harness would have shown only the layout. The screenshots matched the mock number for number, so no committed harness is needed. Run it again with the steps under Concrete Steps.
+  Date/Author: 2026-10-09, agent.
+
+- Decision: "Cash saved per year" may be negative (bounds −100,000,000 to 100,000,000). A negative figure is withdrawn from open accounts while both partners work.
+  Rationale: OtterMint's twelve-month figure is income minus spending, and a household that spends more than it earns should see that, not a silent zero.
+  Date/Author: 2026-10-09, agent.
+
+- Decision: the household-tab empty state is checked by reading `src/app/page.tsx`, not by a unit test.
+  Rationale: `page.tsx` is a large client page with many fetches. The branch is two lines, the same shape as the Investments one.
+  Date/Author: 2026-10-09, agent.
+
 ## Outcomes & Retrospective
 
-(To be written at milestones.)
+As of 2026-10-09 the feature is complete on branch `fire-calculator`. With the mock's sample household seeded into a real database, the real app shows the mock's numbers exactly: headline "Jul 2033", "Lasts to 95 · $130k left", and the lever tiles Dec 2032, Mar 2033 and Dec 2034.
+
+Checked end to end in the running app:
+- Editing spending to $7,000 moves the headline to Dec 2032, the date the "Spend $500/mo less" tile predicted. The edit saves itself and survives a reload.
+- A typed account is stored only in `fire_plans`; `manual_accounts` was untouched.
+- `PUT` returns 400 for an invalid plan and 401 when signed out.
+- The chart tooltip reads "Age 66 · 2058 / $748,989".
+- With "Partner retires" set to 3 years, the chart shows two markers on separate label rows.
+
+What remains is the production rollout: apply `drizzle/0016_famous_harpoon.sql` on the NAS, then deploy. The owner must also enter the household's real ages, the four accounts OtterMint cannot see, the 401(k) and 457(b) contributions, the PERS 3 service and salary, and the Social Security estimates; the plan starts with the defaults.
+
+Lessons: checking against a real database in a browser caught three layout bugs that the jsdom tests could not see. The pure model made the "reproduce the mock's headline" test cheap, and that test is the strongest guard on the projection.
 
 ## Context and Orientation
 
@@ -237,7 +275,22 @@ All commands run from the repository root, `/Users/justin/code/personal/OtterMin
     npm run lint
     npx vitest run --dir src
 
-Expected transcripts are added here as milestones complete.
+The end-to-end check (Milestone 5) used a disposable database and a dev server on port 3100, with a gitignored `.env.local` holding `DATABASE_URL=postgres://app_user:app@127.0.0.1:5433/ottermint`, a random 64-character hex `ENCRYPTION_KEY`, `PLAID_ENV=sandbox` and placeholder Plaid keys. The steps:
+
+1. Register a synthetic user through `POST /api/auth/register`.
+2. As the superuser, seed one Plaid item with brokerage, Roth and checking accounts, a "Vanguard 401K" manual asset, and twelve months of $15,000 income and $7,500 spending.
+3. `PUT` the mock's plan.
+4. Sign in from Playwright at `http://localhost:3100` and open FIRE.
+
+Remove `.env.local` and the container afterwards.
+
+    $ npx vitest run --dir src
+     Test Files  65 passed | 2 skipped (67)
+          Tests  709 passed | 49 skipped (758)
+    $ RLS_TEST_DATABASE_URL=… RLS_TEST_SUPERUSER_URL=… npx vitest run --dir src src/__tests__/rls-isolation.test.ts
+          Tests  48 passed (48)
+    $ curl -s -b cookies.txt http://127.0.0.1:3100/api/fire
+    {"asOf":"2026-10-10","cashflow":{"takeHomeMonthly":15000,"spendingMonthly":7500,"cashSavedYearly":90000,"monthsCounted":12,…},"accounts":[… "suggestedKind":"brokerage" …],"plan":null,"savedAt":null}
 
 ## Validation and Acceptance
 
@@ -258,7 +311,14 @@ The model, the API and the UI are additive; removing the FIRE nav item hides the
 
 ## Artifacts and Notes
 
-(Transcripts are added as milestones complete.)
+The browser check, on the real app with a real database, at 1440 wide:
+
+    {"login":200,"headline":"Jul 2033","status":"Lasts to 95 · $130k left","overflow":0}
+    after editing spending to 7000: headline "Dec 2032"; after reload: headline "Dec 2032", field "7000"
+    tooltip: "Age 66 · 2058\n$748,989"
+    partner retires 3 years later: "Mar 2032", "In 5 years 5 months · you 40 · partner stops Mar 2035 at 42"
+
+At 390 wide, after the fixes, the horizontal overflow is 0 and every input box is 44 px tall.
 
 ## Interfaces and Dependencies
 
@@ -315,8 +375,12 @@ The validation bounds in `src/lib/validate-fire-plan.ts`:
 - ages: 18 to 100, with the plan age between 50 and 110 and above your age;
 - partner offset: −30 to 30 years;
 - monthly money: 0 to 1,000,000, except spending changes, which may be −1,000,000 to 1,000,000;
-- yearly money and balances: 0 to 100,000,000;
+- yearly money and balances: 0 to 100,000,000, except cash saved per year, which may be −100,000,000 to 100,000,000;
 - tax: 0% to 60%; returns: −10% to 20%; inflation: 0% to 15%;
 - pension service: 0 to 60 years; pension start age: 55 to 65; Social Security claim ages: 62 to 70;
 - typed accounts: at most 30, each id matching `^[a-z0-9-]{1,40}$` and each name 1 to 200 characters;
 - app-account keys: at most 200, each matching `^(plaid|manual):[A-Za-z0-9_-]{1,200}$`.
+
+---
+
+Revision note (2026-10-09): Progress, Surprises & Discoveries, Decision Log, Outcomes, Concrete Steps and Artifacts were updated after Milestones 1–5. The fixture harness in Milestone 5 was replaced by a real-database run (Decision Log). The validation bounds now allow a negative cash saving.
