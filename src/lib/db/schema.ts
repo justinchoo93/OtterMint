@@ -26,6 +26,7 @@ import {
   uuid,
   unique,
   index,
+  jsonb,
 } from "drizzle-orm/pg-core";
 
 // ─── Auth ────────────────────────────────────────────────────────────────────
@@ -526,3 +527,18 @@ export const userNetWorthCoverageEvents = pgTable(
     index("idx_user_coverage_events_user_date").on(t.userId, t.effectiveDate),
   ]
 );
+
+// ─── FIRE ────────────────────────────────────────────────────────────────────
+
+// One FIRE plan per user: the assumptions and the accounts typed on the FIRE
+// page, validated by src/lib/validate-fire-plan.ts. Typed accounts live only
+// here, never in manual_accounts, so they cannot change net worth.
+export const firePlans = pgTable("fire_plans", {
+  userId: uuid("user_id")
+    .primaryKey()
+    .references(() => users.id, { onDelete: "cascade" }),
+  plan: jsonb("plan").notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});

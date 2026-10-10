@@ -152,6 +152,12 @@ describe.skipIf(!APP_URL)("RLS full isolation", () => {
         category_detailed)
       values (${userB}, 'b merchant', 'FOOD_AND_DRINK', 'FOOD_AND_DRINK_GROCERIES')`;
 
+    // FIRE plans
+    await adminSql`insert into fire_plans (user_id, plan)
+      values (${userA}, ${adminSql.json({ version: 1 })})`;
+    await adminSql`insert into fire_plans (user_id, plan)
+      values (${userB}, ${adminSql.json({ version: 1 })})`;
+
     // share links
     await adminSql`insert into share_links (user_id, token, include_net_worth)
       values (${userA}, ${"share-a-" + SUFFIX}, true)`;
@@ -223,6 +229,7 @@ describe.skipIf(!APP_URL)("RLS full isolation", () => {
     "holding_snapshots",
     "investment_transactions",
     "category_memories",
+    "fire_plans",
     "sessions",
   ] as const;
 
@@ -237,6 +244,7 @@ describe.skipIf(!APP_URL)("RLS full isolation", () => {
     "holding_snapshots",
     "investment_transactions",
     "category_memories",
+    "fire_plans",
     "sessions",
   ] as const;
 
@@ -285,6 +293,17 @@ describe.skipIf(!APP_URL)("RLS full isolation", () => {
            values (${userB}, 'sneaky', 'FOOD_AND_DRINK', 'FOOD_AND_DRINK_GROCERIES')`
       )
     ).rejects.toThrow(/row-level security/);
+  });
+
+  it("fire_plans: WITH CHECK rejects writing B's plan, and a group member cannot read it", async () => {
+    await expect(
+      asUser(userA, (tx) =>
+        tx`insert into fire_plans (user_id, plan) values (${userB}, ${tx.json({ version: 1 })})
+           on conflict (user_id) do update set plan = excluded.plan`
+      )
+    ).rejects.toThrow(/row-level security/);
+    const seen = await asUser(userA, (tx) => tx`select user_id from fire_plans where user_id = ${userB}`);
+    expect(seen).toHaveLength(0);
   });
 
   it("transactions: A can set its own category choice but cannot touch B's", async () => {
