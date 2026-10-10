@@ -20,7 +20,8 @@ To see it working after implementation, sign in and click "FIRE" in the sidebar.
 - [x] (2026-10-09 20:50Z) Milestone 3: `fire_plans` with its RLS policy (`drizzle/0016_famous_harpoon.sql`), `validateFirePlan`, `GET`/`PUT /api/fire`, and 13 tests. All 17 migrations applied to a fresh Postgres 17, and the gated RLS suite passed (48 tests, including the three new `fire_plans` cases).
 - [x] (2026-10-09 21:10Z) Milestone 4: the FIRE destination (`src/components/fire/`) and its nav item, with 6 view tests. The full suite passes (709 passed, 49 gated skips); `tsc` and `eslint src` are clean apart from one earlier warning in `src/lib/sync-holdings.ts`.
 - [x] (2026-10-09 21:30Z) Milestone 5: an end-to-end run of the real app against a disposable database seeded with the mock's household, with screenshots at 1440 and 390; three layout fixes came out of it. The read-only production replay matched the expected figures (see Surprises & Discoveries). The export and the temporary test were deleted.
-- [ ] Milestone 6: merge to main (completed: commits on branch `fire-calculator`; remaining: fast-forward `origin/main` and the local main). The production migration and deploy wait for the owner's go-ahead.
+- [x] (2026-10-09 21:40Z) Milestone 6: `origin/main` fast-forwarded to the branch (b87c79b) and the local main synced.
+- [ ] Production, waiting for the owner's go-ahead: apply `drizzle/0016_famous_harpoon.sql` by hand on the NAS (`docs/DEPLOYMENT.md` §5.5), then run `scripts/deploy.sh`.
 
 ## Surprises & Discoveries
 
