@@ -7,6 +7,7 @@ import {
   ChevronLeft,
   ChevronRight,
   CreditCard,
+  Flame,
   LayoutDashboard,
   ListOrdered,
 } from "lucide-react";
@@ -16,6 +17,7 @@ import { InvestmentsView } from "@/components/dashboard/InvestmentsView";
 import { ManualAccountsPanel } from "@/components/manual/ManualAccountsPanel";
 import { AnalyticsView } from "@/components/dashboard/AnalyticsView";
 import { TrendsView } from "@/components/dashboard/TrendsView";
+import { FireView } from "@/components/fire/FireView";
 import { RefreshButton } from "@/components/dashboard/RefreshButton";
 import { PlaidLinkButton } from "@/components/plaid/PlaidLinkButton";
 import { AvatarMenu } from "@/components/auth/AvatarMenu";
@@ -43,7 +45,8 @@ type NavDestination =
   | "accounts"
   | "transactions"
   | "investments"
-  | "analytics";
+  | "analytics"
+  | "fire";
 
 const NAV_ITEMS: {
   id: NavDestination;
@@ -55,6 +58,7 @@ const NAV_ITEMS: {
   { id: "transactions", label: "Transactions", icon: ListOrdered },
   { id: "investments", label: "Investments", icon: BriefcaseBusiness },
   { id: "analytics", label: "Analytics", icon: BarChart3 },
+  { id: "fire", label: "FIRE", icon: Flame },
 ];
 
 export default function Dashboard() {
@@ -260,6 +264,16 @@ export default function Dashboard() {
             <InvestmentsView refreshKey={refreshKey} />
           )}
         </div>
+      );
+    }
+
+    if (activeDestination === "fire") {
+      return isHousehold ? (
+        <div className="rounded-xl border border-dashed border-[var(--border)] bg-[var(--bg-secondary)] p-8 text-center text-sm text-[var(--text-muted)]">
+          Household FIRE plans are not available yet.
+        </div>
+      ) : (
+        <FireView refreshKey={refreshKey} />
       );
     }
 
